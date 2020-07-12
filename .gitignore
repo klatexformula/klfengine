@@ -1,0 +1,15 @@
+*~
+.DS_Store
+*.bak
+*.old
+
+
+.python-version
+
+doc/Doxyfile.unused
+
+klatexformula-new-backend-workflows-tmp/
+klfbackend-n-b-wrkfl-tmp
+
+playground/
+
