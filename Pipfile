@@ -7,8 +7,9 @@ verify_ssl = true
 
 [packages]
 sphinx = ">=2.0"
-exhale = "*"
 breathe = ">=4.13.0"
+exhale = "*"
+insegel = "*"
 
 [requires]
 python_version = "3.8"

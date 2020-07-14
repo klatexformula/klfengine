@@ -1,11 +1,27 @@
+#
+# backup files and other standard stuff to ignore
+#
 *~
 .DS_Store
 *.bak
 *.old
 
-
+#
+# pyenv marker file
+#
 .python-version
 
+#
+# Documentation-related auto-generated files
+#
+doc/_build
+doc/doxyoutput
+doc/api
+
+
+#
+# Files that are around on my fs but definitely shouldn't be in the repo
+#
 doc/Doxyfile.unused
 
 klatexformula-new-backend-workflows-tmp/

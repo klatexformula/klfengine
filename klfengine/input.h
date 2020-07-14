@@ -38,7 +38,8 @@ using variant_type = std::variant<Args...>;
 
 using length = variant_type<double, std::string>;
 
-using color = variant_type<std::tuple<uint16,uint16,uint16,uint16>, std::string>;
+// store color as RGBA or custom string
+using color = variant_type<std::tuple<uint8,uint8,uint8,uint8>, std::string>;
 
 
 
@@ -68,7 +69,15 @@ struct input
 
   std::string latex_engine;
 
-  double font_size;
+  /** \brief LaTeX commands to set the font
+   *
+   * Specifying commands here (instead of a point size) is much more
+   * flexible..... ........... ............ ????????? THINK!!!!
+   * ........... MIGHT BE BETTER TO KEEP 'double' AFTER ALL, MUCH CLEARER
+   * WHAT WE MEAN.
+   *
+   */
+  std::string font;
 
   color fg_color;
   color bg_color;
