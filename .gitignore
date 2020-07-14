@@ -7,6 +7,12 @@
 *.old
 
 #
+# CMake build subdirectories
+#
+build
+build-*
+
+#
 # pyenv marker file
 #
 .python-version

@@ -29,17 +29,69 @@
 #pragma once
 
 
+#include <cstdint> // uint8_t
+
+#include <string>
+#include <vector>
+#include <map>
+
+
+// todo later: support fallback library for C++-standard < C++17
+#include <variant>
+
+
 namespace klfengine
 {
 
-template<Args...>
+template<typename... Args>
 using variant_type = std::variant<Args...>;
 
 
-using length = variant_type<double, std::string>;
+namespace detail
+{
+// see https://stackoverflow.com/a/43309497/1694896
+template<typename... PrimaryDataTypes>
+struct recursive_variant_with_vector_and_map
+{
+  using array = std::vector<recursive_variant_with_vector_and_map<PrimaryDataTypes...>>;
+  using dict = std::map<std::string,
+                        recursive_variant_with_vector_and_map<PrimaryDataTypes...>>;
 
-// store color as RGBA or custom string
-using color = variant_type<std::tuple<uint8,uint8,uint8,uint8>, std::string>;
+  variant_type<PrimaryDataTypes..., array, dict> _data;
+};
+}
+
+/** \brief Store standard JSON-like types, including arrays and maps
+ *
+ * This is a variant type that can store ints, bools, doubles, strings, as well
+ * as arrays and maps of such types (maps always have strings as keys).
+ *
+ * Initialize this type with (TODO DOC ME .............)
+ * \code
+ *   klfengine::value{
+ *     klfengine::value::array{
+ *       v1,
+ *       klfengine::value::dict{
+ *         "key1", dictvalue1,
+ *         "key2", dictvalue2,
+ *         (...)
+ *       },
+ *       (...)
+ *     }
+ *  }
+ * \endcode
+ */
+using value = detail::recursive_variant_with_vector_and_map<
+  int,
+  bool,
+  double,
+  std::string
+>;
+
+
+using length = double;
+// store color as RGBA values 0-255
+using color = std::tuple<uint8_t,uint8_t,uint8_t,uint8_t>;
 
 
 
@@ -57,7 +109,7 @@ struct input
    *
    * For instance, <code>("\[", "\]")</code>.
    */
-  variant_type<std::string, std::pair<std::string,std::string>> math_mode;
+  std::pair<std::string,std::string> math_mode;
 
   /** \brief Code to include in the LaTeX preamble
    *
@@ -69,15 +121,11 @@ struct input
 
   std::string latex_engine;
 
-  /** \brief LaTeX commands to set the font
+  /** \brief Font size in which to typeset the LaTeX code (in LaTeX points)
    *
-   * Specifying commands here (instead of a point size) is much more
-   * flexible..... ........... ............ ????????? THINK!!!!
-   * ........... MIGHT BE BETTER TO KEEP 'double' AFTER ALL, MUCH CLEARER
-   * WHAT WE MEAN.
    *
    */
-  std::string font;
+  length font_size;
 
   color fg_color;
   color bg_color;

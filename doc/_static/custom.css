@@ -1,0 +1,18 @@
+
+body {
+}
+
+
+div.sphinxsidebarwrapper p.logo {
+    text-align: left;
+}
+
+img.logo {
+    width: 128px;
+    height: 128px;
+}
+
+h1.logo.logo-name a {
+    text-decoration: none;
+    font-weight: normal;
+}
