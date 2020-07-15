@@ -36,7 +36,7 @@
 #include <map>
 
 
-// todo later: support fallback library for C++-standard < C++17
+// todo later: support fallback variant library for C++-standard < C++17
 #include <variant>
 
 
@@ -58,6 +58,15 @@ struct recursive_variant_with_vector_and_map
                         recursive_variant_with_vector_and_map<PrimaryDataTypes...>>;
 
   variant_type<PrimaryDataTypes..., array, dict> _data;
+
+  template<typename GetValueType>
+  inline const GetValueType & get() const {
+    return std::get<GetValueType>(_data);
+  }
+  template<typename GetValueType>
+  inline GetValueType & get() {
+    return std::get<GetValueType>(_data);
+  }
 };
 }
 
@@ -66,25 +75,32 @@ struct recursive_variant_with_vector_and_map
  * This is a variant type that can store ints, bools, doubles, strings, as well
  * as arrays and maps of such types (maps always have strings as keys).
  *
- * Initialize this type with (TODO DOC ME .............)
+ * You can construct arbitrary values with initializer lists:
  * \code
  *   klfengine::value{
  *     klfengine::value::array{
- *       v1,
- *       klfengine::value::dict{
- *         "key1", dictvalue1,
- *         "key2", dictvalue2,
+ *       klfengine::value{v1},
+ *       klfengine::value{klfengine::value::dict{
+ *         {std::string("key1"), dictvalue1},
+ *         {std::string("key2"), dictvalue2},
  *         (...)
- *       },
+ *       }},
  *       (...)
  *     }
  *  }
  * \endcode
+ *
+ * \warning Always use explicit std::string's, not const char * constants,
+ *    because otherwise <a
+ *    href="https://stackoverflow.com/a/60683920/1694896">they get converted to
+ *    \a bool</a>.
+ *
  */
 using value = detail::recursive_variant_with_vector_and_map<
-  int,
   bool,
+  int,
   double,
+  std::nullptr_t,
   std::string
 >;
 

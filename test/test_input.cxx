@@ -33,17 +33,52 @@
 #include <klfengine/input.h>
 
 
-// This tells Catch to provide a main() - only do this in one cpp file
-#define CATCH_CONFIG_MAIN
-
 #include <catch2/catch.hpp>
 
 
-TEST_CASE( "variant_type can store an int or a string" )
+TEST_CASE( "variant_type can store an int or a string", "[variants]" )
 {
   REQUIRE( std::get<int>(klfengine::variant_type<int, std::string>{3}) == 3 );
   REQUIRE(
       std::get<std::string>(klfengine::variant_type<int, std::string>{"hello"})
       == std::string("hello")
+      );
+}
+
+
+TEST_CASE( "value can store different data types recursively", "[variants]" )
+{
+  REQUIRE( klfengine::value{nullptr}.get<std::nullptr_t>() == nullptr );
+  REQUIRE( klfengine::value{true}.get<bool>() == true );
+  REQUIRE( klfengine::value{3}.get<int>() == 3 );
+  REQUIRE( klfengine::value{42.5}.get<double>() == 42.5 );
+  REQUIRE( klfengine::value{std::string("yo")}.get<std::string>() == std::string("yo") );
+
+  // const char * gets converted to bool (no, really, gotta be kidding me C++)
+  //klfengine::value x{"one"};
+  //std::cerr << "x.data-index() == " << x._data.index() << "\n"; // !!!!
+
+  using namespace std::literals; // "xxx"s -> std::string  (C++ >= 14)
+
+  klfengine::value d{
+        klfengine::value::array{
+          klfengine::value{"one"s},
+          klfengine::value{"two"s},
+          klfengine::value{klfengine::value::array{klfengine::value{3}, klfengine::value{4},
+                                                   klfengine::value{5}}},
+          klfengine::value{klfengine::value::dict{{"key1", klfengine::value{"value1"}},
+                                                  {"key2", klfengine::value{222}}}}
+        }
+      };
+  REQUIRE(
+      d.get<klfengine::value::array>()[0].get<std::string>() == std::string("one")
+      );
+  REQUIRE(
+      d.get<klfengine::value::array>()[2].get<klfengine::value::array>()[1].get<int>()
+      == 4
+      );
+  REQUIRE(
+      d.get<klfengine::value::array>()[3].get<klfengine::value::dict>()["key2"].get<int>()
+      == 222
       );
 }
