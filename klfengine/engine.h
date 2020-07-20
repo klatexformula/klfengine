@@ -28,11 +28,43 @@
 
 #pragma once
 
-namespace klfengine {
+
+#include <memory>
+
+#include <klfengine/basedefs.h>
 
 
-// ... ...
+namespace klfengine
+{
+
+class run;
+
+class engine
+{
+public:
+  explicit engine(std::string name_);
+  virtual ~engine() = default;
+
+  inline const std::string & name() const { return _name; }
+
+  void set_settings(klfengine::settings settings_);
+  inline klfengine::settings settings() const { return _settings; }
+
+  std::unique_ptr<klfengine::run> run( input input_ );
+
+protected:
+  const std::string _name;
+  klfengine::settings _settings;
+
+private:
+  virtual klfengine::run *
+  impl_create_compilation( input input_, klfengine::settings settings_ ) = 0;
+};
 
 
+}
 
-} // namespace klfengine
+
+#ifndef _KLFENGINE_DONT_INCLUDE_IMPL_HXX
+#include <klfengine/impl/engine.hxx>
+#endif

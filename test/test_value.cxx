@@ -26,11 +26,11 @@
  * SOFTWARE.
  */
 
-#include <iostream>
-#include <iomanip>
-#include <stdexcept>
+//#include <iostream>
+//#include <iomanip>
+//#include <stdexcept>
 
-#include <klfengine/input.h>
+#include <klfengine/value.h>
 
 
 #include <catch2/catch.hpp>
@@ -38,9 +38,9 @@
 
 TEST_CASE( "variant_type can store an int or a string", "[variants]" )
 {
-  REQUIRE( std::get<int>(klfengine::variant_type<int, std::string>{3}) == 3 );
+  REQUIRE( std::get<int>(klfengine::detail::variant_type<int, std::string>{3}) == 3 );
   REQUIRE(
-      std::get<std::string>(klfengine::variant_type<int, std::string>{"hello"})
+      std::get<std::string>(klfengine::detail::variant_type<int, std::string>{"hello"})
       == std::string("hello")
       );
 }

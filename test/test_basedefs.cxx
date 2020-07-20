@@ -26,13 +26,37 @@
  * SOFTWARE.
  */
 
-#pragma once
+#include <klfengine/basedefs.h>
 
-namespace klfengine {
+#include <algorithm>
 
-
-// ... ...
-
+#include <catch2/catch.hpp>
 
 
-} // namespace klfengine
+TEST_CASE( "binary_data can store binary data", "[base_types]" )
+{
+  const char * data = "Hell\0o";
+  const std::size_t len = 6;
+
+  klfengine::binary_data b(len);
+  std::copy(data, data+len, b.begin());
+
+  std::string s(b.begin(), b.end());
+  REQUIRE( s == std::string("Hell\0o", len) ) ;
+}
+
+
+
+
+
+TEST_CASE( "klfe::exception can throw custom message", "[base_types]" )
+{
+  CHECK_THROWS_AS(
+      throw klfengine::exception("hello" + std::string(" world")),
+      klfengine::exception
+      );
+  CHECK_THROWS_WITH(
+      throw klfengine::exception("hello-world"),
+      "hello-world"
+      );
+}

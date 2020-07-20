@@ -36,81 +36,22 @@
 #include <map>
 
 
-// todo later: support fallback variant library for C++-standard < C++17
-#include <variant>
+#include <klfengine/basedefs.h>
+#include <klfengine/value.h>
 
 
 namespace klfengine
 {
 
-template<typename... Args>
-using variant_type = std::variant<Args...>;
-
-
-namespace detail
-{
-// see https://stackoverflow.com/a/43309497/1694896
-template<typename... PrimaryDataTypes>
-struct recursive_variant_with_vector_and_map
-{
-  using array = std::vector<recursive_variant_with_vector_and_map<PrimaryDataTypes...>>;
-  using dict = std::map<std::string,
-                        recursive_variant_with_vector_and_map<PrimaryDataTypes...>>;
-
-  variant_type<PrimaryDataTypes..., array, dict> _data;
-
-  template<typename GetValueType>
-  inline const GetValueType & get() const {
-    return std::get<GetValueType>(_data);
-  }
-  template<typename GetValueType>
-  inline GetValueType & get() {
-    return std::get<GetValueType>(_data);
-  }
-};
-}
-
-/** \brief Store standard JSON-like types, including arrays and maps
- *
- * This is a variant type that can store ints, bools, doubles, strings, as well
- * as arrays and maps of such types (maps always have strings as keys).
- *
- * You can construct arbitrary values with initializer lists:
- * \code
- *   klfengine::value{
- *     klfengine::value::array{
- *       klfengine::value{v1},
- *       klfengine::value{klfengine::value::dict{
- *         {std::string("key1"), dictvalue1},
- *         {std::string("key2"), dictvalue2},
- *         (...)
- *       }},
- *       (...)
- *     }
- *  }
- * \endcode
- *
- * \warning Always use explicit std::string's, not const char * constants,
- *    because otherwise <a
- *    href="https://stackoverflow.com/a/60683920/1694896">they get converted to
- *    \a bool</a>.
- *
- */
-using value = detail::recursive_variant_with_vector_and_map<
-  bool,
-  int,
-  double,
-  std::nullptr_t,
-  std::string
->;
-
-
 using length = double;
 // store color as RGBA values 0-255
-using color = std::tuple<uint8_t,uint8_t,uint8_t,uint8_t>;
+using color = std::tuple<std::uint8_t,std::uint8_t,std::uint8_t,std::uint8_t>;
 
+using margins = std::tuple<length, length, length, length>;
 
-
+/** \brief Description of a piece of LaTeX code and how to compile it
+ *
+ */
 struct input
 {
   /** \brief The LaTeX code to process.
@@ -146,13 +87,18 @@ struct input
   color fg_color;
   color bg_color;
 
-  std::tuple<length, length, length, length> margins;
+  klfengine::margins margins;
 
   int dpi;
 
-  double vector_scale;
+  double scale;
 
   bool outline_fonts;
+
+  /** \brief Custom implementation-specific parameters
+   *
+   */
+  value::dict parameters;
 };
 
 

@@ -28,11 +28,17 @@
 
 #pragma once
 
+#include <klfengine/run_ghostscript.h>
 
 namespace klfengine
 {
 
-
+/** \brief Where to find latex, find ghostscript, create temporary dirs etc.
+ *
+ * A default-constructed object will have empty fields.  Use \ref
+ * detect_settings() (or the other more specific <code>detect_*</code>
+ * functions) to auto-detect reasonable settings.
+ */
 struct settings
 {
   settings(std::string temporary_directory_ = std::string(),
@@ -51,12 +57,14 @@ struct settings
 
   std::string texbin_directory;
 
+  GhostscriptMethod gs_method;
+
   std::string gs_executable_path;
 
   std::map<std::string, std::string> subprocess_add_environment;
 
 
-  std::string get_tex_executable_path(const std::string & exe_name) const
+  inline std::string get_tex_executable_path(const std::string & exe_name) const
   {
     std::string s = texbin_directory + "/" + exe_name;
     // check that s points to a valid executable
@@ -89,9 +97,9 @@ struct settings
   {
     return settings{
       detect_temporary_directory(),
-        detect_texbin_directory(),
-        detect_gs_executable_path(),
-        detect_subprocess_add_environment()
+      detect_texbin_directory(),
+      detect_gs_executable_path(),
+      detect_subprocess_add_environment()
     };
   }
 

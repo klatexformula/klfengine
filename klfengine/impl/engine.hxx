@@ -31,7 +31,18 @@
 namespace klfengine {
 
 
-// ... ...
+
+inline engine::engine(std::string name_)
+  : _name(std::move(name_))
+{
+}
+
+inline void engine::set_settings(klfengine::settings settings_)
+{
+  _settings = std::move(settings_);
+}
+
+
 
 
 

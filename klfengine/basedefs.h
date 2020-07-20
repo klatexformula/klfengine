@@ -28,11 +28,59 @@
 
 #pragma once
 
+#include <string>
+#include <vector>
+#include <exception>
+
+
 namespace klfengine {
 
+/** \brief Storage type for (binary) data resulting from a compilation
+ *
+ * Currently we only guarantee that binary_data provides vector-like or
+ * string-like C++ STL iterator access via \a begin() and \a end().  For
+ * instance, we might change the typedef to \a std::string depending on what
+ * works best in implementations.
+ *
+ * \fixme Determine what interface binary_data allows.  
+ *
+ */
+using binary_data = std::vector<std::uint8_t>;
 
-// ... ...
 
+/** \brief Exception class for klfengine
+ *
+ * Errors reported by the klfengine library are thrown as exceptions which
+ * inherit \ref klfengine::exception.
+ */
+class exception : public std::exception
+{
+public:
+  /** \brief Constructor with full error message
+   *
+   */
+  explicit exception(std::string msg_)
+    : _msg(std::move(msg_))
+  {
+  }
+  /** \brief Constructor with full error message provided as C-style string
+   *
+   * The string is copied to an internal member so the pointed data does not
+   * need to outlive the constructor call.
+   */
+  explicit exception(const char * msg_c_str)
+    : _msg(msg_c_str)
+  {
+  }
+  virtual ~exception() = default;
+
+  /** \brief Returns the error message provided to the constructor
+   */
+  inline const char * what() const noexcept { return _msg.c_str(); }
+
+private:
+  std::string _msg;
+};
 
 
 } // namespace klfengine

@@ -4,6 +4,10 @@ cmake_minimum_required(VERSION 3.8)
 project(klfengine LANGUAGES CXX VERSION 0.1)
 
 
+add_library(klfengine INTERFACE)
+
+target_include_directories(klfengine INTERFACE ./)
+
 
 # integration with CTest
 include(CTest)
