@@ -42,7 +42,7 @@ namespace klfengine {
  * instance, we might change the typedef to \a std::string depending on what
  * works best in implementations.
  *
- * \fixme Determine what interface binary_data allows.  
+ * \fixme FIXME: Determine what interface binary_data allows.  
  *
  */
 using binary_data = std::vector<std::uint8_t>;

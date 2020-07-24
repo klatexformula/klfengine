@@ -69,43 +69,28 @@ fmtspec_cache_key_type formatspec_cache_key(const format_spec & format)
 } // namespace detail
 
 
-_KLFENGINE_INLINE run::run(
-    std::shared_ptr<engine> engine_,
-    input input_,
-    settings settings_
+_KLFENGINE_INLINE engine_run_implementation::engine_run_implementation(
+    klfengine::input input_,
+    klfengine::settings settings_
     )
-  : _engine(std::move(engine_)),
-    _input(std::move(input_)),
-    _settings(std::move(settings_)),
-    _compiled(false)
+  : _input(std::move(input_)),
+    _settings(std::move(settings_))
 {
 }
 
-_KLFENGINE_INLINE virtual run::~run()
+_KLFENGINE_INLINE engine_run_implementation::~engine_run_implementation()
 {
 }
 
-_KLFENGINE_INLINE void run::compile()
+
+
+_KLFENGINE_INLINE bool
+engine_run_implementation::has_format(const format_spec & format) const
 {
-  if (_compiled) { throw dont_call_compile_twice(); }
+  auto canon_fmt = canonical_format(format);
 
-  std::lock_guard<std::mutex> lckgrd(_mutex);
-
-  impl_compile();
-
-  _compiled = true;
-}
-
-_KLFENGINE_INLINE bool run::has_format(const format_spec & format) const
-{
-  _ensure_compiled();
-
-  std::lock_guard<std::mutex> lckgrd(_mutex);
-
-  auto canon_fmt = canonical_format_nolock(format);
-
-  auto ckey = detail::formatspec_cache_key(canon_fmt);
   if (!_cache.empty()) {
+    auto ckey = detail::formatspec_cache_key(canon_fmt);
     if (_cache.find(ckey) != _cache.end()) {
       return true;
     }
@@ -114,18 +99,8 @@ _KLFENGINE_INLINE bool run::has_format(const format_spec & format) const
   return impl_has_format(canon_fmt);
 }
 
-_KLFENGINE_INLINE std::vector<std::string> run::available_formats() const
-{
-  return impl_available_formats();
-}
-
-_KLFENGINE_INLINE format_spec canonical_format(const format_spec & format)
-{
-  std::lock_guard<std::mutex> lckgrd(_mutex);
-  return canonical_format_nolock(format);
-}
-
-_KLFENGINE_INLINE format_spec canonical_format_nolock(const format_spec & format)
+_KLFENGINE_INLINE format_spec
+engine_run_implementation::canonical_format(const format_spec & format)
 {
   if (format.format == "JPG") {
     throw no_such_format(
@@ -138,29 +113,10 @@ _KLFENGINE_INLINE format_spec canonical_format_nolock(const format_spec & format
   return canon_fmt;
 }
 
-
-_KLFENGINE_INLINE binary_data
-run::get_data(const format_spec & format)
-{
-  std::lock_guard<std::mutex> lckgrd(_mutex);
-
-  return get_data_cref_nolock(format);
-}
-
 _KLFENGINE_INLINE const binary_data &
-run::get_data_cref(const format_spec & format)
+engine_run_implementation::get_data_cref(const format_spec & format)
 {
-  std::lock_guard<std::mutex> lckgrd(_mutex);
-
-  return get_data_cref_nolock(format);
-}
-
-_KLFENGINE_INLINE const binary_data &
-run::get_data_cref_nolock(const format_spec & format)
-{
-  _ensure_compiled();
-
-  auto canon_fmt = canonical_format_nolock(format);
+  auto canon_fmt = canonical_format(format);
   auto ckey = detail::formatspec_cache_key(canon_fmt);
 
   auto cache_it = _cache.find(ckey);
@@ -190,18 +146,29 @@ run::get_data_cref_nolock(const format_spec & format)
 }
 
 
-_KLFENGINE_INLINE bool run::impl_has_format(const format_spec & format) const
+_KLFENGINE_INLINE bool
+engine_run_implementation::impl_has_format(const format_spec & format) const
 {
+  // default implementation is to check available_formats().  This is not a good
+  // implementatino because it re-creates the format list each time this
+  // function is called.
+
   auto avail_fmts = available_formats();
 
-  return (
-      std::find(avail_fmts.begin(), avail_fmts.end(), format.format)
-      == avail_fmts.end()
-      ) ;
+  auto result = std::find_if(
+          avail_fmts.begin(), avail_fmts.end(),
+          [format](const format_description & f) {
+            return f.format_spec == format;
+          });
+
+  return ( result != avail_fmts.end() ) ;
 }
 
 _KLFENGINE_INLINE const binary_data &
-run::store_to_cache(const format_spec & canon_fmt, binary_data && data)
+engine_run_implementation::store_to_cache(
+    const format_spec & canon_fmt,
+    binary_data && data
+    )
 {
   auto ckey = detail::formatspec_cache_key(canon_fmt);
 
@@ -219,25 +186,101 @@ run::store_to_cache(const format_spec & canon_fmt, binary_data && data)
   return dref;
 }
 
-_KLFENGINE_INLINE const binary_data *
-run::get_cached_or_null(const format_spec & canonical_format) const
-{
-  auto ckey = detail::formatspec_cache_key(canonical_format);
-  const auto it = _cache.find(ckey);
-  if (it == _cache.end()) {
-    return nullptr;
-  }
-  return & it->second;
-}
 
 
 
-_KLFENGINE_INLINE void run::_ensure_compiled() const
+
+_KLFENGINE_INLINE
+void run::_ensure_compiled() const
 {
   if (!_compiled) {
     throw forgot_to_call_compile();
   }
 }
+
+
+
+
+
+_KLFENGINE_INLINE run::run(
+    std::unique_ptr<engine_run_implementation> e
+    )
+  : _e(std::move(e)),
+    _compiled(false)
+{
+}
+
+_KLFENGINE_INLINE run::~run()
+{
+}
+
+
+
+_KLFENGINE_INLINE void run::compile()
+{
+  std::lock_guard<std::mutex> lckgrd(_mutex);
+
+  if (_compiled) { throw dont_call_compile_twice(); }
+
+  _e->impl_compile();
+
+  _compiled = true;
+}
+
+_KLFENGINE_INLINE bool run::compiled() const
+{
+  std::lock_guard<std::mutex> lckgrd(_mutex);
+  return _compiled;
+}
+
+
+_KLFENGINE_INLINE bool run::has_format(const format_spec & format) const
+{
+  std::lock_guard<std::mutex> lckgrd(_mutex);
+
+  _ensure_compiled();
+
+  return _e->has_format(format);
+}
+
+_KLFENGINE_INLINE std::vector<format_description>
+run::available_formats() const
+{
+  std::lock_guard<std::mutex> lckgrd(_mutex);
+
+  return _e->impl_available_formats();
+}
+
+_KLFENGINE_INLINE format_spec
+run::canonical_format(const format_spec & format)
+{
+  std::lock_guard<std::mutex> lckgrd(_mutex);
+  return _e->canonical_format(format);
+}
+
+
+_KLFENGINE_INLINE binary_data
+run::get_data(const format_spec & format)
+{
+  std::lock_guard<std::mutex> lckgrd(_mutex);
+
+  _ensure_compiled();
+
+  // automatically produces copy because return value is not a reference
+  return _e->get_data_cref(format);
+}
+
+_KLFENGINE_INLINE const binary_data &
+run::get_data_cref(const format_spec & format)
+{
+  std::lock_guard<std::mutex> lckgrd(_mutex);
+
+  _ensure_compiled();
+
+  return _e->get_data_cref(format);
+}
+
+
 
 
 

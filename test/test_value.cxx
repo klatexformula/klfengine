@@ -26,12 +26,14 @@
  * SOFTWARE.
  */
 
-//#include <iostream>
+// header we are testing gets included first (helps detect missing #include's)
+#include <klfengine/value.h>
+
+//#include <iostream> // DEBUG
 //#include <iomanip>
 //#include <stdexcept>
 
-#include <klfengine/value.h>
-
+#include <nlohmann/json.hpp>
 
 #include <catch2/catch.hpp>
 
@@ -66,7 +68,7 @@ TEST_CASE( "value can store different data types recursively", "[variants]" )
           klfengine::value{"two"s},
           klfengine::value{klfengine::value::array{klfengine::value{3}, klfengine::value{4},
                                                    klfengine::value{5}}},
-          klfengine::value{klfengine::value::dict{{"key1", klfengine::value{"value1"}},
+          klfengine::value{klfengine::value::dict{{"key1", klfengine::value{"value1"s}},
                                                   {"key2", klfengine::value{222}}}}
         }
       };
@@ -81,4 +83,119 @@ TEST_CASE( "value can store different data types recursively", "[variants]" )
       d.get<klfengine::value::array>()[3].get<klfengine::value::dict>()["key2"].get<int>()
       == 222
       );
+}
+
+
+
+
+
+
+/*
+namespace ns {
+    // a simple struct to model a person
+    struct person {
+        std::string name;
+        std::string address;
+        int age;
+    };
+}
+
+
+namespace ns {
+    void to_json(nlohmann::json& j, const person& p) {
+        j = nlohmann::json{{"name", p.name}, {"address", p.address}, {"age", p.age}};
+    }
+
+    void from_json(const nlohmann::json& j, person& p) {
+        j.at("name").get_to(p.name);
+        j.at("address").get_to(p.address);
+        j.at("age").get_to(p.age);
+    }
+} // namespace ns
+
+
+TEST_CASE( "debugging json stuff") 
+{
+  // create a person
+  ns::person p {"Ned Flanders", "744 Evergreen Terrace", 60};
+
+  // conversion: person -> json
+  nlohmann::json j = p;
+
+  std::cout << j << std::endl;
+  // {"address":"744 Evergreen Terrace","age":60,"name":"Ned Flanders"}
+
+  // conversion: json -> person
+  auto p2 = j.get<ns::person>();
+
+  // that's it
+  assert(p.name == p2.name);
+}
+*/
+
+
+
+TEST_CASE( "value can be converted to JSON", "[variants]" )
+{
+  using namespace std::literals; // "xxx"s -> std::string  (C++ >= 14)
+
+  klfengine::value d{
+        klfengine::value::array{
+          klfengine::value{"one"s},
+          klfengine::value{"two"s},
+          klfengine::value{klfengine::value::array{klfengine::value{3}, klfengine::value{4},
+                                                   klfengine::value{5}}},
+          klfengine::value{klfengine::value::dict{{"key1", klfengine::value{"value1"s}},
+                                                  {"key2", klfengine::value{222}}}}
+        }
+      };
+
+  nlohmann::json j = d;
+
+  // std::cout << j.dump(4) << "\n\n";
+
+  const auto json_ok = nlohmann::json::parse( R"(
+    [ "one", "two", [3, 4, 5], { "key1": "value1", "key2": 222 } ]
+)" );
+
+  REQUIRE( j == json_ok ) ;
+}
+
+
+
+TEST_CASE( "value can be converted from JSON", "[variants]" )
+{
+  const nlohmann::json j{ nlohmann::json::parse(R"( {
+      "A": 1,
+      "B": ["b", false],
+      "C": {
+          "d": 0.25,
+          "e": [null]
+      }
+  } )") };
+
+  klfengine::value v = j.get<klfengine::value>();
+
+  using array = klfengine::value::array;
+  using dict = klfengine::value::dict;
+
+  REQUIRE(
+      v.get<dict>()["A"].get<int>() == 1
+      );
+  REQUIRE(
+      v.get<dict>()["B"].get<array>().size() == 2
+      );
+  REQUIRE(
+      v.get<dict>()["B"].get<array>()[0].get<std::string>() == "b"
+      );
+  REQUIRE(
+      v.get<dict>()["B"].get<array>()[1].get<bool>() == false
+      );
+  REQUIRE(
+      v.get<dict>()["C"].get<dict>()["d"].get<double>() == 0.25
+      );
+  REQUIRE(
+      v.get<dict>()["C"].get<dict>()["e"].get<array>()[0].get<std::nullptr_t>() == nullptr
+      );
+
 }
