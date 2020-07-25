@@ -51,6 +51,8 @@ breathe_projects = {
 }
 breathe_default_project = "klfengine"
 
+breathe_default_members = ('members', 'protected-members', 'private-members', 'undoc-members')
+
 # Setup the exhale extension
 exhale_args = {
     # These arguments are required

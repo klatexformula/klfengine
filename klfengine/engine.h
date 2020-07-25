@@ -39,6 +39,16 @@ namespace klfengine
 
 class run;
 
+/** \brief Base abstract class for implementations
+ *
+ * Implementations should subclass this class to provide a factory for
+ * \ref engine_run_implementation instances.  See \ref run().
+ *
+ * Subclasses of this class sholud also provide information about the
+ * implementation (currently only \ref name() but later TBD maybe also expected
+ * available formats, etc.).
+ * 
+ */
 class engine
 {
 public:
