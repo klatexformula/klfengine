@@ -32,6 +32,8 @@
 #include <vector>
 #include <map>
 
+#include <nlohmann/json.hpp>
+
 //#include <klfengine/run_ghostscript>
 
 namespace klfengine {
@@ -86,6 +88,9 @@ struct settings
 
 bool operator==(const settings & a, const settings & b);
 bool operator!=(const settings & a, const settings & b);
+
+void to_json(nlohmann::json & j, const settings & v);
+void from_json(const nlohmann::json & j, settings & v);
 
 
 } // namespace klfengine

@@ -114,6 +114,34 @@ TEST_CASE( "struct settings compares for (in)equality", "[settings]" )
 }
 
 
+
+TEST_CASE( "struct settings converts to/from JSON", "[settings]" )
+{
+  const klfengine::settings s{
+    "/tmp",
+    "/usr/local/texlive/20xx/somewhere/bin/",
+    "process",
+    "/usr/local/bin/gs",
+    {
+     {"TEXINPUTS", "/some/path/for/latex/to/look/for/files"},
+     {"BIBINPUTS", "/some/path/for/bibtex/to/look/for/files"}
+    }
+  };
+
+  nlohmann::json j;
+  j = s;
+
+  //std::cerr << "DEBUG: " << j.dump(4) << "\n";
+
+  klfengine::settings s2;
+  j.get_to(s2);
+
+  REQUIRE( s == s2 );
+}
+
+
+
+
 TEST_CASE( "can detect default settings", "[settings]" )
 {
   // write tests here

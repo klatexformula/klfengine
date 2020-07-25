@@ -29,13 +29,70 @@
 // header we are testing gets included first (helps detect missing #include's)
 #include <klfengine/engine>
 
-
 #include <catch2/catch.hpp>
 
+#include "dummy_engine/dummy_engine.hxx"
 
 
-TEST_CASE( "something happens when this and that", "[keyword]" )
+
+TEST_CASE( "engine constructor works and saves name",
+           "[engine_run_implementation]" )
 {
-  // write tests here
-  REQUIRE( false ) ;
+  dummy_engine::dummy_engine x{};
+
+  REQUIRE( x.name() == "dummy-engine") ;
 }
+
+
+TEST_CASE( "engine saves and returns settings",
+           "[engine_run_implementation]" )
+{
+  dummy_engine::dummy_engine x{};
+
+  const klfengine::settings s{
+    "/tmp",
+    "/usr/local/texlive/20xx/somewhere/bin/",
+    "process",
+    "/usr/local/bin/gs",
+    {
+     {"TEXINPUTS", "/some/path/for/latex/to/look/for/files"},
+     {"BIBINPUTS", "/some/path/for/bibtex/to/look/for/files"}
+    }
+  };
+
+  x.set_settings(s);
+
+  REQUIRE( x.settings() == s );
+
+  const klfengine::settings s2{
+    "/tmp/XXX/xtmp",
+    "/opt/texlive/20xx/bin/",
+    "none",
+    "",
+    {}
+  };
+
+  // can re-set settings again later
+
+  x.set_settings(s2);
+
+  REQUIRE( x.settings() == s2 );
+
+}
+
+
+TEST_CASE( "engine calls impl_create_engine_run_instance",
+           "[engine_run_implementation]" )
+{
+  dummy_engine::dummy_engine x{};
+
+  klfengine::input in;
+  in.latex = "a+b=c";
+
+  std::unique_ptr<klfengine::run> r = x.run( in );
+
+  REQUIRE( x.record_calls == std::vector<std::string>{
+      "impl_create_engine_run_implementation(...)"
+    }) ;
+}
+

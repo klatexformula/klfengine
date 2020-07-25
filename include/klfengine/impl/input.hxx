@@ -30,6 +30,9 @@
 
 #include <klfengine/input>
 
+#include <nlohmann/json.hpp>
+
+
 namespace klfengine {
 
 
@@ -56,6 +59,45 @@ _KLFENGINE_INLINE
 bool operator!=(const input & a, const input & b)
 {
   return ! (a == b);
+}
+
+
+
+
+_KLFENGINE_INLINE
+void to_json(nlohmann::json & j, const input & v)
+{
+  j = nlohmann::json{
+    {"latex", v.latex},
+    {"math_mode", v.math_mode},
+    {"preamble", v.preamble},
+    {"latex_engine", v.latex_engine},
+    {"font_size", v.font_size},
+    {"fg_color", v.fg_color},
+    {"bg_color", v.bg_color},
+    {"margins", v.margins},
+    {"dpi", v.dpi},
+    {"scale", v.scale},
+    {"outline_fonts", v.outline_fonts},
+    {"parameters", v.parameters}
+  };
+}
+
+_KLFENGINE_INLINE
+void from_json(const nlohmann::json & j, input & v)
+{
+  j.at("latex").get_to(v.latex);
+  j.at("math_mode").get_to(v.math_mode);
+  j.at("preamble").get_to(v.preamble);
+  j.at("latex_engine").get_to(v.latex_engine);
+  j.at("font_size").get_to(v.font_size);
+  j.at("fg_color").get_to(v.fg_color);
+  j.at("bg_color").get_to(v.bg_color);
+  j.at("margins").get_to(v.margins);
+  j.at("dpi").get_to(v.dpi);
+  j.at("scale").get_to(v.scale);
+  j.at("outline_fonts").get_to(v.outline_fonts);
+  j.at("parameters").get_to(v.parameters);
 }
 
 

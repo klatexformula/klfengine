@@ -39,6 +39,8 @@
 #include <klfengine/basedefs>
 #include <klfengine/value>
 
+#include <nlohmann/json.hpp>
+
 
 namespace klfengine
 {
@@ -104,6 +106,9 @@ struct input
 
 bool operator==(const input & a, const input & b);
 bool operator!=(const input & a, const input & b);
+
+void to_json(nlohmann::json & j, const input & v);
+void from_json(const nlohmann::json & j, input & v);
 
 
 } // namespace klfengine

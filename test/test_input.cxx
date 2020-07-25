@@ -32,6 +32,7 @@
 
 #include <catch2/catch.hpp>
 
+//#include <iostream> // DEBUG
 
 
 TEST_CASE( "struct input has the right fields of the right type", "[input]" )
@@ -157,3 +158,34 @@ TEST_CASE( "struct input compares for (in)equality", "[input]" )
   REQUIRE( !(in == in_x) );
   
 }
+
+
+
+TEST_CASE( "struct input converts to/from JSON", "[input]" )
+{
+  klfengine::input in{
+    "latex input", // latex
+    {"\\[", "\\]"}, // math_mode
+    "latex preamble", // preamble
+    "pdflatex", // latex_engine
+    16.0, // font_size
+    {22, 80, 127, 255}, // fg_color
+    {250, 252, 253, 0}, // bg_color
+    {1.0, 2.0, 3.0, 4.0}, // margins
+    1200, // dpi
+    2.0, // scale
+    true, // outline_fonts
+    {{"use_documentclass", klfengine::value{std::string{"article"}}}} // parameters
+  };
+
+  nlohmann::json j;
+  j = in;
+
+  //std::cerr << "DEBUG: " << j.dump(4) << "\n";
+
+  klfengine::input in2;
+  j.get_to(in2);
+
+  REQUIRE( in == in2 );
+}
+

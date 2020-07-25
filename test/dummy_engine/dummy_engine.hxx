@@ -45,7 +45,7 @@ class dummy_engine : public klfengine::engine
 {
 public:
   dummy_engine()
-    : klfengine::engine("dummy_engine")
+    : klfengine::engine("dummy-engine")
   {
   }
 

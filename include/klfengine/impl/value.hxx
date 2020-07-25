@@ -31,7 +31,7 @@
 
 #include <klfengine/value>
 
-
+#include <nlohmann/json.hpp>
 
 namespace klfengine {
 

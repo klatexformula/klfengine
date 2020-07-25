@@ -109,4 +109,27 @@ bool operator!=(const settings & a, const settings & b)
 
 
 
+_KLFENGINE_INLINE
+void to_json(nlohmann::json & j, const settings & v)
+{
+  j = nlohmann::json{
+    {"temporary_directory", v.temporary_directory},
+    {"texbin_directory", v.texbin_directory},
+    {"gs_method", v.gs_method},
+    {"gs_executable_path", v.gs_executable_path},
+    {"subprocess_add_environment", v.subprocess_add_environment}
+  };
+}
+_KLFENGINE_INLINE
+void from_json(const nlohmann::json & j, settings & v)
+{
+  j.at("temporary_directory").get_to(v.temporary_directory);
+  j.at("texbin_directory").get_to(v.texbin_directory);
+  j.at("gs_method").get_to(v.gs_method);
+  j.at("gs_executable_path").get_to(v.gs_executable_path);
+  j.at("subprocess_add_environment").get_to(v.subprocess_add_environment);
+}
+
+
+
 } // namespace klfengine
