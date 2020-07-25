@@ -28,11 +28,29 @@
 
 #pragma once
 
-#include <klfengine/basedefs.h>
-#include <klfengine/input.h>
+#include <klfengine/basedefs>
+#include <klfengine/input>
+#include <klfengine/settings>
+#include <klfengine/format_spec>
 
 
 namespace klfengine {
+
+
+
+namespace detail
+{
+/**
+ * \internal
+ *
+ * Type to use for cache keys (which represent format_spec's).  We'll store some
+ * (binary?) string representing the format_spec (e.g. JSON? or BSON?)
+ */
+using fmtspec_cache_key_type = std::string;
+}
+
+
+
 
 
 /** \brief An engine's implementation of a compilation run of some latex code
@@ -56,12 +74,6 @@ namespace klfengine {
  * - Produce the data in a given format.  Reimplement \ref
  *   impl_produce_format().
  *
- * You should reimplement these methods as private virtual methods (see <a
- * href="https://stackoverflow.com/a/3978552/1694896">this answer on SO</a>
- * (among many others) and <a
- * href="http://www.gotw.ca/publications/mill18.htm">this article by Herb
- * Sutter</a> on why these methods are private virtual.
- *
  * It might be assumed by users that the initial compilation step (implemented
  * in \ref impl_compile()) will be more computationally intensive than
  * converting the result to a specific requested format (\ref
@@ -73,6 +85,20 @@ namespace klfengine {
  * of this base class (such as get_format_cref() or canonical_format()) rather
  * than recursively calling their own implementation methods such as
  * impl_produce_format().
+ *
+ * <b>Private, protected, or public virtual?</b>
+ *
+ * - the virtual methods \a impl_ should in principle have been declared
+ *   private: See <a href="https://stackoverflow.com/a/3978552/1694896">this
+ *   answer on SO</a> (among many others) and <a
+ *   href="http://www.gotw.ca/publications/mill18.htm">this article by Herb
+ *   Sutter</a> on why private virtual is a good thing.
+ *
+ * - but the issue is that many of these functions, such as impl_compile(), need
+ *   to be called directly by \ref run instances.  Exposing a public non-virtual
+ *   \ref compile() method here would not solve the issue because the
+ *   compilation should only happen once anyways
+ *
  */
 class engine_run_implementation
 {
@@ -84,13 +110,31 @@ public:
   const klfengine::input & input() const { return _input; }
   const klfengine::settings & settings() const { return _settings; }
 
+  /** \brief Perform any initial compilation steps.
+   *
+   * Subclasses should \b NOT call this.  The caller (a \ref run instance) is
+   * responsible for ensuring that this method is called once, and once only,
+   * before calling any other method of this class.
+   */
+  void compile();
 
   /** \brief Return the format specification in canonical form
    *
-   * Returns an empty (default-constructed) \ref format_spec if the given format
-   * is invalid or is not available.
+   * Throws \ref no_such_format if the given format is invalid or is not
+   * available.
    */
   format_spec canonical_format(const format_spec & format);
+
+  /** \brief Return a list of available formats
+   *
+   * Returns a list of formats that this run instance can produce, as a vector
+   * of \ref format_description objects.  Each format description should include
+   * a short title and a brief description for each format specification (see
+   * \ref format_description).
+   *
+   * Subclasses should reimplement \ref impl_available_formats().
+   */
+  std::vector<format_description> available_formats();
 
 
   /** \brief Check if a given format is available.
@@ -136,14 +180,20 @@ private:
    */
   virtual void impl_compile() = 0;
 
+
   /** \brief Get a list of available formats
    *
    * Returns a list of formats that this run instance can produce, as a vector
    * of \ref format_description objects.  Each format description should include
    * a short title and a brief description for each format specification (see
    * \ref format_description).
+   *
+   * \todo BUG/TODO/FIXME: We cannot ask subclasses to return ALL possible
+   * format_spec's.  Also, a UI would probably better ask for a format first,
+   * and then present an UI for the parameters. ........... NEED DESIGN DECISION
+   * HERE .......
    */
-  virtual std::vector<format_description> impl_available_formats() const = 0;
+  virtual std::vector<format_description> impl_available_formats() = 0;
 
   /** \brief Canonicalize the format specification
    *
@@ -161,27 +211,25 @@ private:
    * any two equivalent \a format_spec s but different for any two nonequivalent
    * ones.
    *
-   * If the format is invalid, or cannot be delivered, return an empty
-   * (default-constructed) \ref format_spec.l
+   * If the format is invalid, or cannot be delivered, this implementation may
+   * choose to:
+   *
+   * - either throw \ref no_such_format with an optional description of why
+   *   this format is not available
+   *
+   * - or return an empty (default-constructed) \ref format_spec.  In this case
+   *   \ref canonical_format() will automatically detect this and throw a \ref
+   *   no_such_format exception.
+   *
+   * If \a check_available_only is \a true, then the subclass doesn't actually
+   * have to compute the canonical form of \a format, it only needs to check
+   * that the format is available.  In this case, the subclass should return any
+   * (arbitrary) non-empty format_spec if the format is available, and do either
+   * of the above two points if the format is unavailable (i.e., return an empty
+   * format_spec or raise \ref no_such_format).
    */
-  virtual format_spec impl_make_canonical(const format_spec & format) = 0;
-
-  // /** \brief Query whether we can obtain the given format_spec
-  //  *
-  //  * The default implementation checks whether or not \a format.format is in the
-  //  * list returned by \ref list_available_formats().  Subclasses may do
-  //  * something more refined, such as checking whether the given format
-  //  * parameters are well-formed and the corresponding format is available for
-  //  * this run.  (For instance, maybe some features provided via format arguments
-  //  * are only available for given latex environments or ghostscript version,
-  //  * etc.)
-  //  *
-  //  *........... UPDATE DOC ...............
-  //  *
-  //  * Subclasses can assume that \a canon_format is in canonical form (see \ref
-  //  * make_canonical()).
-  //  */
-  // virtual bool impl_has_format(const format_spec & canon_format) const;
+  virtual format_spec impl_make_canonical(const format_spec & format,
+                                          bool check_available_only) = 0;
 
   /** \brief Return the data associated with the given canonical format
    *
@@ -196,7 +244,7 @@ private:
    * Subclasses can assume that \a canon_format is in canonical form (see \ref
    * make_canonical()).
    */
-  virtual binary_data impl_produce_format(const format_spec & canon_format) = 0;
+  virtual binary_data impl_produce_data(const format_spec & canon_format) = 0;
 
 protected:
 
@@ -221,10 +269,27 @@ protected:
 
 
 private:
-  const input _input;
-  const settings _settings;
+  const klfengine::input _input;
+  const klfengine::settings _settings;
 
-  std::unordered_map<detail::fmtspec_cache_key_type>,binary_data> _cache;
+  std::unordered_map<detail::fmtspec_cache_key_type,binary_data> _cache;
+
+  /**
+   * \internal
+   *
+   * Like canonical_format() if check_available_only is false.
+   *
+   * If check_available_only is set, then:
+   *
+   *  - the return value is undefined and is to be discarded
+   *
+   *  - if the format is not available, \ref no_such_format is always raised
+   *
+   *  - if the format is available, no exception is raised.
+   */
+  format_spec internal_canonical_format(const format_spec & format,
+                                        bool check_available_only);
+
 };
 
 
@@ -232,3 +297,8 @@ private:
 
 
 } // namespace klfengine
+
+
+#ifndef _KLFENGINE_DONT_INCLUDE_IMPL_HXX
+#include <klfengine/impl/engine_run_implementation.hxx>
+#endif

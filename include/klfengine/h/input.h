@@ -36,8 +36,8 @@
 #include <map>
 
 
-#include <klfengine/basedefs.h>
-#include <klfengine/value.h>
+#include <klfengine/basedefs>
+#include <klfengine/value>
 
 
 namespace klfengine
@@ -102,4 +102,13 @@ struct input
 };
 
 
-};
+bool operator==(const input & a, const input & b);
+bool operator!=(const input & a, const input & b);
+
+
+} // namespace klfengine
+
+
+#ifndef _KLFENGINE_DONT_INCLUDE_IMPL_HXX
+#include <klfengine/impl/input.hxx>
+#endif

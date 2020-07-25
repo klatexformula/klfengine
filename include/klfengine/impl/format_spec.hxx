@@ -28,8 +28,24 @@
 
 #pragma once
 
+#include <klfengine/format_spec>
+
+#include <nlohmann/json.hpp>
+
 namespace klfengine {
 
+
+_KLFENGINE_INLINE
+std::string format_spec::as_string() const
+{
+  std::string s = format;
+  if (!parameters.empty()) {
+    nlohmann::json j = nlohmann::json::object();
+    j = parameters;
+    s += ":"+ j.dump();
+  }
+  return s;
+}
 
 
 

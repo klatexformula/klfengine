@@ -28,21 +28,35 @@
 
 #pragma once
 
+#include <klfengine/input>
+
 namespace klfengine {
 
 
-
-inline engine::engine(std::string name_)
-  : _name(std::move(name_))
+_KLFENGINE_INLINE
+bool operator==(const input & a, const input & b)
 {
+  return (
+      a.latex == b.latex &&
+      a.math_mode == b.math_mode &&
+      a.preamble == b.preamble &&
+      a.latex_engine == b.latex_engine &&
+      a.font_size == b.font_size &&
+      a.fg_color == b.fg_color &&
+      a.bg_color == b.bg_color &&
+      a.margins == b.margins &&
+      a.dpi == b.dpi &&
+      a.scale == b.scale &&
+      a.outline_fonts == b.outline_fonts &&
+      a.parameters == b.parameters
+      );
 }
 
-inline void engine::set_settings(klfengine::settings settings_)
+_KLFENGINE_INLINE
+bool operator!=(const input & a, const input & b)
 {
-  _settings = std::move(settings_);
+  return ! (a == b);
 }
-
-
 
 
 

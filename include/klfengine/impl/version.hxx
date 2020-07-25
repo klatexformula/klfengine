@@ -28,53 +28,22 @@
 
 #pragma once
 
+#include <klfengine/version>
 
-#include <memory>
-
-#include <klfengine/basedefs.h>
+namespace klfengine {
 
 
-namespace klfengine
+// The `implementation_version()` is guaranteed to be implemented here, while
+// the `version()` is guaranteed to be defined inline, in the headers.
+_KLFENGINE_INLINE
+version_info implementation_version()
 {
-
-class run;
-
-/** \brief Base abstract class for implementations
- *
- * Implementations should subclass this class to provide a factory for
- * \ref engine_run_implementation instances.  See \ref run().
- *
- * Subclasses of this class sholud also provide information about the
- * implementation (currently only \ref name() but later TBD maybe also expected
- * available formats, etc.).
- * 
- */
-class engine
-{
-public:
-  explicit engine(std::string name_);
-  virtual ~engine() = default;
-
-  inline const std::string & name() const { return _name; }
-
-  void set_settings(klfengine::settings settings_);
-  inline klfengine::settings settings() const { return _settings; }
-
-  std::unique_ptr<klfengine::run> run( input input_ );
-
-protected:
-  const std::string _name;
-  klfengine::settings _settings;
-
-private:
-  virtual klfengine::run *
-  impl_create_compilation( input input_, klfengine::settings settings_ ) = 0;
-};
-
-
+  return version_info{  KLFENGINE_VERSION_MAJOR,
+                        KLFENGINE_VERSION_MINOR,
+                        KLFENGINE_VERSION_RELEASE,
+                        KLFENGINE_VERSION_SUFFIX  };
 }
 
 
-#ifndef _KLFENGINE_DONT_INCLUDE_IMPL_HXX
-#include <klfengine/impl/engine.hxx>
-#endif
+
+} // namespace klfengine

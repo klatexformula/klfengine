@@ -26,12 +26,16 @@
  * SOFTWARE.
  */
 
-#pragma once
-
-namespace klfengine {
-
+// header we are testing gets included first (helps detect missing #include's)
+#include <klfengine/xxx>
 
 
+#include <catch2/catch.hpp>
 
 
-} // namespace klfengine
+
+TEST_CASE( "something happens when this and that", "[keyword]" )
+{
+  // write tests here
+  REQUIRE( false ) ;
+}

@@ -27,7 +27,7 @@
  */
 
 // header we are testing gets included first (helps detect missing #include's)
-#include <klfengine/value.h>
+#include <klfengine/value>
 
 //#include <iostream> // DEBUG
 //#include <iomanip>
@@ -86,6 +86,38 @@ TEST_CASE( "value can store different data types recursively", "[variants]" )
 }
 
 
+
+TEST_CASE( "value supports equality comparision", "[variants]" )
+{
+  REQUIRE( klfengine::value{12} == klfengine::value{12} );
+  REQUIRE( klfengine::value{12} != klfengine::value{13} );
+  REQUIRE( klfengine::value{12} != klfengine::value{12.0} );
+
+  klfengine::value::array a{
+    klfengine::value{12}, klfengine::value{14}, klfengine::value{15}
+  };
+  klfengine::value::array b{
+    klfengine::value{12}, klfengine::value{14}, klfengine::value{15}
+  };
+
+  REQUIRE( a == b );
+
+  klfengine::value::array c{
+    klfengine::value{12}, klfengine::value{14}, klfengine::value{15}, klfengine::value{15}
+  };
+  REQUIRE( a != c) ;
+
+
+  klfengine::value::dict x{{"a",klfengine::value{14}}};
+  klfengine::value::dict x2{{"a",klfengine::value{14}}};
+  klfengine::value::dict y{{"a",klfengine::value{14.0}}};
+  klfengine::value::dict z{{"a",klfengine::value{14}},
+                           {"b",klfengine::value{15}}};
+
+  REQUIRE( x == x2 );
+  REQUIRE( x != y );
+  REQUIRE( x != z );
+}
 
 
 

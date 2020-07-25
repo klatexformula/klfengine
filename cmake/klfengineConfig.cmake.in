@@ -1,0 +1,9 @@
+@PACKAGE_INIT@
+
+# Avoid repeatedly including the targets
+if(NOT TARGET klfengine::klfengine)
+
+  include("${CMAKE_CURRENT_LIST_DIR}/klfengineTargets.cmake")
+  check_required_components("@PROJECT_NAME@")
+
+endif()

@@ -26,7 +26,7 @@
  * SOFTWARE.
  */
 
-#include <klfengine/basedefs.h>
+#include <klfengine/basedefs>
 
 #include <algorithm>
 

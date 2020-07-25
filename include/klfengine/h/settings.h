@@ -28,10 +28,13 @@
 
 #pragma once
 
-#include <klfengine/run_ghostscript.h>
+#include <string>
+#include <vector>
+#include <map>
 
-namespace klfengine
-{
+//#include <klfengine/run_ghostscript>
+
+namespace klfengine {
 
 /** \brief Where to find latex, find ghostscript, create temporary dirs etc.
  *
@@ -41,68 +44,53 @@ namespace klfengine
  */
 struct settings
 {
-  settings(std::string temporary_directory_ = std::string(),
-           std::string texbin_directory_ = std::string(),
-           std::string gs_executable_path_ = std::string(),
-           std::map<std::string, std::string> subprocess_add_environment_
-           = std::map<std::string, std::string>())
-    : temporary_directory(std::move(temporary_directory_)),
-      texbin_directory(std::move(texbin_directory_)),
-      gs_executable_path(std::move(gs_executable_path_)),
-      subprocess_add_environment(std::move(subprocess_add_environment_))
-  {
-  }
+  // // Keep default constructor as much as possible
+  //
+  // settings(std::string temporary_directory_ = std::string(),
+  //          std::string texbin_directory_ = std::string(), ....gs_method...
+  //          std::string gs_executable_path_ = std::string(),
+  //          std::map<std::string, std::string> subprocess_add_environment_
+  //          = std::map<std::string, std::string>())
+  //   : temporary_directory(std::move(temporary_directory_)),
+  //     texbin_directory(std::move(texbin_directory_)),
+  //     gs_executable_path(std::move(gs_executable_path_)),
+  //     subprocess_add_environment(std::move(subprocess_add_environment_))
+  // {
+  // }
 
   std::string temporary_directory;
 
   std::string texbin_directory;
 
-  GhostscriptMethod gs_method;
+  /**
+   * one of "none", "process", "linked-dylib", "load-dylib"
+   */
+  std::string gs_method;
 
   std::string gs_executable_path;
 
   std::map<std::string, std::string> subprocess_add_environment;
 
 
-  inline std::string get_tex_executable_path(const std::string & exe_name) const
-  {
-    std::string s = texbin_directory + "/" + exe_name;
-    // check that s points to a valid executable
-    ...
-    return s;
-  }
+  std::string get_tex_executable_path(const std::string & exe_name) const;
 
+  std::map<std::string, std::string> detect_subprocess_add_environment() const;
 
-  static std::string detect_temporary_directory()
-  {
-    return ... ;
-  }
-
-  static std::string detect_texbin_directory()
-  {
-    return ... ;
-  }
-
-  static std::string detect_gs_executable_path()
-  {
-    return ... ;
-  }
-
-  static std::map<std::string, std::string> detect_subprocess_add_environment()
-  {
-    return ... ;
-  }
-
-  static settings detect_settings()
-  {
-    return settings{
-      detect_temporary_directory(),
-      detect_texbin_directory(),
-      detect_gs_executable_path(),
-      detect_subprocess_add_environment()
-    };
-  }
+  static std::string detect_temporary_directory();
+  static std::string detect_texbin_directory();
+  static std::string detect_gs_executable_path();
+  static settings detect_settings();
 
 };
 
-};
+
+bool operator==(const settings & a, const settings & b);
+bool operator!=(const settings & a, const settings & b);
+
+
+} // namespace klfengine
+
+
+#ifndef _KLFENGINE_DONT_INCLUDE_IMPL_HXX
+#include <klfengine/impl/settings.hxx>
+#endif

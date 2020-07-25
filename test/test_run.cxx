@@ -26,13 +26,16 @@
  * SOFTWARE.
  */
 
-#pragma once
+// header we are testing gets included first (helps detect missing #include's)
+#include <klfengine/run>
 
 
-#include <klfengine/value.h>
+#include <catch2/catch.hpp>
 
 
 
-namespace klfengine {
-
-} // namespace klfengine
+TEST_CASE( "something happens when this and that", "[keyword]" )
+{
+  // write tests here
+  REQUIRE( false ) ;
+}

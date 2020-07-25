@@ -28,8 +28,47 @@
 
 #pragma once
 
+#include <klfengine/engine>
+#include <klfengine/engine_run_implementation>
+#include <klfengine/run>
+
+
 namespace klfengine {
 
+
+
+_KLFENGINE_INLINE
+engine::engine(std::string name_)
+  : _name(std::move(name_))
+{
+}
+
+_KLFENGINE_INLINE
+void engine::set_settings(klfengine::settings settings_)
+{
+  _settings = std::move(settings_);
+}
+
+
+_KLFENGINE_INLINE
+std::unique_ptr<klfengine::run>
+engine::run( input input_ )
+{
+  std::unique_ptr<engine_run_implementation> impl_ptr{
+    impl_create_engine_run_implementation(
+        input_,
+        settings()
+        )
+  };
+
+  std::unique_ptr<klfengine::run> run_ptr{
+    new klfengine::run{ std::move(impl_ptr) }
+  };
+
+  // don't use std::move() here explicitly, see
+  // https://stackoverflow.com/a/19272035/1694896
+  return run_ptr;
+}
 
 
 

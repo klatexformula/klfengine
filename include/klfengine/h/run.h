@@ -29,8 +29,11 @@
 #pragma once
 
 #include <atomic>
+#include <mutex>
 
-#include <klfengine/engine.h>
+#include <klfengine/engine_run_implementation>
+#include <klfengine/format_spec>
+
 
 namespace klfengine {
 
@@ -55,22 +58,6 @@ struct dont_call_compile_twice : klfengine::exception
   { }
 };
 
-
-
-
-namespace detail
-{
-/**
- * \internal
- *
- * Type to use for cache keys (which represent format_spec's).  We'll store some
- * (binary?) string representing the format_spec (e.g. JSON? or BSON?)
- */
-using fmtspec_cache_key_type = std::string;
-}
-
-
-class engine_run_implementation;
 
 
 
@@ -108,14 +95,18 @@ public:
    */
   bool compiled() const;
 
-  bool has_format(const format_spec & format) const;
+  bool has_format(const format_spec & format);
 
-  std::vector<format_description> available_formats() const;
+  std::vector<format_description> available_formats();
 
   format_spec canonical_format(const format_spec & format);
 
   template<typename IteratorInterfaceContainer>
   format_spec find_format(const IteratorInterfaceContainer & formats);
+
+
+  binary_data get_data(const format_spec & format);
+  const binary_data & get_data_cref(const format_spec & format);
 
   // no copy, move, or assignment operators.
   run(const run &) = delete;
@@ -123,12 +114,18 @@ public:
   run operator=(const run &) = delete;
   run & operator=(run &&) = delete;
 
-
 private:
 
   std::unique_ptr<engine_run_implementation> _e;
 
-  bool _compiled;
+  /**
+   * \internal
+   *
+   * Having \a _compiled declared \a atomic enables some methods (like \ref
+   * compiled()) to be declared const.  Otherwise if a member locks a mutex, it
+   * must be non-const.
+   */
+  std::atomic<bool> _compiled;
 
   std::mutex _mutex;
 
@@ -141,9 +138,11 @@ private:
 // compiled separately in a single translation unit
 
 template<typename IteratorInterfaceContainer>
-inline format_spec find_format(const IteratorInterfaceContainer & formats)
+inline format_spec run::find_format(const IteratorInterfaceContainer & formats)
 {
   _ensure_compiled();
+
+  std::lock_guard<std::mutex> lckgrd(_mutex);
 
   // note container value type can also be std::string, because you can
   // construct a format_spec from a std::string (DOUBLE-CHECK THIS)
@@ -152,7 +151,7 @@ inline format_spec find_format(const IteratorInterfaceContainer & formats)
       formats.begin(),
       formats.end(),
       [this](const format_spec & f) {
-        return impl_has_format(f);
+        return _e->has_format(f);
       }
       );
 

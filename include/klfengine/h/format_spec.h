@@ -28,63 +28,11 @@
 
 #pragma once
 
-#include <string>
-#include <vector>
-#include <exception>
+#include <klfengine/basedefs>
+#include <klfengine/value>
 
 
 namespace klfengine {
-
-/** \brief Storage type for (binary) data resulting from a compilation
- *
- * Currently we only guarantee that binary_data provides vector-like or
- * string-like C++ STL iterator access via \a begin() and \a end().  For
- * instance, we might change the typedef to \a std::string depending on what
- * works best in implementations.
- *
- * \fixme FIXME: Determine what interface binary_data allows.  
- *
- */
-using binary_data = std::vector<std::uint8_t>;
-
-
-/** \brief Exception class for klfengine
- *
- * Errors reported by the klfengine library are thrown as exceptions which
- * inherit \ref klfengine::exception.
- */
-class exception : public std::exception
-{
-public:
-  /** \brief Constructor with full error message
-   *
-   */
-  explicit exception(std::string msg_)
-    : _msg(std::move(msg_))
-  {
-  }
-  /** \brief Constructor with full error message provided as C-style string
-   *
-   * The string is copied to an internal member so the pointed data does not
-   * need to outlive the constructor call.
-   */
-  explicit exception(const char * msg_c_str)
-    : _msg(msg_c_str)
-  {
-  }
-  virtual ~exception() = default;
-
-  /** \brief Returns the error message provided to the constructor
-   */
-  inline const char * what() const noexcept { return _msg.c_str(); }
-
-private:
-  std::string _msg;
-};
-
-
-
-
 
 
 /** \brief A format name and possible parameters
@@ -107,7 +55,19 @@ struct format_spec
 {
   std::string format;
   value::dict parameters;
+
+  std::string as_string() const;
 };
+
+
+inline bool operator==(const format_spec & a, const format_spec & b)
+{
+  return (a.format == b.format && a.parameters == b.parameters);
+}
+inline bool operator!=(const format_spec & a, const format_spec & b)
+{
+  return !(a == b);
+}
 
 
 /** \brief A format specification along with a short title and description
@@ -155,4 +115,11 @@ struct no_such_format : exception
 
 
 
+
+
 } // namespace klfengine
+
+
+#ifndef _KLFENGINE_DONT_INCLUDE_IMPL_HXX
+#include <klfengine/impl/format_spec.hxx>
+#endif
