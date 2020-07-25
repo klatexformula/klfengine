@@ -197,19 +197,25 @@ TEST_CASE( "value can be converted to JSON", "[variants]" )
 
 TEST_CASE( "value can be converted from JSON", "[variants]" )
 {
-  const nlohmann::json j{ nlohmann::json::parse(R"( {
+  const nlohmann::json j = nlohmann::json::parse(R"xx( {
       "A": 1,
       "B": ["b", false],
       "C": {
           "d": 0.25,
           "e": [null]
       }
-  } )") };
+  } )xx");
+
+  // std::cerr << "JSON object is " << j.dump() << "\n";
 
   klfengine::value v = j.get<klfengine::value>();
 
   using array = klfengine::value::array;
   using dict = klfengine::value::dict;
+
+  // std::cerr << "DEBUG: "
+  //   << "v.index() == " << v._data.index() << " "
+  //   << "v['A'].index() == " << v.get<dict>()["A"]._data.index() << "\n";
 
   REQUIRE(
       v.get<dict>()["A"].get<int>() == 1
