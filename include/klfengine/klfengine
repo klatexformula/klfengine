@@ -1,0 +1,10 @@
+// shorthand to include all public klfengine API headers
+#include <klfengine/basedefs>
+#include <klfengine/version>
+#include <klfengine/input>
+#include <klfengine/value>
+#include <klfengine/settings>
+#include <klfengine/format_spec>
+#include <klfengine/engine>
+#include <klfengine/engine_run_implementation>
+#include <klfengine/run>
