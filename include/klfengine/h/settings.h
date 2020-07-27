@@ -65,7 +65,7 @@ struct settings
   std::string texbin_directory;
 
   /**
-   * one of "none", "process", "linked-dylib", "load-dylib"
+   * one of "none", "process", "linked-libgs", "load-libgs"
    */
   std::string gs_method;
 
