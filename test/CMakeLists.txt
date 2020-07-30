@@ -1,15 +1,23 @@
 
+find_package(Catch2 REQUIRED)
+message(STATUS "Using Catch2 at ${Catch2_DIR} (Catch2_DIR)")
+
 
 # see also https://foonathan.net/2018/10/cmake-warnings/
 set(KLFENGINE_TEST_WARN_OPTIONS "-Werror;-Wall;-Wextra"
   CACHE STRING "Compiler warning options to set")
 
+message(STATUS
+  "Compiler warnings for tests are \"${KLFENGINE_TEST_WARN_OPTIONS}\" (KLFENGINE_TEST_WARN_OPTIONS)")
+
+
 # FIXME: Worry later about compatibility with C++11, do C++17 for now (for std::variant)
 set(KLFENGINE_TEST_CXX_STANDARD "17"
-  CACHE STRING "Which C++ standard to compile tests with (\"17\" -> C++17)")
+  CACHE STRING "Which C++ standard(s) to compile tests with (\"17\" -> C++17)")
 
+message(STATUS
+  "Compiling tests with C++${KLFENGINE_TEST_CXX_STANDARD} (KLFENGINE_TEST_CXX_STANDARD=11|14|17)")
 
-find_package(Catch2 REQUIRED)
 
 
 add_library(test_main OBJECT test_main.cxx)
@@ -34,7 +42,7 @@ macro(klfengine_create_test test_name)
   cmake_parse_arguments(KLFENGINE_CREATE_TEST "${options}" "${oneValueArgs}"
     "${multiValueArgs}" ${ARGN})
   # --> KLFENGINE_CREATE_TEST_SOURCES, KLFENGINE_CREATE_TEST_LIBRARIES, etc.
-  
+
   add_executable("test_${test_name}"
     # sources
     ${KLFENGINE_CREATE_TEST_SOURCES}
@@ -59,7 +67,9 @@ macro(klfengine_create_test test_name)
     ${KLFENGINE_CREATE_TEST_LIBRARIES}
     )
 
-  add_test(NAME "test_${test_name}" COMMAND "test_${test_name}")
+  add_test(NAME "test_${test_name}"
+    COMMAND "test_${test_name}")
+
 endmacro()
 
 

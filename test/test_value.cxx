@@ -71,29 +71,60 @@ TEST_CASE( "value can store different data types recursively", "[variants]" )
   //klfengine::value x{"one"};
   //std::cerr << "x.data-index() == " << x._data.index() << "\n"; // !!!!
 
-  using namespace std::literals; // "xxx"s -> std::string  (C++ >= 14)
+  {
+    klfengine::value d{
+      klfengine::value::array{
+        klfengine::value{std::string("one")},
+        klfengine::value{std::string("two")},
+        klfengine::value{klfengine::value::array{klfengine::value{3}, klfengine::value{4},
+                                                 klfengine::value{5}}},
+        klfengine::value{klfengine::value::dict{
+          {"key1",
+           klfengine::value{std::string("value1")}},
+          {"key2",
+           klfengine::value{222}}}}
+      }
+    };
+    REQUIRE(
+        d.get<klfengine::value::array>()[0].get<std::string>() == std::string("one")
+        );
+    REQUIRE(
+        d.get<klfengine::value::array>()[2].get<klfengine::value::array>()[1].get<int>()
+        == 4
+        );
+    REQUIRE(
+        d.get<klfengine::value::array>()[3].get<klfengine::value::dict>()["key2"].get<int>()
+        == 222
+        );
+  }
 
-  klfengine::value d{
-        klfengine::value::array{
-          klfengine::value{"one"s},
-          klfengine::value{"two"s},
-          klfengine::value{klfengine::value::array{klfengine::value{3}, klfengine::value{4},
-                                                   klfengine::value{5}}},
-          klfengine::value{klfengine::value::dict{{"key1", klfengine::value{"value1"s}},
-                                                  {"key2", klfengine::value{222}}}}
-        }
-      };
-  REQUIRE(
-      d.get<klfengine::value::array>()[0].get<std::string>() == std::string("one")
-      );
-  REQUIRE(
-      d.get<klfengine::value::array>()[2].get<klfengine::value::array>()[1].get<int>()
-      == 4
-      );
-  REQUIRE(
-      d.get<klfengine::value::array>()[3].get<klfengine::value::dict>()["key2"].get<int>()
-      == 222
-      );
+#if defined(__cpp_lib_string_udls) && __cpp_lib_string_udls >= 201304L
+  {
+    using namespace std::literals; // "xxx"s -> std::string  (C++ >= 14)
+
+    klfengine::value d{
+      klfengine::value::array{
+        klfengine::value{"one"s},
+        klfengine::value{"two"s},
+        klfengine::value{klfengine::value::array{klfengine::value{3}, klfengine::value{4},
+                                                 klfengine::value{5}}},
+        klfengine::value{klfengine::value::dict{{"key1", klfengine::value{"value1"s}},
+                                                {"key2", klfengine::value{222}}}}
+      }
+    };
+    REQUIRE(
+        d.get<klfengine::value::array>()[0].get<std::string>() == std::string("one")
+        );
+    REQUIRE(
+        d.get<klfengine::value::array>()[2].get<klfengine::value::array>()[1].get<int>()
+        == 4
+        );
+    REQUIRE(
+        d.get<klfengine::value::array>()[3].get<klfengine::value::dict>()["key2"].get<int>()
+        == 222
+        );
+  }
+#endif
 }
 
 
@@ -180,16 +211,16 @@ TEST_CASE( "debugging json stuff")
 
 TEST_CASE( "value can be converted to JSON", "[variants]" )
 {
-  using namespace std::literals; // "xxx"s -> std::string  (C++ >= 14)
-
   klfengine::value d{
         klfengine::value::array{
-          klfengine::value{"one"s},
-          klfengine::value{"two"s},
+          klfengine::value{std::string("one")},
+          klfengine::value{std::string("two")},
           klfengine::value{klfengine::value::array{klfengine::value{3}, klfengine::value{4},
                                                    klfengine::value{5}}},
-          klfengine::value{klfengine::value::dict{{"key1", klfengine::value{"value1"s}},
-                                                  {"key2", klfengine::value{222}}}}
+          klfengine::value{klfengine::value::dict{
+            {"key1", klfengine::value{std::string("value1")}},
+            {"key2", klfengine::value{222}}
+          }}
         }
       };
 

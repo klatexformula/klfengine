@@ -1,8 +1,6 @@
 cmake_minimum_required(VERSION 3.8)
-# CMake >= 3.8 for CXX_STANDARD==17 target property
-
-project(klfengine LANGUAGES CXX VERSION 0.1)
-
+# CMake >= 3.XXX? for "linking" object libraries in test subdir
+# ( CMake >= 3.8 for CXX_STANDARD==17 target property )
 
 
 #
@@ -29,21 +27,49 @@ string(REGEX REPLACE "#define KLFENGINE_VERSION_SUFFIX \"([^\"]*)\""  "\\1"
 set(KLFENGINE_VERSION "${KLFENGINE_VERSION_MAJOR}.${KLFENGINE_VERSION_MINOR}.${KLFENGINE_VERSION_RELEASE}${KLFENGINE_VERSION_SUFFIX}")
 
 
-set(KLFENGINE_TESTS true CACHE STRING "Build tests")
+#
+# CMAKE project() DIRECTIVE HERE.
+#
+project(klfengine LANGUAGES CXX VERSION "${KLFENGINE_VERSION}")
 
 
+#
+# Some initial variable settings, place in cache
+#
+set(KLFENGINE_TESTS false CACHE STRING "Build tests")
+
+if("cxx_std_17" IN_LIST CMAKE_CXX_COMPILE_FEATURES)
+  # compiler supports C++17
+  set(_klfe_default_use_mpark_variant false)
+else()
+  set(_klfe_default_use_mpark_variant true)
+endif()
+
+set(KLFENGINE_USE_MPARK_VARIANT "${_klfe_default_use_mpark_variant}" CACHE BOOL
+  "Whether or not to use mpark/variant instead of C++17 std::variant")
+
+#
+# Welcome & show those variable values
+#
 message(STATUS "Welcome to klfengine's CMake configuration script (${KLFENGINE_VERSION})
 
 These CMake scripts will let you:
 
   - install headers at your preferred location
 
+    --> after successful CMake run, use \"make install\".  (Set
+        CMAKE_INSTALL_PREFIX as desired.)
+
   - install CMake configuration files to easily set up other
     CMake-based projects to use klfengine
 
+    --> installed as part of \"make install\" (see above)
+
   - build and run the tests
 
-Relevant CMake variables to set are:
+    --> set KLFENGINE_TESTS=true, then \"make\", then \"make test\"
+
+Some important CMake variables to set are:
 
   - KLFENGINE_TESTS=true|false  [current value: ${KLFENGINE_TESTS}]
 
@@ -65,8 +91,19 @@ Relevant CMake variables to set are:
     installed dependencies.  See CMake's documentation for this
     variable.
 
-")
+  - KLFENGINE_USE_MPARK_VARIANT=true|false
 
+    [current value: ${KLFENGINE_USE_MPARK_VARIANT}]
+
+    Whether to use the alternative library mpark-variant instead of
+    C++17's std::variant.  This does not make much sense if your
+    compiler supports C++17, but it is necessary if you are compiling
+    in C++11 or C++14 mode.  If set to true, you should make sure you
+    have the mpark/variant library installed.
+
+Other variables that you can set will be specified in status messages
+below.
+")
 
 
 
@@ -75,14 +112,20 @@ include(CMakePackageConfigHelpers)
 
 
 
-
 find_package(nlohmann_json REQUIRED)
 
-set(KLFENGINE_USE_MPARK_VARIANT off CACHE BOOL
-  "Whether or not to use mpark/variant instead of C++17 std::variant")
+message(STATUS "Using nlohmann_json at ${nlohmann_json_DIR} (nlohmann_json_DIR)")
+
 if(KLFENGINE_USE_MPARK_VARIANT)
+  message(STATUS
+    "Will use mpark_variant instead of C++17 std::variant (KLFENGINE_USE_MPARK_VARIANT)")
   find_package(mpark_variant REQUIRED)
+  message(STATUS "Using mpark_variant at ${mpark_variant_DIR} (mpark_variant_DIR)")
+else()
+  message(STATUS
+    "Will use C++17's std::variant (KLFENGINE_USE_MPARK_VARIANT)")
 endif()
+
 
 
 add_library(klfengine INTERFACE)
@@ -171,11 +214,17 @@ endif()
 
 if(KLFENGINE_TESTS)
 
+  message(STATUS "Will build tests (KLFENGINE_TESTS)")
+
   # use CTest
 
   include(CTest)
   enable_testing()
 
   add_subdirectory(test)
+
+else()
+
+  message(STATUS "Skipping tests (KLFENGINE_TESTS)")
 
 endif()
