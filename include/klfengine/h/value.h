@@ -38,8 +38,18 @@
 
 #include <nlohmann/json.hpp>
 
-// todo later: support fallback variant library for C++-standard < C++17
+
+#ifdef KLFENGINE_USE_MPARK_VARIANT
+// Use mpark/variant as variant type instead of C++17 std::variant.  Set this
+// e.g. as fallback variant type for C++11 & C++14.
+#include <mpark/variant.hpp>
+
+#else
+
+// simply use C++17 std::variant
 #include <variant>
+
+#endif
 
 
 
@@ -47,9 +57,16 @@ namespace klfengine {
 
 namespace detail {
 
-// todo later: support fallback variant library for C++ < C++17
+#ifdef KLFENGINE_USE_MPARK_VARIANT
+// fallback variant library for C++ < C++17
+template<typename... Args>
+using variant_type = mpark::variant<Args...>;
+#define _KLFENGINE_VARIANT_GET mpark::get
+#else
 template<typename... Args>
 using variant_type = std::variant<Args...>;
+#define _KLFENGINE_VARIANT_GET std::get
+#endif
 
 
 // see https://stackoverflow.com/a/43309497/1694896
@@ -67,11 +84,11 @@ struct recursive_variant_with_vector_and_map
 
   template<typename GetValueType>
   inline const GetValueType & get() const {
-    return std::get<GetValueType>(_data);
+    return _KLFENGINE_VARIANT_GET<GetValueType>(_data);
   }
   template<typename GetValueType>
   inline GetValueType & get() {
-    return std::get<GetValueType>(_data);
+    return _KLFENGINE_VARIANT_GET<GetValueType>(_data);
   }
 
   // template<typename RhsType>

@@ -57,6 +57,14 @@ Relevant CMake variables to set are:
     Install location of the klfengine headers.  The folder structure
     \"include/klfengine/...\" will be created at the given location.
 
+  - CMAKE_PREFIX_PATH=/some/path;/another/path;...
+
+    [current value: ${CMAKE_PREFIX_PATH}]
+
+    Install prefixes where we can find CMake configurations of
+    installed dependencies.  See CMake's documentation for this
+    variable.
+
 ")
 
 
@@ -70,6 +78,12 @@ include(CMakePackageConfigHelpers)
 
 find_package(nlohmann_json REQUIRED)
 
+set(KLFENGINE_USE_MPARK_VARIANT off CACHE BOOL
+  "Whether or not to use mpark/variant instead of C++17 std::variant")
+if(KLFENGINE_USE_MPARK_VARIANT)
+  find_package(mpark_variant REQUIRED)
+endif()
+
 
 add_library(klfengine INTERFACE)
 
@@ -82,6 +96,16 @@ target_link_libraries(klfengine
   INTERFACE
   nlohmann_json::nlohmann_json
   )
+if(KLFENGINE_USE_MPARK_VARIANT)
+  target_link_libraries(klfengine
+    INTERFACE
+    mpark_variant
+    )
+  target_compile_options(klfengine
+    INTERFACE
+    -DKLFENGINE_USE_MPARK_VARIANT
+    )
+endif()
 
 install(
   DIRECTORY     include/

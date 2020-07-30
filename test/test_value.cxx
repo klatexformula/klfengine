@@ -40,9 +40,20 @@
 
 TEST_CASE( "variant_type can store an int or a string", "[variants]" )
 {
-  REQUIRE( std::get<int>(klfengine::detail::variant_type<int, std::string>{3}) == 3 );
+
+  // ### TODO: should we expose a public klfengine-wide API for std::get vs
+  // ### mpark::get (instead of the non-public _KLFENGINE_VARIANT_GET ?).  On
+  // ### the other hand, I don't think it's important because the only thing
+  // ### that should matter is klfengine::value, which has its own public .get()
+  // ### method.
+
   REQUIRE(
-      std::get<std::string>(klfengine::detail::variant_type<int, std::string>{"hello"})
+      _KLFENGINE_VARIANT_GET<int>(klfengine::detail::variant_type<int, std::string>{3})
+      == 3
+      );
+  REQUIRE(
+      _KLFENGINE_VARIANT_GET<std::string>(
+          klfengine::detail::variant_type<int, std::string>{"hello"})
       == std::string("hello")
       );
 }
