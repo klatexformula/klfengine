@@ -29,7 +29,7 @@
 #pragma once
 
 
-#include <subprocess.hpp>
+//#include <subprocess.hpp>
 
 namespace klfengine {
 
@@ -94,7 +94,7 @@ public:
   // }
 
 private:
-  GhostscriptMethod _method;
+  //GhostscriptMethod _method;
 };
 
 

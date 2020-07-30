@@ -3,6 +3,7 @@
 // separate translation unit (see docs).
 
 // public API implementation headers
+#include <klfengine/impl/basedefs.hxx>
 #include <klfengine/impl/version.hxx>
 #include <klfengine/impl/value.hxx>
 #include <klfengine/impl/input.hxx>

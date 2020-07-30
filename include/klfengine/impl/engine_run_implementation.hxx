@@ -59,6 +59,7 @@ struct cache_entry_already_exists
  * \warning Assumes that \a format is in canonical form.
  *
  */
+_KLFENGINE_INLINE
 fmtspec_cache_key_type formatspec_cache_key(const format_spec & format)
 {
   if (format.parameters.empty()) {

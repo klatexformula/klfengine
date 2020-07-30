@@ -84,3 +84,13 @@ klfengine_create_test(engine SOURCES test_engine.cxx)
 klfengine_create_test(engine_run_implementation SOURCES test_engine_run_implementation.cxx)
 
 klfengine_create_test(run SOURCES test_run.cxx)
+
+
+
+klfengine_create_test(separate_impl
+  SOURCES test_basedefs.cxx test_value.cxx test_version.cxx test_input.cxx
+          test_settings.cxx test_format_spec.cxx test_engine.cxx
+          test_engine_run_implementation.cxx test_run.cxx
+          test_separate_impl.cxx
+  COMPILE_OPTIONS -DKLFENGINE_SEPARATE_IMPLEMENTATION
+)

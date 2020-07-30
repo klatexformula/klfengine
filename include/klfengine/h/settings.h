@@ -34,6 +34,8 @@
 
 #include <nlohmann/json.hpp>
 
+#include <klfengine/basedefs>
+
 //#include <klfengine/run_ghostscript>
 
 namespace klfengine {

@@ -35,9 +35,25 @@
 
 
 
-// TODO/FIXME: implement possible separate hxx compilation into separate
-// translation unit
-#define _KLFENGINE_INLINE inline
+//
+// If KLFENGINE_SEPARATE_IMPLEMENTATION was defined, then the separate
+// compilation of the implementation of hxx sources into a separate translation
+// unit was requested
+//
+#ifdef KLFENGINE_SEPARATE_IMPLEMENTATION
+
+#  define _KLFENGINE_INLINE /* not inline, define function/method normally */
+
+// don't automatically include klfengine/impl/[...].hxx implementation sources.
+#  define _KLFENGINE_DONT_INCLUDE_IMPL_HXX
+
+#else
+
+// keep everything inline, no separate compilation of implementation sources
+
+#  define _KLFENGINE_INLINE inline
+
+#endif
 
 
 
@@ -94,3 +110,8 @@ private:
 
 
 } // namespace klfengine
+
+
+#ifndef _KLFENGINE_DONT_INCLUDE_IMPL_HXX
+#include <klfengine/impl/basedefs.hxx>
+#endif

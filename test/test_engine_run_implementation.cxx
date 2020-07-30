@@ -35,11 +35,12 @@
 
 
 //
-// GCC/Clang warn about initializations like format_spec{"PNG"} because there is
-// no initializer for the `parameters` field.  The warning is enabled via
-// -Wall/-Wextra and we turn warnings into errors to help catch errors. But the
-// standard allows this initialization, so we deactivate this warning entirely
-// for these tests.  See also https://stackoverflow.com/a/13373951/1694896
+// GCC/Clang warn about initializations like ``format_spec{"PNG"}`` because
+// there is no initializer for the `parameters` field.  The warning is enabled
+// via -Wall/-Wextra and we turn warnings into errors to help catch errors. But
+// the standard allows this initialization, so we deactivate this warning
+// entirely for these tests.  See also
+// https://stackoverflow.com/a/13373951/1694896
 //
 #pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 

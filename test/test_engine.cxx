@@ -29,6 +29,8 @@
 // header we are testing gets included first (helps detect missing #include's)
 #include <klfengine/engine>
 
+#include <klfengine/run>
+
 #include <catch2/catch.hpp>
 
 #include "dummy_engine/dummy_engine.hxx"
