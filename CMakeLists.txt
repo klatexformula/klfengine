@@ -34,7 +34,9 @@ project(klfengine LANGUAGES CXX VERSION "${KLFENGINE_VERSION}")
 
 
 #
-# Some initial variable settings, place in cache
+# Some initial variable settings, place in cache ---- FIXME THESE
+# DETECTIONS ETC. SHOULD BE DONE IN THE CMAKE CONFIG FILE THAT IS
+# INSTALLED.......
 #
 set(KLFENGINE_TESTS false CACHE STRING "Build tests")
 
@@ -47,6 +49,15 @@ endif()
 
 set(KLFENGINE_USE_MPARK_VARIANT "${_klfe_default_use_mpark_variant}" CACHE BOOL
   "Whether or not to use mpark/variant instead of C++17 std::variant")
+
+set(KLFENGINE_USE_GULRAK_FILESYSTEM ON CACHE BOOL
+  "Use gulrak/filesystem instead of C++17 std::filesystem")
+
+
+if(EXISTS "${CMAKE_SOURCE_DIR}/deps_install")
+  set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} "${CMAKE_SOURCE_DIR}/deps_install")
+endif()
+
 
 #
 # Welcome & show those variable values
@@ -91,7 +102,7 @@ Some important CMake variables to set are:
     installed dependencies.  See CMake's documentation for this
     variable.
 
-  - KLFENGINE_USE_MPARK_VARIANT=true|false
+  - KLFENGINE_USE_MPARK_VARIANT=true|false  (& others.....)
 
     [current value: ${KLFENGINE_USE_MPARK_VARIANT}]
 
@@ -111,6 +122,12 @@ include(GnuInstallDirs)
 include(CMakePackageConfigHelpers)
 
 
+set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
+
+
+#
+# TODO: MOVE LOGIC of finding dependencies to the installed cmake files!!
+#
 
 find_package(nlohmann_json REQUIRED)
 
@@ -118,13 +135,27 @@ message(STATUS "Using nlohmann_json at ${nlohmann_json_DIR} (nlohmann_json_DIR)"
 
 if(KLFENGINE_USE_MPARK_VARIANT)
   message(STATUS
-    "Will use mpark_variant instead of C++17 std::variant (KLFENGINE_USE_MPARK_VARIANT)")
+    "Will use mpark/variant instead of C++17 std::variant (KLFENGINE_USE_MPARK_VARIANT)")
   find_package(mpark_variant REQUIRED)
   message(STATUS "Using mpark_variant at ${mpark_variant_DIR} (mpark_variant_DIR)")
 else()
   message(STATUS
     "Will use C++17's std::variant (KLFENGINE_USE_MPARK_VARIANT)")
 endif()
+
+if(KLFENGINE_USE_GULRAK_FILESYSTEM)
+  message(STATUS
+    "Will use gulrak/filesystem instead of C++17 std::filesystem (KLFENGINE_USE_GULRAK_FILESYSTEM)")
+  find_package(ghcFilesystem REQUIRED)
+  message(STATUS "Using gulrak/filesystem at ${ghcFilesystem_DIR} (ghcFilesystem_DIR)")
+else()
+  message(STATUS
+    "Will use C++17's std::filesystem (KLFENGINE_USE_GULRAK_FILESYSTEM)")
+endif()
+
+find_package(arun11299_cppsubprocess REQUIRED)
+message(STATUS
+  "Using arun11299/cpp-subprocess at ${arun11299_cppsubprocess_INCLUDE_DIR}")
 
 
 
@@ -138,6 +169,7 @@ target_include_directories(klfengine
 target_link_libraries(klfengine
   INTERFACE
   nlohmann_json::nlohmann_json
+  arun11299::cppsubprocess
   )
 if(KLFENGINE_USE_MPARK_VARIANT)
   target_link_libraries(klfengine
@@ -147,6 +179,16 @@ if(KLFENGINE_USE_MPARK_VARIANT)
   target_compile_options(klfengine
     INTERFACE
     -DKLFENGINE_USE_MPARK_VARIANT
+    )
+endif()
+if(KLFENGINE_USE_GULRAK_FILESYSTEM)
+  target_link_libraries(klfengine
+    INTERFACE
+    ghcFilesystem::ghc_filesystem
+    )
+  target_compile_options(klfengine
+    INTERFACE
+    -DKLFENGINE_USE_GULRAK_FILESYSTEM
     )
 endif()
 

@@ -26,6 +26,12 @@ doc/api
 
 
 #
+# dependencies downloaded & "installed" by our easy-setup dependency script
+#
+deps_src
+deps_install
+
+#
 # Files that are around on my fs but definitely shouldn't be in the repo
 #
 doc/Doxyfile.unused

@@ -28,6 +28,7 @@
 
 #pragma once
 
+#include <stdexcept>
 #include <algorithm>
 
 #include <klfengine/run>
@@ -52,6 +53,10 @@ _KLFENGINE_INLINE run::run(
   : _e(std::move(e)),
     _compiled(false)
 {
+  if (!_e) {
+    // don't allow a null pointer
+    throw std::invalid_argument("Null pointer passed to klfengine::run() constructor");
+  }
 }
 
 _KLFENGINE_INLINE run::~run()
@@ -86,9 +91,16 @@ _KLFENGINE_INLINE bool run::has_format(const format_spec & format)
   return _e->has_format(format);
 }
 
+_KLFENGINE_INLINE bool run::has_format(std::string format)
+{
+  return has_format(format_spec{std::move(format)});
+}
+
 _KLFENGINE_INLINE std::vector<format_description>
 run::available_formats()
 {
+  _ensure_compiled();
+
   std::lock_guard<std::mutex> lckgrd(_mutex);
 
   return _e->available_formats();
@@ -97,8 +109,19 @@ run::available_formats()
 _KLFENGINE_INLINE format_spec
 run::canonical_format(const format_spec & format)
 {
+  _ensure_compiled();
+
   std::lock_guard<std::mutex> lckgrd(_mutex);
   return _e->canonical_format(format);
+}
+
+_KLFENGINE_INLINE format_spec
+run::canonical_format_or_empty(const format_spec & format)
+{
+  _ensure_compiled();
+
+  std::lock_guard<std::mutex> lckgrd(_mutex);
+  return _e->canonical_format_or_empty(format);
 }
 
 

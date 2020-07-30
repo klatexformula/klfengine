@@ -125,6 +125,14 @@ public:
    */
   format_spec canonical_format(const format_spec & format);
 
+  /** \brief Return the format specification in canonical form
+   *
+   * This method never throws \ref no_such_format; if the given format is
+   * invalid or is not available, it returns a default-constructed \ref
+   * format_spec (with an empty format string).
+   */
+  format_spec canonical_format_or_empty(const format_spec & format);
+
   /** \brief Return a list of available formats
    *
    * Returns a list of formats that this run instance can produce, as a vector
@@ -145,6 +153,12 @@ public:
    * canonical form that is non-empty is a format that is available.)
    */
   bool has_format(const format_spec & format);
+
+  /** \brief Check if a given format is available.
+   *
+   * Overloaded method, provided for convenience.
+   */
+  bool has_format(std::string format);
 
 
   /** \brief Get result data associated with the given format

@@ -53,10 +53,31 @@ namespace klfengine {
  */
 struct format_spec
 {
+  format_spec()
+    : format(), parameters()
+  {}
+  format_spec(const format_spec & other) = default;
+  format_spec(format_spec && other) = default;
+  explicit format_spec(std::string format_)
+    : format(std::move(format_)), parameters()
+  {}
+  format_spec(std::string format_, value::dict parameters_)
+    : format(std::move(format_)), parameters(std::move(parameters_))
+  {}
+
   std::string format;
   value::dict parameters;
 
   std::string as_string() const;
+
+
+  format_spec & operator=(std::string other_) {
+    format = std::move(other_);
+    parameters = value::dict{};
+    return *this;
+  }
+  format_spec & operator=(const format_spec &) = default;
+  format_spec & operator=(format_spec &&) = default;
 };
 
 

@@ -28,6 +28,7 @@
 
 #pragma once
 
+#include <memory> // std::unique_ptr
 #include <atomic>
 #include <mutex>
 
@@ -97,16 +98,31 @@ public:
 
   bool has_format(const format_spec & format);
 
+  bool has_format(std::string format);
+
+  /** ...
+   *
+   * Even this method can only be called after compile() is called.  (Otherwise,
+   * use corresponding method on klfengine::engine object.)
+   */
   std::vector<format_description> available_formats();
 
+  /** ...
+   *
+   * Even this method can only be called after compile() is called.  (Otherwise,
+   * use corresponding method on klfengine::engine object.)
+   */
   format_spec canonical_format(const format_spec & format);
 
+  format_spec canonical_format_or_empty(const format_spec & format);
+
   template<typename IteratorInterfaceContainer>
-  format_spec find_format(const IteratorInterfaceContainer & formats);
+  format_spec find_format(IteratorInterfaceContainer && formats);
 
 
   binary_data get_data(const format_spec & format);
   const binary_data & get_data_cref(const format_spec & format);
+
 
   // no copy, move, or assignment operators.
   run(const run &) = delete;
@@ -138,28 +154,24 @@ private:
 // compiled separately in a single translation unit
 
 template<typename IteratorInterfaceContainer>
-inline format_spec run::find_format(const IteratorInterfaceContainer & formats)
+inline format_spec run::find_format(IteratorInterfaceContainer && formats)
 {
   _ensure_compiled();
 
   std::lock_guard<std::mutex> lckgrd(_mutex);
 
   // note container value type can also be std::string, because you can
-  // construct a format_spec from a std::string (DOUBLE-CHECK THIS)
+  // construct a format_spec from a std::string
 
-  auto result = std::find_if(
-      formats.begin(),
-      formats.end(),
-      [this](const format_spec & f) {
-        return _e->has_format(f);
-      }
-      );
-
-  if (result == formats.end()) {
-    throw no_such_format("<no suitable format found in list>");
+  for (auto it = formats.begin(); it != formats.end(); ++it) {
+    format_spec canon = _e->canonical_format_or_empty( format_spec{*it} );
+    if (!canon.format.empty()) {
+      return canon;
+    }
   }
 
-  return *result;
+  // reached the end, didn't find a suitable format
+  throw no_such_format("<no suitable format found in list>");
 }
 
 

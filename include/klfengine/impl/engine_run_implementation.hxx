@@ -97,6 +97,12 @@ void engine_run_implementation::compile()
 
 
 _KLFENGINE_INLINE bool
+engine_run_implementation::has_format(std::string format)
+{
+  return has_format( format_spec{ std::move(format) });
+}
+
+_KLFENGINE_INLINE bool
 engine_run_implementation::has_format(const format_spec & format)
 {
   try {
@@ -111,6 +117,16 @@ _KLFENGINE_INLINE format_spec
 engine_run_implementation::canonical_format(const format_spec & format)
 {
   return internal_canonical_format(format, false);
+}
+
+_KLFENGINE_INLINE format_spec
+engine_run_implementation::canonical_format_or_empty(const format_spec & format)
+{
+  try {
+    return internal_canonical_format(format, false);
+  } catch (no_such_format & ex) {
+    return format_spec{};
+  }
 }
 
 _KLFENGINE_INLINE format_spec

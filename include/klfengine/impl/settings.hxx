@@ -28,8 +28,13 @@
 
 #pragma once
 
+#include <cstdlib> // getenv()
+
 #include <klfengine/basedefs>
 #include <klfengine/settings>
+
+#include <klfengine/h/detail/filesystem.h>
+
 
 namespace klfengine {
 
@@ -43,11 +48,38 @@ std::string settings::get_tex_executable_path(const std::string & exe_name) cons
   return s;
 }
 
+
+// namespace detail {
+// inline bool check_good_tmpdir(const std::string & tmpdir)
+// {
+//   // TODO: check for writeable permissions
+//   return !tmpdir.empty() && fs::exists(tmpdir);
+// }
+// } // namespace detail
+
 //static
 _KLFENGINE_INLINE
 std::string settings::detect_temporary_directory()
 {
-  throw std::runtime_error("not implemented");//    return ... ;
+  return fs::temp_directory_path();
+  // { std::vector<const char *> varnames{"TMPDIR", "TEMP", "TEMPDIR", "TMP"};
+  //   for (auto it = varnames.begin(); it != varnames.end(); ++it) {
+  //     auto tmpdir_p = std::getenv(*it);
+  //     std::string tmpdir{tmpdir_p != nullptr ? tmpdir_p : ""};
+  //     if (detail::check_good_tmpdir(tmpdir)) {
+  //       return tmpdir;
+  //     }
+  //   }
+  // }
+  // { std::vector<const char *> stdpaths{"/var/tmp", "/tmp"};
+  //   for (auto it = stdpaths.begin(); it != stdpaths.end(); ++it) {
+  //     std::string tmpdir{*it};
+  //     if (detail::check_good_tmpdir(tmpdir)) {
+  //       return tmpdir;
+  //     }
+  //   }
+  // }
+  // throw std::runtime_error("Can't find a suitable temporary directory to use");
 }
 
 // static

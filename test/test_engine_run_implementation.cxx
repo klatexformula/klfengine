@@ -125,6 +125,59 @@ TEST_CASE( "engine_run_implementation.canonical_format() calls impl_make_canonic
 
 
 
+TEST_CASE( "engine_run_implementation.canonical_format_or_empty() calls impl_make_canonical "
+           "and behaves correctly" ,
+           "[engine_run_implementation]" )
+{
+  dummy_engine::dummy_run_impl x{ klfengine::input{}, klfengine::settings{} };
+
+  x.compile();
+
+  REQUIRE(
+      x.canonical_format_or_empty(klfengine::format_spec{"TEX", {}})
+      == klfengine::format_spec{"TEX", {}}
+      ) ;
+
+  REQUIRE(
+      x.canonical_format_or_empty(
+          klfengine::format_spec{"HTML",
+                                 {{"italic", klfengine::value{false}},
+                                  {"bold", klfengine::value{true}}}}
+          )
+      == klfengine::format_spec{"HTML", {{"bold", klfengine::value{true}}}}
+      ) ;
+
+  REQUIRE(
+      x.canonical_format_or_empty(klfengine::format_spec{"PNG", {}})
+      == klfengine::format_spec{}
+      ) ;
+
+  // test enforces "JPEG" instead of "JPG"
+  REQUIRE(
+      x.canonical_format_or_empty(klfengine::format_spec{"JPG", {}})
+      == klfengine::format_spec{}
+      ) ;
+
+  REQUIRE(
+      x.canonical_format_or_empty(
+          klfengine::format_spec{"HTML",
+                                 {{"invalid_option", klfengine::value{false}}}}
+          )
+      == klfengine::format_spec{}
+      ) ;
+
+  REQUIRE( x.record_calls == std::vector<std::string>{
+      "impl_compile()",
+      "impl_make_canonical(TEX, 0)",
+      "impl_make_canonical(HTML:{\"bold\":true,\"italic\":false}, 0)",
+      "impl_make_canonical(PNG, 0)",
+      // JPG (instead of JPEG) caught by base class immediately -- so not in this log
+      "impl_make_canonical(HTML:{\"invalid_option\":false}, 0)",
+    }) ;
+}
+
+
+
 
 TEST_CASE( "engine_run_implementation.has_format() calls impl_make_canonical "
            "and behaves correctly" ,
@@ -257,7 +310,7 @@ TEST_CASE( "engine_run_implementation.get_data_cref produces data and stores to 
 
 
 TEST_CASE( "engine_run_implementation calls impl_available_formats()",
-           "[engine_run_implementation]" )
+           "[engine_run_implementation][!mayfail]" )
 {
   // TODO/BUG: need to determine what available_formats() should return.  See
   // that class doc.

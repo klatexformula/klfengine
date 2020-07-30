@@ -58,8 +58,9 @@ private:
 };
 
 
-struct dummy_run_impl : klfengine::engine_run_implementation
+class dummy_run_impl : public klfengine::engine_run_implementation
 {
+public:
   dummy_run_impl(
       klfengine::input input_,
       klfengine::settings settings_

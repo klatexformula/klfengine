@@ -33,23 +33,16 @@
 #include <catch2/catch.hpp>
 
 
-//
-// GCC/Clang warn about initializations like format_spec{"PNG"} because there is
-// no initializer for the `parameters` field.  The warning is enabled via
-// -Wall/-Wextra and we turn warnings into errors to help catch errors. But the
-// standard allows this initialization, so we deactivate this warning entirely
-// for these tests.  See also https://stackoverflow.com/a/13373951/1694896
-//
-#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
-
 
 TEST_CASE( "struct format_spec can be initialized and has the right fields", "[format_spec]" )
 {
+  // can be initialized with a string
   { const klfengine::format_spec f{"PNG"};
     REQUIRE( f.format == "PNG" );
     REQUIRE( f.parameters == klfengine::value::dict{} );
   }
 
+  // can be initialized with a string & parameters argument
   { const klfengine::format_spec f{"PNG", {}};
     REQUIRE( f.format == "PNG" );
     REQUIRE( f.parameters == klfengine::value::dict{} );
@@ -75,7 +68,7 @@ TEST_CASE( "struct format_description can be initialized and has the right field
            "[format_spec]" )
 {
   { const klfengine::format_description f{
-      {"PNG"},
+      klfengine::format_spec{"PNG"},
       "Portable Graphics Format",
       "Standard image format with transparency"
     };

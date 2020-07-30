@@ -29,6 +29,7 @@
 // header we are testing gets included first (helps detect missing #include's)
 #include <klfengine/settings>
 
+#include <iostream> // std::cout
 
 #include <catch2/catch.hpp>
 
@@ -142,7 +143,17 @@ TEST_CASE( "struct settings converts to/from JSON", "[settings]" )
 
 
 
-TEST_CASE( "can detect default settings", "[settings]" )
+TEST_CASE( "can detect a temporary directory", "[settings]" )
+{
+  // found a dir & didn't throw an error
+  std::string tmpdir = klfengine::settings::detect_temporary_directory();
+  std::cout << "Detected temporary dir = " << tmpdir << "\n";
+  REQUIRE( tmpdir != std::string() ) ;
+}
+
+
+
+TEST_CASE( "can detect default settings", "[settings][!mayfail]" )
 {
   // write tests here
   REQUIRE( false ) ;
