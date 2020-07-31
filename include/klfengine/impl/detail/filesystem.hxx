@@ -45,7 +45,7 @@ temporary_directory::temporary_directory(fs::path temp_dir, std::string name_pre
 _KLFENGINE_INLINE
 temporary_directory::~temporary_directory()
 {
-  std::remove_all(_path) ;
+  fs::remove_all(_path) ;
 }
 
 
@@ -70,7 +70,7 @@ fs::path temporary_directory::create_temporary_dir(
     std::string sss;
     sss.reserve(num_rand_chars+1);
 
-    for (std::size_t i = 0; i < num_rand_chars; ++i) {
+    for (int i = 0; i < num_rand_chars; ++i) {
       sss += ok_chars[ rnddist(rnd) ];
     }
 
