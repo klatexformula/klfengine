@@ -33,15 +33,8 @@
 #include <catch2/catch.hpp>
 
 
-TEST_CASE( "can create temporary directory & it is auto-erased", "[filesystem]" )
+TEST_CASE( "fs exposes a std::filesystem interface", "[detail-filesystem]" )
 {
-  // write tests here
-  REQUIRE( false ) ;
-}
-
-
-TEST_CASE( "something happens when this and that", "[keyword]" )
-{
-  // write tests here
-  REQUIRE( false ) ;
+  klfengine::fs::path p = klfengine::fs::current_path();
+  REQUIRE( klfengine::fs::exists( p ) );
 }

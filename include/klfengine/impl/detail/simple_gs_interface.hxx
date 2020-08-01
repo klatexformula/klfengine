@@ -32,8 +32,33 @@
 
 namespace klfengine {
 
+namespace detail {
+
+// static
+_KLFENGINE_INLINE
+std::pair<int,int> simple_gs_interface::gs_version(const settings& )
+{
+  throw std::runtime_error("Not yet implemented") ;
+}
+
+// static
+_KLFENGINE_INLINE
+simple_gs_interface::gs_info_t simple_gs_interface::gs_info(const settings& )
+{
+  throw std::runtime_error("Not yet implemented") ;
+}
+
+// static
+_KLFENGINE_INLINE
+void simple_gs_interface::run(
+    const settings& ,
+    const std::vector<std::string> & ,
+    bool )
+{
+}
 
 
 
+} // namespace detail
 
 } // namespace klfengine

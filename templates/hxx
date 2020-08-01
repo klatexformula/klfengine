@@ -28,31 +28,13 @@
 
 #pragma once
 
-
-
-#ifdef KLFENGINE_USE_GULRAK_FILESYSTEM
-#  include <ghc/filesystem.hpp>
-#else
-#  include <filesystem>
-#endif
-
-#include <klfengine/basedefs>
+#include <klfengine/XXXXXX>
 
 
 namespace klfengine {
 
-#ifdef KLFENGINE_USE_GULRAK_FILESYSTEM
-namespace fs = ghc::filesystem;
-#else
-namespace fs = std::filesystem;
-#endif
+
 
 
 
 } // namespace klfengine
-
-
-
-#ifndef _KLFENGINE_DONT_INCLUDE_IMPL_HXX
-#include <klfengine/impl/detail/filesystem.hxx>
-#endif

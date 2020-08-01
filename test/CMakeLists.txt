@@ -95,7 +95,11 @@ klfengine_create_test(engine_run_implementation SOURCES test_engine_run_implemen
 
 klfengine_create_test(run SOURCES test_run.cxx)
 
+klfengine_create_test(temporary_directory SOURCES test_temporary_directory.cxx)
+
 klfengine_create_test(detail_filesystem SOURCES test_detail_filesystem.cxx)
+
+klfengine_create_test(detail_simple_gs_interface SOURCES test_detail_simple_gs_interface.cxx)
 
 
 
@@ -111,8 +115,10 @@ klfengine_create_test(separate_impl
           test_engine.cxx
           test_engine_run_implementation.cxx
           test_run.cxx
+          test_temporary_directory.cxx
           #
           test_detail_filesystem.cxx
+          test_detail_simple_gs_interface.cxx
           
   COMPILE_OPTIONS
           -DKLFENGINE_SEPARATE_IMPLEMENTATION

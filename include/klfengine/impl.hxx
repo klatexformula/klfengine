@@ -12,6 +12,7 @@
 #include <klfengine/impl/engine.hxx>
 #include <klfengine/impl/engine_run_implementation.hxx>
 #include <klfengine/impl/run.hxx>
+#include <klfengine/impl/temporary_directory.hxx>
 
 // all necessary implementation headers for non-public parts of the API
 #include <klfengine/impl/detail.hxx>

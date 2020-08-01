@@ -26,33 +26,14 @@
  * SOFTWARE.
  */
 
-#pragma once
+// header we are testing gets included first (helps detect missing #include's)
+#include <klfengine/h/detail/simple_gs_interface.h>
 
 
-
-#ifdef KLFENGINE_USE_GULRAK_FILESYSTEM
-#  include <ghc/filesystem.hpp>
-#else
-#  include <filesystem>
-#endif
-
-#include <klfengine/basedefs>
+#include <catch2/catch.hpp>
 
 
-namespace klfengine {
-
-#ifdef KLFENGINE_USE_GULRAK_FILESYSTEM
-namespace fs = ghc::filesystem;
-#else
-namespace fs = std::filesystem;
-#endif
-
-
-
-} // namespace klfengine
-
-
-
-#ifndef _KLFENGINE_DONT_INCLUDE_IMPL_HXX
-#include <klfengine/impl/detail/filesystem.hxx>
-#endif
+TEST_CASE( "does stuff", "[detail-simple_gs_interface]" )
+{
+  REQUIRE( false ) ;
+}

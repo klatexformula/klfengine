@@ -28,8 +28,10 @@
 
 #pragma once
 
-
 //#include <subprocess.hpp>
+
+#include <klfengine/basedefs>
+#include <klfengine/settings>
 
 namespace klfengine {
 
@@ -46,7 +48,7 @@ class simple_gs_interface
 public:
   simple_gs_interface() = delete;
 
-  struct gs_info {
+  struct gs_info_t {
     std::string version_line;
     std::string copyright_line;
     std::vector<std::string> devices;
@@ -55,7 +57,7 @@ public:
 
   static std::pair<int,int> gs_version(const settings& settings_);
 
-  static gs_info gs_info(const settings& settings_);
+  static gs_info_t gs_info(const settings& settings_);
 
   static void run(const settings& settings_, const std::vector<std::string> & gs_cmd,
                   bool add_standard_batch_flags);

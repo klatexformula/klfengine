@@ -28,6 +28,9 @@
 
 #pragma once
 
+#include <klfengine/basedefs>
+
+
 namespace klfengine {
 
 
@@ -35,3 +38,8 @@ namespace klfengine {
 
 
 } // namespace klfengine
+
+
+#ifndef _KLFENGINE_DONT_INCLUDE_IMPL_HXX
+#include <klfengine/impl/XXXXXX.hxx>
+#endif
