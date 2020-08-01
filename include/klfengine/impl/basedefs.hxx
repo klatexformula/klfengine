@@ -28,6 +28,61 @@
 
 #pragma once
 
+
+#include <type_traits>
+#include <typeinfo>
+#ifndef _MSC_VER
+#   include <cxxabi.h>
+#endif
+#include <memory>
+#include <string>
+#include <cstdlib>
+
 #include <klfengine/basedefs>
 
-// nothing to define here (for now)
+
+
+namespace klfengine {
+
+namespace detail {
+
+
+// thanks https://stackoverflow.com/a/20170989/1694896
+_KLFENGINE_INLINE
+std::string get_type_name_impl(
+    const char * typeid_name,
+    bool is_const,
+    bool is_volatile,
+    bool is_lvalue_reference,
+    bool is_rvalue_reference
+    )
+{
+  std::unique_ptr<char, void(*)(void*)> own{
+#ifndef _MSC_VER
+    abi::__cxa_demangle(typeid_name, nullptr,
+                        nullptr, nullptr),
+#else
+    nullptr,
+#endif
+    std::free
+  };
+  std::string r = ((own != nullptr) ? own.get() : typeid_name);
+  if (is_const) {
+    r += " const";
+  }
+  if (is_volatile) {
+    r += " volatile";
+  }
+  if (is_lvalue_reference) {
+    r += "&";
+  }
+  else if (is_rvalue_reference) {
+    r += "&&";
+  }
+  return r;
+}
+
+} // namespace detail
+
+} // namespace klfengine
+

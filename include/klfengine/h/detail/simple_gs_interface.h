@@ -28,8 +28,6 @@
 
 #pragma once
 
-//#include <subprocess.hpp>
-
 #include <klfengine/basedefs>
 #include <klfengine/settings>
 
@@ -46,57 +44,37 @@ namespace detail {
 class simple_gs_interface
 {
 public:
-  simple_gs_interface() = delete;
+  enum struct method {
+    None,
+    Process,
+    LinkedLibgs,
+    LoadLibgs
+  };
+  
+  static method get_method(const std::string & method_s);
+  
+  explicit simple_gs_interface(method method_, std::string gs_path = std::string());
+  explicit simple_gs_interface(std::string method_s, std::string gs_path = std::string());
 
   struct gs_info_t {
-    std::string version_line;
-    std::string copyright_line;
+    std::string head;
     std::vector<std::string> devices;
     std::vector<std::string> search_path;
   };
 
-  static std::pair<int,int> gs_version(const settings& settings_);
+  std::pair<int,int> gs_version();
+  gs_info_t gs_info();
 
-  static gs_info_t gs_info(const settings& settings_);
-
-  static void run(const settings& settings_, const std::vector<std::string> & gs_cmd,
-                  bool add_standard_batch_flags);
-
-
-  // ### Hmm, no, prefer to have a single location (settings) where method & gs
-  // ### path are stored
-  //
-  // enum struct method {
-  //   None,
-  //   Process,
-  //   LinkedLibgs,
-  //   LoadLibgs
-  // };
-  //
-  // static method get_method(const std::string & method_s) {
-  //   if (method_s == "none") {
-  //     return None;
-  //   } else if (method_s == "process") {
-  //     return Process;
-  //   } else if (method_s == "linked-libgs") {
-  //     return LinkedLibgs;
-  //   } else if (method_s == "load-libgs") {
-  //     return LoadLibgs;
-  //   }
-  //   throw std::invalid_argument("Invalid gs interface method: " + method_s);
-  // }
-  //
-  // simple_gs_interface(method method_)
-  //   : _method(method_)
-  // {
-  // }
-  // simple_gs_interface(std::string method_s)
-  //   : _method(get_method(method_s))
-  // {
-  // }
+  binary_data run_gs(const std::vector<std::string> & gs_args,
+                     const binary_data & stdin_data,
+                     bool add_standard_batch_flags = true,
+                     std::string * set_stderr = nullptr);
 
 private:
-  //GhostscriptMethod _method;
+  method _method;
+  std::string _gs_path;
+
+  void _init();
 };
 
 

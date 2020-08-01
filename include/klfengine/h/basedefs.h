@@ -31,7 +31,8 @@
 #include <string>
 #include <vector>
 #include <exception>
-
+#include <type_traits>
+#include <typeinfo>
 
 
 
@@ -106,6 +107,34 @@ public:
 private:
   std::string _msg;
 };
+
+
+
+namespace detail {
+
+std::string get_type_name_impl(
+    const char * typeid_name,
+    bool is_const,
+    bool is_volatile,
+    bool is_lvalue_reference,
+    bool is_rvalue_reference
+    );
+
+template<typename T>
+std::string get_type_name()
+{
+  using TR = typename std::remove_reference<T>::type;
+  return get_type_name_impl(
+    typeid(TR).name(),
+    std::is_const<TR>::value,
+    std::is_volatile<TR>::value,
+    std::is_lvalue_reference<T>::value,
+    std::is_rvalue_reference<T>::value
+    );
+}
+
+} // namespace detail
+
 
 
 
