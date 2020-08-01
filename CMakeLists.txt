@@ -153,10 +153,6 @@ else()
     "Will use C++17's std::filesystem (KLFENGINE_USE_GULRAK_FILESYSTEM)")
 endif()
 
-find_package(arun11299_cppsubprocess REQUIRED)
-message(STATUS
-  "Using arun11299/cpp-subprocess at ${arun11299_cppsubprocess_INCLUDE_DIR}")
-
 
 
 add_library(klfengine INTERFACE)
@@ -169,7 +165,6 @@ target_include_directories(klfengine
 target_link_libraries(klfengine
   INTERFACE
   nlohmann_json::nlohmann_json
-  arun11299::cppsubprocess
   )
 if(KLFENGINE_USE_MPARK_VARIANT)
   target_link_libraries(klfengine
