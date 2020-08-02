@@ -92,7 +92,7 @@ std::pair<int,int> simple_gs_interface::gs_version()
 {
   binary_data out_buf;
   process::run( {_gs_path, "--version"},
-                process::stdout_handle{out_buf} );
+                process::capture_stdout_data{out_buf} );
   std::string out{out_buf.begin(), out_buf.end()};
 
   std::regex rx_ver("^(\\d+)[.](\\d+)");
@@ -163,7 +163,7 @@ simple_gs_interface::gs_info_t simple_gs_interface::gs_info()
 {
   binary_data out_buf;
   process::run( {_gs_path, "--help"},
-                process::stdout_handle{out_buf} );
+                process::capture_stdout_data{out_buf} );
   std::string out{out_buf.begin(), out_buf.end()};
 
   constexpr auto rxflg = std::regex::ECMAScript | std::regex::icase;
@@ -222,9 +222,9 @@ binary_data simple_gs_interface::run_gs(
 
   process::run(
       argv,
-      process::stdin_data{stdin_data},
-      process::stdout_handle{out},
-      process::stderr_handle{err}
+      process::send_stdin_data{stdin_data},
+      process::capture_stdout_data{out},
+      process::capture_stderr_data{err}
       );
 
   if (set_stderr != nullptr) {

@@ -29,6 +29,9 @@
 #pragma once
 
 #include <exception>
+// #include <functional>
+
+//#include <iostream> // DEBUG
 
 #include <klfengine/basedefs>
 
@@ -53,19 +56,19 @@ namespace detail {
 
 // static
 _KLFENGINE_INLINE
-std::string suffix_out_and_err(const binary_data & out, const binary_data & err)
+std::string suffix_out_and_err(const binary_data * out, const binary_data * err)
 {
-  if (!out.empty() && !err.empty()) {
-    return ":\n*** output: ***\n" + std::string{out.begin(), out.end()}
-    + "\n*** error: ***\n" + std::string{err.begin(), err.end()};
+  if (out != nullptr && !out->empty() && err != nullptr && !err->empty()) {
+    return ":\n*** output: ***\n" + std::string{out->begin(), out->end()}
+    + "\n*** error: ***\n" + std::string{err->begin(), err->end()};
   }
-  if (!out.empty()) {
-    return ":\n" + std::string{out.begin(), out.end()};
+  if (out != nullptr && !out->empty()) {
+    return ":\n" + std::string{out->begin(), out->end()};
   }
-  if (!err.empty()) {
-    return ":\n" + std::string{err.begin(), err.end()};
+  if (err != nullptr && !err->empty()) {
+    return ":\n" + std::string{err->begin(), err->end()};
   }
-  return " [no output]";
+  return " [no output or output not captured]";
 }
 
 } // namespace detail
@@ -79,35 +82,35 @@ std::string suffix_out_and_err(const binary_data & out, const binary_data & err)
 namespace klfengine {
 namespace detail {
 
-struct exit_cleaner
-{
-  std::function<void()> fn;
+// struct exit_cleaner
+// {
+//   std::function<void()> fn;
 
-  template<typename Fn>
-  explicit exit_cleaner(Fn && f) : fn(std::forward<Fn>(f)) {}
+//   template<typename Fn>
+//   explicit exit_cleaner(Fn && f) : fn(std::forward<Fn>(f)) {}
 
-  inline ~exit_cleaner() {
-    cleanup();
-  }
+//   inline ~exit_cleaner() {
+//     cleanup();
+//   }
 
-  inline void cleanup() {
-    if (fn) {
-      fn();
-    }
-    fn = std::function<void()>{};
-  }
+//   inline void cleanup() {
+//     if (fn) {
+//       fn();
+//     }
+//     fn = std::function<void()>{};
+//   }
 
-  inline void release() {
-    fn = std::function<void()>{};
-  }
+//   inline void release() {
+//     fn = std::function<void()>{};
+//   }
 
-  exit_cleaner(const exit_cleaner & ) = delete;
-  exit_cleaner & operator=(const exit_cleaner & ) = delete;
+//   exit_cleaner(const exit_cleaner & ) = delete;
+//   exit_cleaner & operator=(const exit_cleaner & ) = delete;
 
-  exit_cleaner(exit_cleaner && ) = default;
-  exit_cleaner & operator=(exit_cleaner && ) = default;
+//   exit_cleaner(exit_cleaner && ) = default;
+//   exit_cleaner & operator=(exit_cleaner && ) = default;
 
-};
+// };
 
 } // namespace detail
 } // namespace klfengine
@@ -121,12 +124,10 @@ struct exit_cleaner
 
 #if defined(__unix__) || defined(__APPLE__)
 
-#include <chrono> // std::milliseconds()
-#include <thread> // std::this_thread::sleep_for()
+#include <thread>
 #include <system_error>
 
-#include <cstdlib>
-
+#include <string.h>
 #include <sys/wait.h>
 #include <fcntl.h>
 #include <unistd.h>
@@ -137,138 +138,175 @@ namespace klfengine {
 
 namespace detail {
 
-inline void set_read_nonblock(int fd)
+
+inline void child_process_errno_abort(std::string what)
 {
-  int flags = fcntl(fd, F_GETFL);
-  if (flags < 0) {
-    throw std::system_error{errno, std::generic_category()};
-  }
-  int retval = fcntl(fd, F_SETFL, flags | O_NONBLOCK);
-  if (retval == -1) {
-    throw std::system_error{errno, std::generic_category()};
-  }
+  std::error_code syserr{errno, std::generic_category()};
+  std::string errstr{ std::move(what) };
+  errstr += " error " + std::to_string(syserr.value()) + ": " + syserr.message();
+  // & write this to stderr ->
+  write(2, errstr.c_str(), errstr.size());
+  std::abort();
 }
 
-_KLFENGINE_INLINE
-void run_process_impl(
-    const std::string & executable,
-    const std::vector<std::string> & argv,
-    const std::string & run_cwd,
-    const binary_data & stdin_data,
-    binary_data & capture_stdout,
-    binary_data & capture_stderr,
-    int & capture_exit_code
-    )
+inline void throw_from_errno()
 {
-  // pipe for stdout
-  int stdout_fds[2];
-  if ( pipe(stdout_fds) != 0 ) {
-    throw std::system_error(errno, std::generic_category());
-  }
-  
-  // in case of error before fork(), close the pipe we just opened.
-  detail::exit_cleaner clean_stdout_pipes{
-    [stdout_fds]() {
-      // close the stdout pipes we opened earlier
-      close(stdout_fds[0]);
-      close(stdout_fds[1]);
-    }
-  };
-      
-  set_read_nonblock(stdout_fds[0]);
+  throw std::system_error{errno, std::generic_category()};
+}
 
-  // pipe for stderr
-  int stderr_fds[2];
-  if ( pipe(stderr_fds) != 0 ) {
-    throw std::system_error{errno, std::generic_category()};
-  }
+// inline void set_read_nonblock(int fd)
+// {
+//   int flags = fcntl(fd, F_GETFL);
+//   if (flags < 0) {
+//     throw_from_errno();
+//   }
+//   int retval = fcntl(fd, F_SETFL, flags | O_NONBLOCK);
+//   if (retval == -1) {
+//     throw_from_errno();
+//   }
+// }
 
-  // in case of error before fork(), close the pipe we just opened.
-  detail::exit_cleaner clean_stderr_pipes{
-    [stderr_fds]() {
-      // close the stdout pipes we opened earlier
-      close(stderr_fds[0]);
-      close(stderr_fds[1]);
-    }
-  };
+class pipe_handler
+{
+private:
+  int _fds[2];
+  bool _pipe_open;
+  bool _pipe_closed[2];
 
-
-  // pipe for stderr
-  int stdin_fds[2];
-  if ( pipe(stdin_fds) != 0 ) {
-    throw std::system_error{errno, std::generic_category()};
+public:
+  pipe_handler()
+    : _fds{0, 0},
+      _pipe_open{false},
+      _pipe_closed{false,false}
+  {
   }
 
-  // in case of error before fork(), close the pipe we just opened.
-  detail::exit_cleaner clean_stdin_pipes{
-    [stdin_fds]() {
-      // close the stdout pipes we opened earlier
-      close(stdin_fds[0]);
-      close(stdin_fds[1]);
-    }
-  };
-
-  const pid_t pid = fork();
-  if (pid < 0) {
-    throw std::system_error{errno, std::generic_category()};
-  }
-  // release our pipe cleaners -- we'll close them ourselves from this point on
-  clean_stdout_pipes.release();
-  clean_stderr_pipes.release();
-  clean_stdin_pipes.release();
-
-  if (pid == 0) {
-    // this is the child process
-
-    close(stdin_fds[1]);
-    dup2(stdin_fds[0], 0);
-    close(stdin_fds[0]);
-
-    close(stdout_fds[0]);
-    dup2(stdout_fds[1], 1);
-    close(stdout_fds[1]);
-
-    close(stderr_fds[0]);
-    dup2(stderr_fds[1], 2);
-    close(stderr_fds[1]);
-
-    // change working directory
-    if ( !run_cwd.empty() ) {
-      if ( chdir(run_cwd.c_str()) == -1 ) {
-        std::error_code syserr{errno, std::generic_category()};
-        std::string errstr{ "chdir error " };
-        errstr += std::to_string(syserr.value()) + ": " + syserr.message();
-        // & write this to stderr ->
-        write(2, errstr.c_str(), errstr.size());
-        std::abort();
+  ~pipe_handler()
+  {
+    if (_pipe_open) {
+      if (!_pipe_closed[0]) {
+        close(_fds[0]);
+      }
+      if (!_pipe_closed[1]) {
+        close(_fds[1]);
       }
     }
-
-    std::vector<char*> vc(argv.size() + 1, 0);
-    for (std::size_t i = 0; i < argv.size(); ++i) {
-      vc[i] = const_cast<char*>(argv[i].c_str());
-    }
-
-    // execution! this shouldn't return.
-    execv(executable.c_str(), &vc[0]);
-
-    // error calling execv
-    std::error_code syserr{errno, std::generic_category()};
-    std::string errstr{ "execv error " };
-    errstr += std::to_string(syserr.value()) + ": " + syserr.message();
-    // & write this to stderr ->
-    write(2, errstr.c_str(), errstr.size());
-    std::abort();
   }
 
-  close(stdin_fds[0]);
-  close(stdout_fds[1]);
-  close(stderr_fds[1]);
+  bool pipe_open() { return _pipe_open; }
+
+  void create()
+  {
+    if (_pipe_open) {
+      throw std::runtime_error("pipe_handler::create(): pipe is already open");
+    }
+
+    if ( pipe(_fds) != 0 ) {
+      throw_from_errno();
+    }
+    _pipe_open = true;
+    _pipe_closed[0] = false;
+    _pipe_closed[1] = false;
+  }
+
+  int read_fd()
+  {
+    if (!_pipe_open || _pipe_closed[0]) {
+      throw std::runtime_error("pipe_handler::read_fd(): pipe not open");
+    }
+    return _fds[0];
+  }
+  int write_fd()
+  {
+    if (!_pipe_open || _pipe_closed[1]) {
+      throw std::runtime_error("pipe_handler::write_fd(): pipe not open");
+    }
+    return _fds[1];
+  }
+
+  void close_read()
+  {
+    if (!_pipe_open || _pipe_closed[0]) {
+      throw std::runtime_error("pipe_handler::close_read(): pipe not open");
+    }
+    close(_fds[0]);
+  }
+
+  void close_write()
+  {
+    if (!_pipe_open || _pipe_closed[1]) {
+      throw std::runtime_error("pipe_handler::close_write(): pipe not open");
+    }
+    close(_fds[1]);
+  }
+
+  void child_process_setup_dup_read_to(int dupfd)
+  {
+    close(_fds[1]);
+    if ( dup2(_fds[0], dupfd) == -1 ) {
+      child_process_errno_abort("dup2");
+    }
+    close(_fds[0]);
+
+    _pipe_closed[0] = true;
+    _pipe_closed[1] = true;
+  }
+  void child_process_setup_dup_write_to(int dupfd)
+  {
+    close(_fds[0]);
+    if ( dup2(_fds[1], dupfd) == -1 ) {
+      child_process_errno_abort("dup2");
+    }
+    close(_fds[1]);
+
+    _pipe_closed[0] = true;
+    _pipe_closed[1] = true;
+  }
+  
+  // allow move semantics
+  pipe_handler(pipe_handler&& m)
+    : _fds{m._fds[0], m._fds[1]},
+      _pipe_open{m._pipe_open},
+      _pipe_closed{m._pipe_closed[0], m._pipe_closed[1]}
+  {
+    m._fds[0] = 0;
+    m._fds[1] = 0;
+    m._pipe_open = false;
+    m._pipe_closed[0] = false;
+    m._pipe_closed[1] = false;
+  }
+
+  pipe_handler & operator=(pipe_handler&& m)
+  {
+    _fds[0] = m._fds[0];
+    _fds[1] = m._fds[1];
+    _pipe_open = m._pipe_open;
+    _pipe_closed[0] = m._pipe_closed[0];
+    _pipe_closed[1] = m._pipe_closed[1];
+  
+    m._fds[0] = 0;
+    m._fds[1] = 0;
+    m._pipe_open = false;
+    m._pipe_closed[0] = false;
+    m._pipe_closed[1] = false;
+
+    return *this;
+  }
+
+  // no copy semantics
+  pipe_handler(const pipe_handler&) = delete;
+  pipe_handler & operator=(const pipe_handler &) = delete;
+};
+
+
+
+inline void write_data_from_buffer(int fd, const binary_data & buffer)
+{
+  // std::cerr << "write_data_from_buffer(" << fd << ", (buffer))\n";
 
   ssize_t r_written = 0;
-  while (r_written < (ssize_t)stdin_data.size()) {
-    ssize_t r = write(stdin_fds[1], &stdin_data[r_written],
-                      stdin_data.size()-r_written);
+  while (r_written < (ssize_t)buffer.size()) {
+    ssize_t r = write(fd, &buffer[r_written], buffer.size() - r_written);
     if (r >= 0) {
       // success
       r_written += r;
@@ -278,68 +316,185 @@ void run_process_impl(
     if (errno == EINTR) {
       continue; // try again
     }
-    throw std::system_error{errno, std::generic_category()};
+    throw_from_errno();
   }
 
-  close(stdin_fds[1]);
+  // std::cerr << "write_data_from_buffer(" << fd << ", (buffer)) done.\n";
+}
 
-  exit_cleaner clean_read_fds{
-    [stdout_fds,stderr_fds]() {
-      close(stdout_fds[0]);
-      close(stderr_fds[0]);
+inline void read_data_to_buffer(int fd, binary_data & buffer)
+{
+  buffer.clear();
+
+  // std::cerr << "read_data_to_buffer(" << fd << ", (buffer))\n";
+
+  constexpr int read_buf_size = 4096;
+
+  std::size_t pos = 0;
+
+  for (;;) {
+    buffer.resize(pos + read_buf_size);
+
+    ssize_t r = read(fd, &buffer[pos], read_buf_size);
+    // std::cerr << "primitive read(" << fd << ") returned " << r << "\n";
+    if (r > 0) {
+      buffer.resize(pos + r);
+      pos += r;
+      // std::cerr << "got some data, buffer is now '"
+      //           << std::string{buffer.begin(), buffer.end()} << "'\n";
+      continue;
     }
-  };
+    // otherwise, we didn't read anything, so reset buffer size as before
+    buffer.resize(pos);
+    if (r == 0) {
+      // end of stream reached
+      // std::cerr << "read_data_to_buffer(" << fd << ", (buffer)) done. buffer = '"
+      //           << std::string{buffer.begin(), buffer.end()} << "'\n";
+      return;
+    }
+    if (errno == EAGAIN) {
+      // no data available at the moment, continue trying
+      continue;
+    }
+    if (errno == EINTR) {
+      // interrupted by signal (for some reason), try again
+      continue;
+    }
+    
+    throw_from_errno();
+  }
+}
 
-  binary_data out;
-  binary_data err;
+inline void setup_thread_capture_output(binary_data * buffer, int fd,
+                                        std::exception_ptr * th_excptr)
+{
+  try {
+    read_data_to_buffer(fd, *buffer);
+    close(fd);
+    // std::cerr << "finishing read thread here on fd=" << fd << ", buffer is '"
+    //           << std::string{buffer.begin(), buffer.end()} << "'\n";
+  } catch (...) {
+    *th_excptr = std::current_exception();
+  }
+}
 
-  bool out_done[2] {false, false};
-  binary_data * out_p[2]{ &out, &err };
-  int read_fds[2] {stdout_fds[0], stderr_fds[0]};
 
-  constexpr int buf_size = 4096;
 
-  do {
+_KLFENGINE_INLINE
+void run_process_impl(
+    const std::string & executable,
+    const std::vector<std::string> & argv,
+    const std::string & run_cwd,
+    const binary_data * stdin_data,
+    binary_data * capture_stdout,
+    binary_data * capture_stderr,
+    int * capture_exit_code
+    )
+{
+  // std::cerr << "run_process_impl(" << executable << ")\n";
 
-    // read stdout & stderr, filling buffers as we read data
+  // pipe handlers -- whether we actually open the pipes or not
+  pipe_handler p_in;
+  pipe_handler p_out;
+  pipe_handler p_err;
 
-    for (int which = 0; which < 2; ++which) { // for which in [0, 1]
-      auto & this_out_done = out_done[which];
-      auto & this_buf = * out_p[which];
-      int this_fd = read_fds[which];
-      if (this_out_done) {
-        continue;
-      }
-      std::size_t pos = this_buf.size();
-      this_buf.resize(pos + buf_size);
-      ssize_t r = read(this_fd, &this_buf[pos], buf_size);
-      if (r > 0) {
-        this_buf.resize(pos + r);
-        continue;
-      }
-      // didn't read anything ->
-      this_buf.resize(pos);
-      if (r == 0) {
-        this_out_done = true;
-        continue;
-      }
-      if (errno == EAGAIN) {
-        // no data available at the moment, continue trying later
-        continue;
-      } else if (errno == EINTR) {
-        // interrupted by signal (for some reason), try again later
-        continue;
-      } else {
-        throw std::system_error{errno, std::generic_category()};
+  if (stdin_data != nullptr) {
+    p_in.create();
+  }
+
+  if (capture_stdout != nullptr) {
+    p_out.create();
+  }
+
+  if (capture_stderr != nullptr) {
+    p_err.create();
+  }
+
+  const pid_t pid = fork();
+  if (pid < 0) {
+    throw_from_errno();
+  }
+
+  if (pid == 0) {
+    // this is the child process
+
+    if (p_in.pipe_open()) {
+      p_in.child_process_setup_dup_read_to(0);
+    }
+    if (p_out.pipe_open()) {
+      p_out.child_process_setup_dup_write_to(1);
+    }
+    if (p_err.pipe_open()) {
+      p_err.child_process_setup_dup_write_to(2);
+    }
+
+    // change working directory
+    if ( !run_cwd.empty() ) {
+      if ( chdir(run_cwd.c_str()) == -1 ) {
+        child_process_errno_abort("chdir");
       }
     }
 
-    // wait a little bit before next read()
-    std::this_thread::sleep_for(std::chrono::milliseconds{20});
+    std::vector<char*> vc(argv.size() + 1, 0);
+    for (std::size_t i = 0; i < argv.size(); ++i) {
+      vc[i] = const_cast<char*>(argv[i].c_str());
+    }
 
-  } while (!out_done[0] || !out_done[1]);
+    // execution! this shouldn't return.
+    execv(executable.c_str(), vc.data());
+    // error calling execv, since it returned to this program instead of
+    // creating the new process -->
+    child_process_errno_abort("execv");
+  }
 
-  clean_read_fds.cleanup();
+  if (p_in.pipe_open()) {
+    p_in.close_read();
+  }
+  if (p_out.pipe_open()) {
+    p_out.close_write();
+  }
+  if (p_err.pipe_open()) {
+    p_err.close_write();
+  }
+
+  // threads to write to stdin & read from stdout/stderr
+  std::unique_ptr<std::thread> th_in;
+  std::unique_ptr<std::thread> th_out;
+  std::unique_ptr<std::thread> th_err;
+
+  std::exception_ptr th_in_excptr = nullptr;
+  std::exception_ptr th_out_excptr = nullptr;
+  std::exception_ptr th_err_excptr = nullptr;
+
+  if (p_in.pipe_open()) {
+    // create a thread that will write the input data
+    int stdin_fd = p_in.write_fd();
+    th_in = std::unique_ptr<std::thread>{ new std::thread{
+      [stdin_data,stdin_fd,&th_in_excptr](){
+        try {
+          write_data_from_buffer(stdin_fd, *stdin_data);
+          close(stdin_fd);
+        } catch (...) {
+          th_in_excptr = std::current_exception();
+        }
+      }
+    } };
+  }
+
+  if (p_out.pipe_open()) {
+    // std::cerr << "output pipe is open, creating thread for capture\n";
+    th_out = std::unique_ptr<std::thread>{ new std::thread{
+      std::bind( setup_thread_capture_output,
+                 capture_stdout, p_out.read_fd(), &th_out_excptr )
+    } };
+  }
+  if (p_err.pipe_open()) {
+    // std::cerr << "stderr pipe is open, creating thread for capture\n";
+    th_err = std::unique_ptr<std::thread>{ new std::thread{
+      std::bind( setup_thread_capture_output,
+                 capture_stderr, p_err.read_fd(), &th_err_excptr )
+    } };
+  }
 
   int ret_status;
   for (;;) {
@@ -349,24 +504,40 @@ void run_process_impl(
         // try again
         continue;
       }
-      throw std::system_error{errno, std::generic_category()};
+      throw_from_errno();
     }
     break;
   }
 
+  // wait for any output to be collected, if necessary
+  if (th_in != nullptr) { th_in->join(); }
+  if (th_in_excptr != nullptr) { std::rethrow_exception(th_in_excptr); }
+  if (th_out != nullptr) { th_out->join(); }
+  if (th_out_excptr != nullptr) { std::rethrow_exception(th_out_excptr); }
+  if (th_err != nullptr) { th_err->join(); }
+  if (th_err_excptr != nullptr) { std::rethrow_exception(th_err_excptr); }
+
+  // std::cerr << "run_process_impl(" << executable << ") process finished.\n";
+  // if (capture_stdout != nullptr) {
+  //   std::cerr << "\tcaptured stdout data = '"
+  //             << std::string{capture_stdout->begin(),capture_stdout->end()} << "'\n";
+  // }
+  // if (capture_stderr != nullptr) {
+  //   std::cerr << "\tcaptured stdout data = '"
+  //             << std::string{capture_stderr->begin(),capture_stderr->end()} << "'\n";
+  // }
+
   if (WIFEXITED(ret_status)) {
     int exit_code = WEXITSTATUS(ret_status);
 
-    capture_stdout = std::move(out);
-    capture_stderr = std::move(err);
-    capture_exit_code = exit_code;
+    *capture_exit_code = exit_code;
 
     if (exit_code == 0) {
       return;
     }
     throw process_exit_error{
       "Process " + executable + " exited with code " + std::to_string(exit_code)
-      + suffix_out_and_err(out, err)
+      + suffix_out_and_err(capture_stdout, capture_stderr)
     };
   }
 
@@ -374,12 +545,8 @@ void run_process_impl(
     auto signo = WTERMSIG(ret_status);
     throw process_exit_error{
       "Process " + executable + " terminated with signal "
-      + std::to_string(signo)
-#if (defined(_XOPEN_SOURCE) && _XOPEN_SOURCE >= 700) || \
-  (defined(_POSIX_C_SOURCE) && _POSIX_C_SOURCE >= 200809L)
-      + strsignal(signo)
-#endif
-      + suffix_out_and_err(out, err)
+      + std::to_string(signo) + " (" + strsignal(signo) + ")"
+      + suffix_out_and_err(capture_stdout, capture_stderr)
     };
   }
 
@@ -399,7 +566,9 @@ void run_process_impl(
 
 // thanks https://stackoverflow.com/a/46348112/1694896
 
-............................. need to go through this function .................
+// ............................. go through this code, convert to our function
+// signature and conventions, and TEST!! .................
+
 int SystemCapture(
     std::string         CmdLine,    //Command Line
     std::string         CmdRunDir,  //set to '.' for current directory

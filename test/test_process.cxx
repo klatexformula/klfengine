@@ -53,7 +53,7 @@ static std::string test_run_args(Args && ... args)
     string_arg_test d{
       get_kwargs<Args...>::template get_arg<string_arg_test>(args...)
     };
-    return "yes! stdin_data._data is: " + d._data;
+    return "yes! string_arg_test._data is: " + d._data;
   }
   return "no.";
 }
@@ -61,9 +61,9 @@ static std::string test_run_args(Args && ... args)
 TEST_CASE( "argument handling with detail::get_kwargs", "[process]" )
 {
   { auto res = test_run_args(string_arg_test{"hello world"});
-    REQUIRE( res == "yes! stdin_data._data is: hello world" ) ; }
+    REQUIRE( res == "yes! string_arg_test._data is: hello world" ) ; }
   { auto res = test_run_args(string_arg_test{"hello world"});
-    REQUIRE( res == "yes! stdin_data._data is: hello world" ) ; }
+    REQUIRE( res == "yes! string_arg_test._data is: hello world" ) ; }
   { auto res = test_run_args();
     REQUIRE( res == "no." ) ; }
   { std::string x;
@@ -72,11 +72,11 @@ TEST_CASE( "argument handling with detail::get_kwargs", "[process]" )
   { std::string x;
     auto res = test_run_args(another_arg_test{x},
                              string_arg_test{"hello world"});
-    REQUIRE( res == "yes! stdin_data._data is: hello world" ) ; }
+    REQUIRE( res == "yes! string_arg_test._data is: hello world" ) ; }
   { std::string x;
     auto res = test_run_args(string_arg_test{"hello world"},
                              another_arg_test{x});
-    REQUIRE( res == "yes! stdin_data._data is: hello world" ) ; }
+    REQUIRE( res == "yes! string_arg_test._data is: hello world" ) ; }
 }
 
 
@@ -90,6 +90,14 @@ TEST_CASE( "can run basic process & detect error exit codes", "[process]" )
           klfengine::process::executable{"/bin/bash"}
           ),
       klfengine::process_exit_error
+      );
+
+  CHECK_THROWS_WITH(
+      klfengine::process::run(
+          {"bash", "-c", "exit 39;"},
+          klfengine::process::executable{"/bin/bash"}
+          ),
+      Catch::Contains("39")
       );
 
   // doesn't throw
@@ -108,7 +116,7 @@ TEST_CASE( "can capture process out/err", "[process]" )
     klfengine::process::run(
         {"bash", "-c", "echo 'out' && echo >&2 'err'"},
         klfengine::process::executable{"/bin/bash"},
-        klfengine::process::stdout_handle{out}
+        klfengine::process::capture_stdout_data{out}
         );
 
     REQUIRE( out == klfengine::binary_data{'o', 'u', 't', '\n'} );
@@ -118,7 +126,7 @@ TEST_CASE( "can capture process out/err", "[process]" )
     klfengine::process::run(
         {"bash", "-c", "echo 'out' && echo >&2 'err'"},
         klfengine::process::executable{"/bin/bash"},
-        klfengine::process::stderr_handle{err}
+        klfengine::process::capture_stderr_data{err}
         );
 
     REQUIRE( err == klfengine::binary_data{'e', 'r', 'r', '\n'} );
@@ -129,8 +137,8 @@ TEST_CASE( "can capture process out/err", "[process]" )
     klfengine::process::run(
         {"bash", "-c", "echo 'out' && echo >&2 'err'"},
         klfengine::process::executable{"/bin/bash"},
-        klfengine::process::stdout_handle{out},
-        klfengine::process::stderr_handle{err}
+        klfengine::process::capture_stdout_data{out},
+        klfengine::process::capture_stderr_data{err}
         );
 
     REQUIRE( out == klfengine::binary_data{'o', 'u', 't', '\n'} );
@@ -150,9 +158,9 @@ TEST_CASE( "can send process stdin", "[process]" )
   klfengine::process::run(
       {"bash"},
       klfengine::process::executable{"/bin/bash"},
-      klfengine::process::stdout_handle{out},
-      klfengine::process::stderr_handle{err},
-      klfengine::process::stdin_data{stdin_d}
+      klfengine::process::capture_stdout_data{out},
+      klfengine::process::capture_stderr_data{err},
+      klfengine::process::send_stdin_data{stdin_d}
       );
 
   REQUIRE( out == klfengine::binary_data{'o', 'u', 't', '\n'} );

@@ -28,6 +28,12 @@
 
 #pragma once
 
+#include <stdexcept>
+#include <type_traits>
+#include <vector>
+#include <string>
+
+
 #include <klfengine/basedefs>
 
 
@@ -48,7 +54,8 @@ template<class...> struct my_disjunction : std::false_type { };
 template<class B1> struct my_disjunction<B1> : B1 { };
 template<class B1, class... Bn>
 struct my_disjunction<B1, Bn...> 
-    : std::conditional_t<bool(B1::value), B1, my_disjunction<Bn...>>  { };
+    : std::conditional<bool(B1::value), B1, my_disjunction<Bn...>>::type
+{ };
 
 // see https://stackoverflow.com/a/34099948/1694896
 template<typename T, typename... Ts>
@@ -79,7 +86,9 @@ struct get_kwargs {
   }
   template<typename T, typename O, typename... Rest>
   static auto get_arg(O && , Rest&&... a) -> 
-    std::enable_if_t<!std::is_same<T,std::remove_reference_t<O>>::value, T &&>
+    typename std::enable_if<
+      !std::is_same<T,typename std::remove_reference<O>::type>::value,
+      T &&>::type
   {
     return get_arg<T>(std::forward<Rest>(a)...);
   }
@@ -97,23 +106,24 @@ struct get_kwargs {
 
 namespace detail {
 
-std::string suffix_out_and_err(const binary_data & out, const binary_data & err);
+std::string suffix_out_and_err(const binary_data * out, const binary_data * err);
 
 void run_process_impl(
     const std::string & executable,
     const std::vector<std::string> & argv,
     const std::string & run_cwd,
-    const binary_data & stdin_data,
-    binary_data & capture_stdout,
-    binary_data & capture_stderr,
-    int & capture_exit_code);
+    const binary_data * stdin_data,
+    binary_data * capture_stdout,
+    binary_data * capture_stderr,
+    int * capture_exit_code
+    );
 
 } // namespace detail
 
 
 struct process {
 
-  struct stdin_data {
+  struct send_stdin_data {
     const binary_data & _data_ref;
   };
   struct executable {
@@ -122,10 +132,10 @@ struct process {
   struct run_in_directory {
     const std::string & _data_ref;
   };
-  struct stdout_handle {
+  struct capture_stdout_data {
     binary_data & _data_ref;
   };
-  struct stderr_handle {
+  struct capture_stderr_data {
     binary_data & _data_ref;
   };
   //struct fetch_file {
@@ -159,57 +169,55 @@ struct process {
     std::string run_cwd;
 
     if (get_kwargs<Args...>::template has_arg<run_in_directory>::value) {
-      run_in_directory d{get_kwargs<Args...>::template get_arg<run_in_directory>(args...)};
+      run_in_directory d{
+        get_kwargs<Args...>::template get_arg<run_in_directory>(args...)
+      };
       run_cwd = d._data_ref;
     }
 
-    // dummies in case no stdin/out/err handlers/data are given
-    const binary_data empty;
-    binary_data d1, d2;
+    const binary_data * stdin_d = nullptr;
 
-    const binary_data * stdin_d = & empty;
-
-    if (get_kwargs<Args...>::template has_arg<stdin_data>::value) {
-      stdin_data d{
-        get_kwargs<Args...>::template get_arg<stdin_data>(args...)
+    if (get_kwargs<Args...>::template has_arg<send_stdin_data>::value) {
+      send_stdin_data d{
+        get_kwargs<Args...>::template get_arg<send_stdin_data>(args...)
       };
       stdin_d = & d._data_ref;
     }
 
-    binary_data * capture_stdout = &d1;
+    binary_data * capture_stdout = nullptr;
 
-    if (get_kwargs<Args...>::template has_arg<stdout_handle>::value) {
-      stdout_handle d{
-        get_kwargs<Args...>::template get_arg<stdout_handle>(args...)
+    if (get_kwargs<Args...>::template has_arg<capture_stdout_data>::value) {
+      capture_stdout_data d{
+        get_kwargs<Args...>::template get_arg<capture_stdout_data>(args...)
       };
       capture_stdout = & d._data_ref;
     }
 
-    binary_data * capture_stderr = &d2;
+    binary_data * capture_stderr = nullptr;
 
-    if (get_kwargs<Args...>::template has_arg<stderr_handle>::value) {
-      stderr_handle d{
-        get_kwargs<Args...>::template get_arg<stderr_handle>(args...)
+    if (get_kwargs<Args...>::template has_arg<capture_stderr_data>::value) {
+      capture_stderr_data d{
+        get_kwargs<Args...>::template get_arg<capture_stderr_data>(args...)
       };
       capture_stderr = & d._data_ref;
     }
 
-    int exit_code;
+    int exit_code = -1;
 
     run_process_impl(
         ex,
         argv,
         run_cwd,
-        *stdin_d,
-        *capture_stdout,
-        *capture_stderr,
-        exit_code
+        stdin_d,
+        capture_stdout,
+        capture_stderr,
+        &exit_code
     );
 
     if (exit_code != 0) {
       throw process_exit_error{
           "Process " + ex + " exited with code " + std::to_string(exit_code)
-          + suffix_out_and_err(*capture_stdout, *capture_stderr)
+          + suffix_out_and_err(capture_stdout, capture_stderr)
       };
     }
 
