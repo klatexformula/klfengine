@@ -40,6 +40,15 @@
 
 namespace klfengine {
 
+
+struct cannot_find_executable : exception
+{
+  cannot_find_executable(const std::string & exe_name, const std::string & msg)
+    : exception("Cannot find executable " + exe_name + ": " + msg)
+  { }
+};
+
+
 /** \brief Where to find latex, find ghostscript, create temporary dirs etc.
  *
  * A default-constructed object will have empty fields.  Use \ref
@@ -48,19 +57,6 @@ namespace klfengine {
  */
 struct settings
 {
-  // // Keep default constructor as much as possible
-  //
-  // settings(std::string temporary_directory_ = std::string(),
-  //          std::string texbin_directory_ = std::string(), ....gs_method...
-  //          std::string gs_executable_path_ = std::string(),
-  //          std::map<std::string, std::string> subprocess_add_environment_
-  //          = std::map<std::string, std::string>())
-  //   : temporary_directory(std::move(temporary_directory_)),
-  //     texbin_directory(std::move(texbin_directory_)),
-  //     gs_executable_path(std::move(gs_executable_path_)),
-  //     subprocess_add_environment(std::move(subprocess_add_environment_))
-  // {
-  // }
 
   std::string temporary_directory;
 

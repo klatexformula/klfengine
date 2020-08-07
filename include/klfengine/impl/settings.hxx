@@ -36,17 +36,36 @@
 #include <klfengine/h/detail/filesystem.h>
 
 
+
 namespace klfengine {
+
+namespace detail {
+
+
+_KLFENGINE_INLINE
+bool is_executable(const fs::path& p) { // can be used as predicate to check executable
+  auto st = fs::status(p); // follows symlinks
+  // check owner_exec, should be enough
+  if (!fs::is_regular_file(st)) {
+    return false;
+  }
+  return ( st.permissions() & fs::perms::owner_exec ) == fs::perms::owner_exec;
+}
+
+
+} // namespace detail
 
 
 _KLFENGINE_INLINE
 std::string settings::get_tex_executable_path(const std::string & exe_name) const
 {
   std::string s = texbin_directory + "/" + exe_name;
-  // check that s points to a valid executable
-  //    ...
+  if (!fs::exists(s)) {
+    throw cannot_find_executable(exe_name, "no such executable in " + texbin_directory);
+  }
   return s;
 }
+
 
 
 // namespace detail {
@@ -82,11 +101,64 @@ std::string settings::detect_temporary_directory()
   // throw std::runtime_error("Can't find a suitable temporary directory to use");
 }
 
+
 // static
 _KLFENGINE_INLINE
 std::string settings::detect_texbin_directory()
 {
-  throw std::runtime_error("not implemented");//    return ... ;
+  // prepare paths.
+  std::vector<std::string> paths;
+
+  // search $PATH.
+  paths = detail::get_environment_PATH();
+
+  std::vector<std::string> sys_paths{
+#if defined(_KLFENGINE_OS_WIN)
+    "C:\\Program Files*\\MiKTeX*\\miktex\\bin",
+    "C:\\texlive\\*\\bin\\*"
+#elif defined(_KLFENGINE_OS_MACOSX)
+    "/usr/texbin",
+    "/Library/TeX/texbin",
+    "/usr/local/bin",
+    "/opt/local/bin",
+    "/sw/bin",
+    "/sw/usr/bin"
+#else
+    "/usr/local/bin"
+#endif
+  };
+  // append these paths
+  paths.insert(paths.end(), sys_paths.begin(), sys_paths.end());
+
+
+  // prepend any hard-coded paths provided via a preprocessor define
+#ifdef KLFENGINE_EXTRA_SEARCH_PATHS
+  std::vector<std::string> extra_compiled_paths{
+    KLFENGINE_EXTRA_SEARCH_PATHS
+  };
+  paths.insert(paths.begin(), extra_compiled_paths.begin(), extra_compiled_paths.end());
+#endif
+  
+  // add "/latex" to each path
+  for (std::string & s : paths) {
+#ifdef _KLFENGINE_OS_WIN
+    s += "\\latex.exe";
+#else
+    s += "/latex";
+#endif
+  }
+
+  // look for "latex" in $PATH + some hard-coded standard paths
+  std::vector<fs::path> latex_results =
+    detail::find_wildcard_path(
+        paths, detail::is_executable,
+        1 // limit - a single match is good
+        );
+  if (latex_results.empty()) {
+    // no matches
+    return std::string{};
+  }
+  return latex_results.front().native();
 }
 
 // static
@@ -108,11 +180,11 @@ _KLFENGINE_INLINE
 settings settings::detect_settings()
 {
   settings s{
-             detect_temporary_directory(),
-             detect_texbin_directory(),
-             "process",
-             detect_gs_executable_path(),
-             {}
+    detect_temporary_directory(),
+    detect_texbin_directory(),
+    "process",
+    detect_gs_executable_path(),
+    {}
   };
   s.subprocess_add_environment = s.detect_subprocess_add_environment();
   return s;

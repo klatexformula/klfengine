@@ -82,6 +82,8 @@ struct get_kwargs {
   }
   template<typename T, typename... Rest>
   static T && get_arg(T & t, Rest&&... ) {
+    static_assert( ! get_kwargs<Rest...>::template has_arg<T>::value,
+                   "You cannot specify the same keyword argument multiple times" );
     return std::move(t);
   }
   template<typename T, typename O, typename... Rest>
@@ -123,29 +125,90 @@ void run_process_impl(
 
 struct process {
 
-  struct send_stdin_data {
-    const binary_data & _data_ref;
-  };
   struct executable {
     const std::string & _data_ref;
   };
   struct run_in_directory {
     const std::string & _data_ref;
   };
+
+  /** \brief Instruct \ref run() to send data to process' standard input
+   *
+   * After executing the process, \ref run() will write the given data to its
+   * standard input.  Example usage:
+   * \code
+   *   binary_data in_data = ...;
+   *   klfe::process::run(..., klfe::process::send_stdin_data{in_data}, ...);
+   * \endcode
+   */
+  struct send_stdin_data {
+    const binary_data & _data_ref;
+  };
+
+  /** \brief Capture stdout to given buffer in \ref run()
+   *
+   * Instructs \ref run() to capture the standard output of the process into the
+   * referenced buffer.  Use as follows:
+   * \code
+   *   binary_data out_buffer;
+   *   klfe::process::run(..., klfe::process::capture_stdout_data{out_buffer}, ...);
+   * \endcode
+   */
   struct capture_stdout_data {
     binary_data & _data_ref;
   };
+  /** \brief Capture stderr to given buffer in \ref run()
+   *
+   * Same as \ref capture_stdout_data, but for standard error output.
+   */
   struct capture_stderr_data {
     binary_data & _data_ref;
   };
-  //struct fetch_file {
-  //  std::string _filename;
-  //  std::string & _data_ref;
-  //};
-  //struct environment {
-    //    ........
-    // std::vector<std::string> e
-  //};
+  /** \brief Dynamically control whether stdout capture is to be activated in \ref run()
+   *
+   * Only works in conjuction with \ref capture_stdout_data.  If
+   * <code>capture_stdout_if{false}</code> is provided to \ref run(), then the
+   * effect of any <code>capture_stderr_data</code> is inhibited.
+   */
+  struct capture_stdout_if{
+    bool _capture;
+  };
+  /** \brief Same as \ref capture_stdout_if, but for stderr
+   */
+  struct capture_stderr_if{
+    bool _capture;
+  };
+
+  // /** \brief Manipulate the environment of the child process executed by \ref run()
+  //  *
+  //  * Example usage:
+  //  * \code
+  //  *   klfe::process::run(
+  //  *     ... ,
+  //  *     klfe::process::environment{ {
+  //  *       {"PATH", klfe::process::environment::prepend_path{"/some/weird/place/bin/"}},
+  //  *       {"SHELL", klfe::process::environment::set{"/bin/bash"}},
+  //  *       {"DISPLAY", klfe::process::environment::remove{}},
+  //  *     } } ,
+  //  *     ...
+  //  *   )
+  //  */
+  // struct environment {
+  //   .............
+  //   struct set { std::string _value; };
+  //   struct append_path { std::vector<std::string> _values; };
+  //   struct prepend_path { std::vector<std::string> _values; };
+  //   struct remove { };
+  //
+  //   using action = detail::variant_type<
+  //     set, std::string, // specifying std::string is synonym for set
+  //     append_path,
+  //     prepend_path,
+  //     remove
+  //     >;
+  //
+  //   std::map<std::string,action> _env_vars;
+  // };
 
   template<typename... Args>
   static void run(const std::vector<std::string> & argv,
@@ -192,6 +255,14 @@ struct process {
       };
       capture_stdout = & d._data_ref;
     }
+    if (get_kwargs<Args...>::template has_arg<capture_stdout_if>::value) {
+      capture_stdout_if d{
+        get_kwargs<Args...>::template get_arg<capture_stdout_if>(args...)
+      };
+      if (d._capture == false) {
+        capture_stdout = nullptr;
+      }
+    }
 
     binary_data * capture_stderr = nullptr;
 
@@ -200,6 +271,14 @@ struct process {
         get_kwargs<Args...>::template get_arg<capture_stderr_data>(args...)
       };
       capture_stderr = & d._data_ref;
+    }
+    if (get_kwargs<Args...>::template has_arg<capture_stderr_if>::value) {
+      capture_stderr_if d{
+        get_kwargs<Args...>::template get_arg<capture_stderr_if>(args...)
+      };
+      if (d._capture == false) {
+        capture_stderr = nullptr;
+      }
     }
 
     int exit_code = -1;

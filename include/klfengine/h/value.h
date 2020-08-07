@@ -62,10 +62,12 @@ namespace detail {
 template<typename... Args>
 using variant_type = mpark::variant<Args...>;
 #define _KLFENGINE_VARIANT_GET mpark::get
+#define _KLFENGINE_VARIANT_HOLDS_ALTERNATIVE mpark::holds_alternative
 #else
 template<typename... Args>
 using variant_type = std::variant<Args...>;
 #define _KLFENGINE_VARIANT_GET std::get
+#define _KLFENGINE_VARIANT_HOLDS_ALTERNATIVE std::holds_alternative
 #endif
 
 

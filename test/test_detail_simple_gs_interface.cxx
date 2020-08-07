@@ -83,7 +83,7 @@ TEST_CASE( "check gs version", "[detail-simple_gs_interface]" )
   };
   auto ver = gs.gs_version();
 
-  std::cout << "You are running ghostscript version "
+  std::cout << "[test] You are running ghostscript version "
             << ver.first << "." << ver.second << "\n";
 
   REQUIRE( ver.first >= 8 );
@@ -111,7 +111,8 @@ TEST_CASE( "check gs information", "[detail-simple_gs_interface]" )
   };
   auto info = gs.gs_info();
 
-  std::cout << "Ghostscript info:\n" << info.head << "\n"
+  std::cout << "[test] Ghostscript info:\n"
+            << "Head: " << info.head << "\n"
             << "Possible output devices are: " << info.devices << "\n"
             << "Search paths are: " << info.search_path << "\n";
 
@@ -141,6 +142,10 @@ TEST_CASE( "handle gs errors", "[detail-simple_gs_interface]" )
           ),
       klfengine::process_exit_error
       );
+
+  // and reports an error on stderr
+  REQUIRE( stderr_s.find("Device 'pdfwrite' requires an output file")
+           != std::string::npos ) ;
 }
 
 

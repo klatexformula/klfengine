@@ -79,41 +79,6 @@ std::string suffix_out_and_err(const binary_data * out, const binary_data * err)
 // -----------------------------------------------------------------------------
 
 
-namespace klfengine {
-namespace detail {
-
-// struct exit_cleaner
-// {
-//   std::function<void()> fn;
-
-//   template<typename Fn>
-//   explicit exit_cleaner(Fn && f) : fn(std::forward<Fn>(f)) {}
-
-//   inline ~exit_cleaner() {
-//     cleanup();
-//   }
-
-//   inline void cleanup() {
-//     if (fn) {
-//       fn();
-//     }
-//     fn = std::function<void()>{};
-//   }
-
-//   inline void release() {
-//     fn = std::function<void()>{};
-//   }
-
-//   exit_cleaner(const exit_cleaner & ) = delete;
-//   exit_cleaner & operator=(const exit_cleaner & ) = delete;
-
-//   exit_cleaner(exit_cleaner && ) = default;
-//   exit_cleaner & operator=(exit_cleaner && ) = default;
-
-// };
-
-} // namespace detail
-} // namespace klfengine
 
 
 
@@ -523,7 +488,7 @@ void run_process_impl(
   //             << std::string{capture_stdout->begin(),capture_stdout->end()} << "'\n";
   // }
   // if (capture_stderr != nullptr) {
-  //   std::cerr << "\tcaptured stdout data = '"
+  //   std::cerr << "\tcaptured stderr data = '"
   //             << std::string{capture_stderr->begin(),capture_stderr->end()} << "'\n";
   // }
 

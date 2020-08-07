@@ -42,7 +42,7 @@ TEST_CASE( "can create a temporary directory & it gets deleted upon destruction"
   klfengine::fs::path the_path;
   { klfengine::temporary_directory td{};
     the_path = td.path();
-    std::cout << "Created temporary directory, path = " << the_path << "\n";
+    std::cout << "[test] Created temporary directory, path = " << the_path << "\n";
     REQUIRE( klfengine::fs::exists(the_path) ) ;
   } // destruction here
   REQUIRE( ! klfengine::fs::exists(the_path) ) ;
@@ -57,7 +57,7 @@ TEST_CASE( "temp dir gets deleted exactly when auto-delete is set on",
   { klfengine::temporary_directory td{};
     td.set_auto_delete(true);
     the_path = td.path();
-    std::cout << "Created temporary directory, path = " << the_path << "\n";
+    std::cout << "[test] Created temporary directory, path = " << the_path << "\n";
     REQUIRE( klfengine::fs::exists(the_path) ) ;
   } // destruction here
   REQUIRE( ! klfengine::fs::exists(the_path) ) ;
@@ -65,7 +65,7 @@ TEST_CASE( "temp dir gets deleted exactly when auto-delete is set on",
   { klfengine::temporary_directory td{};
     td.set_auto_delete(false);
     the_path = td.path();
-    std::cout << "Created temporary directory, path = " << the_path << "\n";
+    std::cout << "[test] Created temporary directory, path = " << the_path << "\n";
     REQUIRE( klfengine::fs::exists(the_path) ) ;
   } // destructor here -- dir should not be removed
   REQUIRE( klfengine::fs::exists(the_path) ) ; // still exists after destruction
@@ -92,7 +92,7 @@ TEST_CASE( "temp dir uses correct base directory and template",
     klfengine::temporary_directory td{our_temp_dir_path, prefix, 20};
     klfengine::fs::path p{ td.path() };
 
-    std::cout << "Created temporary directory, path = " << p << "\n";
+    std::cout << "[test] Created temporary directory, path = " << p << "\n";
 
     // ensure we used the right path
     REQUIRE( p.parent_path().filename() == temp_dir_sub_path ) ;

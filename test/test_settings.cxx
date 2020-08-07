@@ -147,10 +147,18 @@ TEST_CASE( "can detect a temporary directory", "[settings]" )
 {
   // found a dir & didn't throw an error
   std::string tmpdir = klfengine::settings::detect_temporary_directory();
-  std::cout << "Detected temporary dir = " << tmpdir << "\n";
+  std::cout << "[test] Detected temporary dir = " << tmpdir << "\n";
   REQUIRE( tmpdir != std::string() ) ;
 }
 
+
+TEST_CASE( "can find latex directory", "[settings]" )
+{
+  std::string result = klfengine::settings::detect_texbin_directory();
+  std::cout << "[test] detected texbin directory " << result << "\n";
+  REQUIRE( result.size() );
+  REQUIRE( result.rfind("latex") != std::string::npos );
+}
 
 
 TEST_CASE( "can detect default settings", "[settings][!mayfail]" )

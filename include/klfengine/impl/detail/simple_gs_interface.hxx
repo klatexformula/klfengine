@@ -132,28 +132,7 @@ get_gs_help_section(const std::string & out, const char * sec_name)
 
   return{ m[2].first, m[2].second };
 }
-std::vector<std::string> str_split_rx(
-    std::string::const_iterator a, std::string::const_iterator b,
-    const std::regex & rx_sep, bool skip_empty = false
-    )
-{
-  std::vector<std::string> items;
-  auto last_sep_end = a;
 
-  for (std::sregex_iterator it = std::sregex_iterator(a, b, rx_sep);
-       it != std::sregex_iterator{}; ++it) {
-    // iterating over matches of the separator regex
-    std::smatch sep_match = *it;
-    if (!skip_empty || sep_match[0].first != last_sep_end) {
-      items.push_back(std::string{last_sep_end,sep_match[0].first});
-    }
-    last_sep_end = sep_match[0].second;
-  }
-  if (!skip_empty || last_sep_end != b) {
-    items.push_back(std::string{last_sep_end,b});
-  }
-  return items;
-}
 //} // namespace detail
 
 
@@ -220,16 +199,26 @@ binary_data simple_gs_interface::run_gs(
   binary_data out;
   binary_data err;
 
+  struct CopyStderrOnExit {
+    binary_data * err;
+    std::string * set_stderr;
+    CopyStderrOnExit(binary_data * e, std::string * x)
+      : err(e), set_stderr(x) { }
+    ~CopyStderrOnExit() {
+      if (set_stderr != nullptr) {
+        *set_stderr = std::string{err->begin(), err->end()};
+      }
+    }
+  };
+  CopyStderrOnExit scoped_exit_obj{&err, set_stderr};
+
   process::run(
       argv,
       process::send_stdin_data{stdin_data},
       process::capture_stdout_data{out},
-      process::capture_stderr_data{err}
+      process::capture_stderr_data{err},
+      process::capture_stderr_if{set_stderr != nullptr}
       );
-
-  if (set_stderr != nullptr) {
-    *set_stderr = std::string{err.begin(), err.end()};
-  }
 
   return out;
 }

@@ -33,7 +33,7 @@
 #include <exception>
 #include <type_traits>
 #include <typeinfo>
-
+#include <regex>
 
 
 //
@@ -54,6 +54,16 @@
 
 #  define _KLFENGINE_INLINE inline
 
+#endif
+
+
+
+#if defined(_WIN32) || defined(_WIN64) || defined(_Windows)
+#  define _KLFENGINE_OS_WIN
+#elif defined(__APPLE__) || defined(__MACH__)
+#  define _KLFENGINE_OS_MACOSX
+#else
+#  define _KLFENGINE_OS_LINUX
 #endif
 
 
@@ -133,10 +143,13 @@ std::string get_type_name()
     );
 }
 
+
+std::vector<std::string> str_split_rx(
+    std::string::const_iterator a, std::string::const_iterator b,
+    const std::regex & rx_sep, bool skip_empty = false
+    );
+
 } // namespace detail
-
-
-
 
 } // namespace klfengine
 

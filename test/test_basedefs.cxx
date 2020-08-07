@@ -33,7 +33,11 @@
 #include <catch2/catch.hpp>
 
 
-TEST_CASE( "binary_data can store binary data", "[base_types]" )
+struct MyTestType { };
+
+
+
+TEST_CASE( "binary_data can store binary data", "[basedefs]" )
 {
   const char * data = "Hell\0o";
   const std::size_t len = 6;
@@ -46,10 +50,7 @@ TEST_CASE( "binary_data can store binary data", "[base_types]" )
 }
 
 
-
-
-
-TEST_CASE( "klfe::exception can throw custom message", "[base_types]" )
+TEST_CASE( "klfe::exception can throw custom message", "[basedefs]" )
 {
   CHECK_THROWS_AS(
       throw klfengine::exception("hello" + std::string(" world")),
@@ -59,4 +60,24 @@ TEST_CASE( "klfe::exception can throw custom message", "[base_types]" )
       throw klfengine::exception("hello-world"),
       "hello-world"
       );
+}
+
+
+TEST_CASE( "klfe::detail::get_type_name", "[basedefs]" )
+{
+  REQUIRE( klfengine::detail::get_type_name<MyTestType>()
+           == "MyTestType" ) ;
+  REQUIRE( klfengine::detail::get_type_name<const int &>()
+           == "int const&" ) ;
+}
+
+
+
+TEST_CASE( "klfe::detail::str_split_rx", "[basedefs]" )
+{
+  std::string x{"abcd;efghijkl;;m;nn;op;"};
+  REQUIRE(
+      klfengine::detail::str_split_rx(x.begin(), x.end(), std::regex{"\\;+"})
+      == std::vector<std::string>{ "abcd", "efghijkl", "m", "nn", "op", "" }
+    );
 }

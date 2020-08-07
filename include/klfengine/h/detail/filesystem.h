@@ -29,6 +29,11 @@
 #pragma once
 
 
+#include <vector>
+#include <string>
+#include <functional>
+#include <regex>
+
 
 #ifdef KLFENGINE_USE_GULRAK_FILESYSTEM
 #  include <ghc/filesystem.hpp>
@@ -37,6 +42,14 @@
 #endif
 
 #include <klfengine/basedefs>
+#include <klfengine/value>
+
+
+#ifdef _KLFENGINE_OS_WIN
+#  define KLFENGINE_PATH_SEP ';'
+#else
+#  define KLFENGINE_PATH_SEP ':'
+#endif
 
 
 namespace klfengine {
@@ -48,6 +61,26 @@ namespace fs = std::filesystem;
 #endif
 
 
+namespace detail {
+
+
+using fs_w_part = variant_type<std::string,std::regex>;
+
+
+std::vector<fs::path>
+find_wildcard_path(const std::vector<std::string> & wildcard_expressions,
+                   int limit = -1);
+
+
+std::vector<fs::path>
+find_wildcard_path(const std::vector<std::string> & wildcard_expressions,
+                   const std::function<bool(const fs::path&)> & predicate,
+                   int limit = -1);
+
+
+std::vector<std::string> get_environment_PATH(const char * varname = "PATH");
+
+} // namespace detail
 
 } // namespace klfengine
 
