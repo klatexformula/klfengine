@@ -9,17 +9,15 @@
 % \fi
 %
 % \iffalse
-%<*cxxdata>
-const char * klfimpl_sty_data =
- R"%%%###%%%###%%%(%% This is klfimpl.sty, stored in a C++ "const char *" declaration.
-%</cxxdata>
+%<cxxdata>const char * klfimpl_sty_data =
+%<cxxdata>  R"%%%###%%%###%%%(%% This is klfimpl.sty exported as C++ source code
 %<*driver>
 \ProvidesFile{klfimpl.dtx}
 %</driver>
 %<package|cxxdata>\NeedsTeXFormat{LaTeX2e}[2005/12/01]
 %<package|cxxdata>\ProvidesPackage{klfimpl}
 %<*package|cxxdata>
-    [2020/05/16 v0.1 klfimpl package]
+    [2020/08/08 v0.2 klfimpl package]
 %</package|cxxdata>
 %
 %<*driver>
@@ -60,14 +58,14 @@ const char * klfimpl_sty_data =
 % 
 % \title{The \pkgname{klfimpl} package\thanks{\itshape This document corresponds
 % to \pkgname{klfimpl}~\fileversion, dated \filedate. It is part of the
-% KLatexFormula sources, see \url{https://klatexformula.sourceforge.io/}.}}
+% klfengine tool, see \url{https://github.com/klatexformula/klfengine}.}}
 % \author{Philippe Faist\quad\email{philippe.faist@bluewin.ch}}
 % \date{\pkgfmtdate\filedate}
 % \maketitle
 %
 % \begin{abstract}
 %   \pkgname{klfimpl}---LaTeX helper code for the implementation of
-%   KLatexFormula 5.
+%   the klfengine tool that runs KLatexFormula 5.
 % \end{abstract}
 %
 % \inlinetoc
@@ -684,7 +682,6 @@ BOX_TOTALHEIGHT={\the\klf@th}^^J%
 % \end{macro}
 % 
 %\Finale
-%<*cxxdata>
-)%%%###%%%###%%%";
-%</cxxdata>
+%\endinput
+%<cxxdata>)%%%###%%%###%%%";
 \endinput

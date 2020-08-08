@@ -1,0 +1,27 @@
+
+#
+# latex auto-generated files
+#
+klfimpl.pdf
+example.pdf
+*.aux
+*.log
+*.out
+*.glo
+*.idx
+*.toc
+*.hd
+
+#
+# Compiled C++ example
+#
+example_use_klfimpl_sty
+
+#
+# auto-generated style files
+#
+# TODO -- might keep in vcs for convenience?
+klfimpl.sty
+klfimpl_sty_data.h
+
+
