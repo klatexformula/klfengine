@@ -64,16 +64,24 @@ namespace fs = std::filesystem;
 namespace detail {
 
 
-using fs_w_part = variant_type<std::string,std::regex>;
+// these forward definitions are needed here for the tests
+struct fs_w_part_alt {
+  std::vector<std::string> alternatives;
+};
+using fs_w_part = variant_type<std::string,std::regex,fs_w_part_alt>;
+
 
 
 std::vector<fs::path>
 find_wildcard_path(const std::vector<std::string> & wildcard_expressions,
+                   const std::vector<std::string> & file_names
+                     = std::vector<std::string>{},
                    int limit = -1);
 
 
 std::vector<fs::path>
 find_wildcard_path(const std::vector<std::string> & wildcard_expressions,
+                   const std::vector<std::string> & file_names,
                    const std::function<bool(const fs::path&)> & predicate,
                    int limit = -1);
 

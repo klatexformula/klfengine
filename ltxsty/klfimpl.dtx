@@ -1,0 +1,690 @@
+% \iffalse meta-comment
+%
+% Copyright (C) 2020 by Philippe Faist, philippe.faist@bluewin.ch
+% -------------------------------------------------------
+% 
+% This file is part of the KLatexFormula sources.  See LICENSE file
+% for more information.
+%
+% \fi
+%
+% \iffalse
+%<*cxxdata>
+const char * klfimpl_sty_data =
+ R"%%%###%%%###%%%(%% This is klfimpl.sty, stored in a C++ "const char *" declaration.
+%</cxxdata>
+%<*driver>
+\ProvidesFile{klfimpl.dtx}
+%</driver>
+%<package|cxxdata>\NeedsTeXFormat{LaTeX2e}[2005/12/01]
+%<package|cxxdata>\ProvidesPackage{klfimpl}
+%<*package|cxxdata>
+    [2020/05/16 v0.1 klfimpl package]
+%</package|cxxdata>
+%
+%<*driver>
+\documentclass{ltxdoc}
+\usepackage{xcolor}
+\usepackage[preset=xpkgdoc]{phfnote}
+\EnableCrossrefs         
+\CodelineIndex
+\RecordChanges
+\begin{document}
+  \DocInput{klfimpl.dtx}
+\end{document}
+%</driver>
+% \fi
+%
+% \CheckSum{0}
+%
+% \CharacterTable
+%  {Upper-case    \A\B\C\D\E\F\G\H\I\J\K\L\M\N\O\P\Q\R\S\T\U\V\W\X\Y\Z
+%   Lower-case    \a\b\c\d\e\f\g\h\i\j\k\l\m\n\o\p\q\r\s\t\u\v\w\x\y\z
+%   Digits        \0\1\2\3\4\5\6\7\8\9
+%   Exclamation   \!     Double quote  \"     Hash (number) \#
+%   Dollar        \$     Percent       \%     Ampersand     \&
+%   Acute accent  \'     Left paren    \(     Right paren   \)
+%   Asterisk      \*     Plus          \+     Comma         \,
+%   Minus         \-     Point         \.     Solidus       \/
+%   Colon         \:     Semicolon     \;     Less than     \<
+%   Equals        \=     Greater than  \>     Question mark \?
+%   Commercial at \@     Left bracket  \[     Backslash     \\
+%   Right bracket \]     Circumflex    \^     Underscore    \_
+%   Grave accent  \`     Left brace    \{     Vertical bar  \|
+%   Right brace   \}     Tilde         \~}
+%
+%
+% \GetFileInfo{klfimpl.dtx}
+%
+% \DoNotIndex{\newcommand,\newenvironment,\def,\gdef,\edef,\xdef,\if,\else,\fi,\ifx}
+% 
+% \title{The \pkgname{klfimpl} package\thanks{\itshape This document corresponds
+% to \pkgname{klfimpl}~\fileversion, dated \filedate. It is part of the
+% KLatexFormula sources, see \url{https://klatexformula.sourceforge.io/}.}}
+% \author{Philippe Faist\quad\email{philippe.faist@bluewin.ch}}
+% \date{\pkgfmtdate\filedate}
+% \maketitle
+%
+% \begin{abstract}
+%   \pkgname{klfimpl}---LaTeX helper code for the implementation of
+%   KLatexFormula 5.
+% \end{abstract}
+%
+% \inlinetoc
+%
+% \section{Introduction}
+%
+% KLatexFormula 5 will ship with a new implementation that converts a LaTeX
+% equation to different formats such as PDF or PNG.  While KLatexFormula up to
+% version 4 required a few runs of |gs| and other manual EPS fixes after running
+% |latex| and |dvips|, the new workflow aims at directly doing everything from
+% the latex end of things---get the correct paper size, correct background
+% color, page margins, and so on---therefore cleaning up the workflow and
+% speeding up the whole compilation.
+%
+% This package provides an environment
+% |\begin{klfcontent}...\end{klfcontent}| which typesets the given content
+% in a box, measures the box dimensions, then resizes the page to fit the box as
+% requested including margins and/or alignment to some fixed size, and renders
+% the whole thing.
+%
+% This package expects that there is a single such environment in the entire
+% document and no other content.
+%
+%
+%
+% \StopEventually{\PrintChanges\PrintIndex}
+%
+% \section{Implementation}
+%
+% \subsection{Some general declarations}
+%
+% The box in which the LaTeX content will be typeset.
+%    \begin{macrocode}
+\newbox\klf@eqnbox
+%    \end{macrocode}
+%
+% Some dimensions etc. that we will track.  The main box dimensions (width,
+% height, depth, total height = height + depth):
+%    \begin{macrocode}
+\newdimen\klf@w
+\newdimen\klf@h
+\newdimen\klf@d
+\newdimen\klf@th
+%    \end{macrocode}
+% The paper size (width/height):
+%    \begin{macrocode}
+\newdimen\klf@ppw
+\newdimen\klf@pph
+%    \end{macrocode}
+% Any offset that should be used to display the box (useful if margins are
+% requested, or a fixed page width and/or height are requested):
+%    \begin{macrocode}
+\newdimen\klf@hshift
+\newdimen\klf@vshift
+%    \end{macrocode}
+% And record some font dimensions:
+%    \begin{macrocode}
+\newdimen\klf@em
+\newdimen\klf@ex
+\newdimen\klf@capxhgt
+%    \end{macrocode}
+%
+% We will compute any user input dimensions as proper dimension \emph{inside}
+% the equation box to make sure font settings are taken into account correctly.
+% The dimensions will be stored here.
+%    \begin{macrocode}
+\newdimen\klf@dim@fixedwidth
+\newdimen\klf@dim@fixedheight
+\newdimen\klf@dim@topmargin
+\newdimen\klf@dim@rightmargin
+\newdimen\klf@dim@bottommargin
+\newdimen\klf@dim@leftmargin
+%    \end{macrocode}
+%
+% Remember which engine we're running under.  To speed up things and to avoid
+% problems with like |iftex| package not existing, we simply require the caller
+% to tell us via a package option what |latex| engine is being run (|latex| with
+% DVI output, |pdflatex|, |xelatex|, or |lualatex|).
+%    \begin{macrocode}
+\newif\ifklf@ltxengine@latexdvi \klf@ltxengine@latexdvifalse
+\newif\ifklf@ltxengine@pdflatex \klf@ltxengine@pdflatexfalse
+\newif\ifklf@ltxengine@xelatex \klf@ltxengine@xelatexfalse
+\newif\ifklf@ltxengine@lualatex \klf@ltxengine@lualatexfalse
+%    \end{macrocode}
+%
+% If, for some reason, this package is called in a different context where we
+% wouldn't want the layout to be set to zero by default, then there is a package
+% option for this (|keeplayoutsizes|).  This is the corresponding |\newif| flag:
+%    \begin{macrocode}
+\newif\ifklf@keeplayoutsizes
+\klf@keeplayoutsizesfalse
+%    \end{macrocode}
+%
+% The user can specify a fixed width and/or a fixed height for the resulting
+% layout.  These will be stored here, if applicable (or they will remain empty).
+% The user input should be stored as a \emph{macro}, not as a \emph{dimen},
+% because we want a dimension given in font-specific metrics (e.g. |4.2em|) to
+% be computed correctly relative to the equation font.
+%    \begin{macrocode}
+\def\klf@set@fixedwidth{}
+\def\klf@set@fixedheight{}
+%    \end{macrocode}
+% Enable user to specify margins around the equations.
+%    \begin{macrocode}
+\def\klf@set@topmargin{0.1ex}
+\def\klf@set@rightmargin{0.1ex}
+\def\klf@set@bottommargin{0.1ex}
+\def\klf@set@leftmargin{0.1ex}
+%    \end{macrocode}
+% Enable user to specify global scaling factors for the full resulting box.
+% Scale will be applied to margins as well as to fixed size.
+%    \begin{macrocode}
+\def\klf@set@xscale{1}
+\def\klf@set@yscale{1}
+%    \end{macrocode}
+% User can specify how the equation is aligned inside the box, in case we have a
+% fixed width or a fixed height.  The horizontal (resp.\@ vectical) alignment
+% coefficient is |0| for left (resp.\@ top) alignment, |0.5| for middle
+% alignment, and |1| for right (resp.\@ bottom) alignment.  It can be any value
+% that interpolates between these.
+%    \begin{macrocode}
+\def\klf@set@xaligncoeff{0.5}
+\def\klf@set@yaligncoeff{0.5}
+%    \end{macrocode}
+% User can specify the reference points for top and bottom alignment.  The top
+% can be aligned to the natural height of the box (|bbox|, the default) or to
+% the height of a capital 'X' (|Xheight|).  The bottom can be aligned to the
+% natural depth of the box (|bbox|, the default) or to the baseline
+% (|baseline|).  (When you set |baseline|, make sure you have a fixed size or
+% reasonable margins to accomodate any box depth.)
+%    \begin{macrocode}
+\def\klf@set@topalignment{bbox}
+\def\klf@set@bottomalignment{bbox}
+%    \end{macrocode}
+% User can tell if they would like a line to be drawn where the baseline is, for
+% instance as a visual reference for use in vector graphics editing software.
+% This can be |none| or |line|.
+%    \begin{macrocode}
+\def\klf@set@baselineruletype{none}
+%    \end{macrocode}
+% 
+% 
+% \subsection{Package options and settings}
+%
+% Set the \LaTeX\space engine.
+%    \begin{macrocode}
+\DeclareOption{latexdvi}{\klf@ltxengine@latexdvitrue}
+\DeclareOption{pdflatex}{\klf@ltxengine@pdflatextrue}
+\DeclareOption{xelatex}{\klf@ltxengine@xelatextrue}
+\DeclareOption{lualatex}{\klf@ltxengine@lualatextrue}
+%    \end{macrocode}
+%
+% Package option to inhibit resetting the page layout to zero by default.
+%    \begin{macrocode}
+\DeclareOption{keeplayoutsizes}{\klf@keeplayoutsizestrue}
+%    \end{macrocode}
+% 
+% 
+% Now process those options
+%    \begin{macrocode}
+\DeclareOption*{\PackageError{klfimpl}{Unknown option ‘\CurrentOption’}{}}
+\ProcessOptions\relax
+%    \end{macrocode}
+%
+% The following could have been specified as package options, but for the sake
+% of simplicity (and to avoid having to use \pkgname{keyval}/\pkgname{xkeyval}
+% and so on, the information is provided via a simple macro call.
+%
+% \begin{macro}{\klfSetFixedWidth}
+% \begin{macro}{\klfSetFixedHeight}
+% If applicable, set the fixed width and/or fixed height of the content to
+% typeset.
+%    \begin{macrocode}
+\def\klfSetFixedWidth#1{%
+  \xdef\klf@set@fixedwidth{#1}}
+\def\klfSetFixedHeight#1{%
+  \xdef\klf@set@fixedheight{#1}}
+%    \end{macrocode}
+% \end{macro}
+% \end{macro}
+% 
+% \begin{macro}{\klfSetTopMargin}
+% \begin{macro}{\klfSetRightMargin}
+% \begin{macro}{\klfSetBottomMargin}
+% \begin{macro}{\klfSetLeftMargin}
+% Same for equation margins:
+%    \begin{macrocode}
+\def\klfSetTopMargin#1{%
+  \xdef\klf@set@topmargin{#1}}
+\def\klfSetRightMargin#1{%
+  \xdef\klf@set@rightmargin{#1}}
+\def\klfSetBottomMargin#1{%
+  \xdef\klf@set@bottommargin{#1}}
+\def\klfSetLeftMargin#1{%
+  \xdef\klf@set@leftmargin{#1}}
+%    \end{macrocode}
+% \end{macro}
+% \end{macro}
+% \end{macro}
+% \end{macro}
+%
+% \begin{macro}{\klfSetXScale}
+% \begin{macro}{\klfSetYScale}
+% \begin{macro}{\klfSetScale}
+%   Specify horizontal and vectical scaling factors.  Values are a multipliying
+%   factor for dimensions: the value |1| means original size, |0.5| half size,
+%   |2| double size.  If a value different than |1| was specified, the
+%   \pkgname{graphics} package is loaded.  {\itshape NOTE: This has to be the
+%   exact expression |1|, not |1.0| or |1.|.}  The |\klfSetScale| macro is a
+%   convenience macro that sets both horizontal and vectical scaling factors to
+%   the same value.
+%    \begin{macrocode}
+\def\klfSetXScale#1{%
+  \xdef\klf@set@xscale{#1}%
+  \ifx\klf@set@xscale\klf@macro@one
+  \else
+    \RequirePackage{graphics}%
+  \fi
+}
+\def\klfSetYScale#1{%
+  \xdef\klf@set@yscale{#1}%
+  \ifx\klf@set@yscale\klf@macro@one
+  \else
+    \RequirePackage{graphics}%
+  \fi
+}
+\def\klfSetScale#1{%
+  \xdef\klf@set@xscale{#1}%
+  \xdef\klf@set@yscale{#1}%
+  \ifx\klf@set@xscale\klf@macro@one
+  \else
+    \RequirePackage{graphics}%
+  \fi
+}
+\def\klf@macro@one{1}
+%    \end{macrocode}
+% \end{macro}
+% \end{macro}
+% \end{macro}
+%
+% \begin{macro}{\klfSetXAlignCoeff}
+% \begin{macro}{\klfSetYAlignCoeff}
+%    \begin{macrocode}
+\def\klfSetXAlignCoeff#1{%
+  \xdef\klf@set@xaligncoeff{#1}%
+}
+\def\klfSetYAlignCoeff#1{%
+  \xdef\klf@set@yaligncoeff{#1}%
+}
+%    \end{macrocode}
+% \end{macro}
+% \end{macro}
+%
+% \begin{macro}{\klfSetTopAlignment}
+% \begin{macro}{\klfSetBottomAlignment}
+%   Macros for the user to set top and bottom alignment.  See earlier for
+%   explanation of possible values.  The possible values will be used to invoke
+%   a macro named e.g. |\klf@correctboxheight@@|\meta{top-alignment-name} and
+%   |\klf@correctboxdepth@@|\meta{bottom-alignment-name}, see below in
+%   |{klfcontent}| environment.
+%    \begin{macrocode}
+\def\klfSetTopAlignment#1{%
+  \xdef\klf@set@topalignment{#1}}
+\def\klfSetBottomAlignment#1{%
+  \xdef\klf@set@bottomalignment{#1}}
+%    \end{macrocode}
+% \end{macro}
+% \end{macro}
+%
+% \begin{macro}{\klfSetBaselineRuleType}
+%   Set which kind of baseline rule we would like, if any.
+%    \begin{macrocode}
+\def\klfSetBaselineRuleType#1{%
+  \xdef\klf@set@baselineruletype{#1}}
+%    \end{macrocode}
+% 
+% \subsection{Basic/common implementation macros}
+% 
+% First of all, a simple macro to reset all LaTeX layout dimensions.
+%    \begin{macrocode}
+\def\klf@ZeroLayoutSizes{%
+  \oddsidemargin=\z@\relax
+  \evensidemargin=\z@\relax
+  \topmargin=\z@\relax
+  \voffset=-1in\relax
+  \hoffset=-1in\relax
+  \headsep=\z@\relax
+  \headheight=\z@\relax
+  \marginparsep=\z@\relax
+  \footskip=\z@\relax
+  \parindent=\z@\relax
+  \parskip=\z@\relax
+  \topskip=\z@\relax
+}
+%    \end{macrocode}
+% \begin{macro}{\klf@ZeroDisplaySkips}
+% And define a routine that sets all the display-related skips to zero so that
+% we can use this inside a |\vbox|.
+%    \begin{macrocode}
+\def\klf@ZeroDisplaySkips{%
+  \abovedisplayskip=\z@\relax
+  \belowdisplayskip=\z@\relax
+  \abovedisplayshortskip=\z@\relax
+  \belowdisplayshortskip=\z@\relax
+}
+%    \end{macrocode}
+% \end{macro}
+%
+% By default, reset all these dimensions right away, unless the
+% |keeplayoutsizes| package option was provided.
+%    \begin{macrocode}
+\ifklf@keeplayoutsizes
+\else
+  \klf@ZeroLayoutSizes
+  \klf@ZeroDisplaySkips
+\fi
+%    \end{macrocode}
+% 
+% \begin{macro}{\klfSetPaperSize}
+%   Change the paper size.  For |pdflatex| and |xe/luatex| this can be called
+%   after |\begin||{document}| but for |latex| with traditional |dvi| output
+%   this must be issued in the preamble.
+%    \begin{macrocode}
+\def\klfSetPaperSize#1#2{%
+  \@tempdima=#1\relax
+  \@tempdimb=#2\relax
+  \klf@SetPaperSize@FromDims\@tempdima\@tempdimb
+}
+\def\klf@SetPaperSize@FromDims#1#2{%
+  \global\textwidth=#1\relax
+  \global\textheight=#2\relax
+  \global\hsize=#1\relax
+  \global\vsize=#2\relax
+  \global\paperwidth=#1\relax
+  \global\paperheight=#2\relax
+  \ifklf@ltxengine@pdflatex
+    \global\pdfpagewidth=#1\relax
+    \global\pdfpageheight=#2\relax
+  \fi
+  \ifklf@ltxengine@xelatex
+    \global\pdfpagewidth=#1\relax
+    \global\pdfpageheight=#2\relax
+  \fi
+  \ifklf@ltxengine@lualatex
+    \global\pagewidth=#1\relax
+    \global\pageheight=#2\relax
+  \fi
+}
+%    \end{macrocode}
+% \end{macro}
+%
+%
+% \subsection{Main implementation routine}
+% 
+% \begin{environment}{klfcontent}
+%   The argument should be a box command (e.g., |\hbox|, |\vbox|, |\vtop|,
+%   |\vcenter|).  Example usage:
+%   |\begin||{klfcontent}{\vcenter}{|\meta{initialization code}|}...| or
+%     |\begin||{klfcontent}{\hbox to 1cm}{|\meta{init. code}|}...|.
+%    \begin{macrocode}
+\def\klfcontent#1#2{%
+  \unskip
+  \samepage
+  \setbox\klf@eqnbox=#1\bgroup
+    \klf@ZeroDisplaySkips%
+    #2%
+    \global\klf@em=1em\relax
+    \global\klf@ex=1ex\relax
+    \setbox0=\hbox{X}%
+    \global\klf@capxhgt=\ht0%
+    \ifx\klf@set@fixedwidth\@empty\else
+      \global\klf@dim@fixedwidth=\klf@set@fixedwidth\relax
+    \fi
+    \ifx\klf@set@fixedheight\@empty\else
+      \global\klf@dim@fixedheight=\klf@set@fixedheight\relax
+    \fi
+    \global\klf@dim@topmargin=\klf@set@topmargin\relax
+    \global\klf@dim@rightmargin=\klf@set@rightmargin\relax
+    \global\klf@dim@bottommargin=\klf@set@bottommargin\relax
+    \global\klf@dim@leftmargin=\klf@set@leftmargin\relax
+}
+\def\endklfcontent{%
+  \egroup
+%    \end{macrocode}
+% 
+% Now we record the box dimensions.
+%
+%    \begin{macrocode}
+  \klf@w=\wd\klf@eqnbox\relax
+  \klf@h=\ht\klf@eqnbox\relax
+  \klf@d=\dp\klf@eqnbox\relax
+%    \end{macrocode}
+% If we shouldn't align to the bounding box, correct the height and the depth of
+% the box to whatever is requested by the corresponding top/bottom alignment
+% options.
+%    \begin{macrocode}
+  \csname klf@correctboxheight@@\klf@set@topalignment\endcsname
+  \csname klf@correctboxdepth@@\klf@set@bottomalignment\endcsname
+% \end{environment}
+% Add an epsilon in each dimension to prevent rounding errors from causing
+% unwanted breaks.  Compute the ``total height'' = height + depth.
+%    \begin{macrocode}
+  %\advance \klf@w 0.00001pt \relax
+  %\advance \klf@h 0.00001pt \relax
+  \klf@th=\klf@h\relax
+  \advance \klf@th \klf@d \relax
+%    \end{macrocode}
+% \emph{Determine page size and offsets.}  Take into account any possible fixed
+% paper width or height and any margins.
+%    \begin{macrocode}
+  \ifx\klf@set@fixedwidth\@empty%
+    \klf@ppw=\klf@w\relax
+    \advance \klf@ppw \klf@dim@leftmargin \relax
+    \advance \klf@ppw \klf@dim@rightmargin \relax
+    \klf@hshift=\klf@dim@leftmargin\relax
+  \else%
+    \klf@ppw=\klf@dim@fixedwidth\relax
+    \klf@hshift=\klf@set@xaligncoeff\klf@ppw\relax
+    \advance \klf@hshift -\klf@set@xaligncoeff\klf@w\relax
+    \advance \klf@hshift -\klf@set@xaligncoeff\klf@dim@rightmargin\relax
+    \advance \klf@hshift -\klf@set@xaligncoeff\klf@dim@leftmargin\relax
+    \advance \klf@hshift \klf@dim@leftmargin\relax
+  \fi
+  \ifx\klf@set@fixedheight\@empty%
+    \klf@pph=\klf@th\relax
+    \advance \klf@pph \klf@dim@topmargin \relax
+    \advance \klf@pph \klf@dim@bottommargin \relax
+    \klf@vshift=\klf@dim@topmargin\relax
+  \else%
+    \klf@pph=\klf@dim@fixedheight\relax
+    \klf@vshift=\klf@set@yaligncoeff\klf@pph\relax
+    \advance \klf@vshift -\klf@set@yaligncoeff\klf@th\relax
+    \advance \klf@vshift -\klf@set@yaligncoeff\klf@dim@bottommargin\relax
+    \advance \klf@vshift -\klf@set@yaligncoeff\klf@dim@topmargin\relax
+    \advance \klf@vshift \klf@dim@topmargin\relax
+  \fi
+%    \end{macrocode}
+% No scale has been applied yet.  Call the rendering routine that will take into
+% account scaling factors as necessary.
+%    \begin{macrocode}
+  \klf@RenderContentBox
+%    \end{macrocode}
+% Finally dump all meta-info to the standard output to provide additional
+% information back to \emph{klatexformula}.
+%    \begin{macrocode}
+  \klfDumpMetaInfo
+  \ignorespaces
+}
+%    \end{macrocode}
+%
+% \begin{macro}{\klf@RenderContentBox}
+%   The |\klf@RenderContentBox| macro sets the paper size (if the current latex
+%   engine allows this at this point), and displays the box accordingly.
+%
+%   If we're using a pdf-based engine (|pdflatex|, |xelatex| or |lualatex|),
+%   then we set the page size immediately (scaled correctly).  If we're using
+%   the |latex| (\LaTeX\space $\to$ DVI) engine, then we cannot set the page
+%   size at this point, because the page size needs to be set in the preamble.
+%   In this case, we don't do anything now, but \emph{klatexformula} performs a
+%   second pass where the correct exact page size is set in preamble (via
+%   meta-data dumped by |\klfDumpMetaInfo|).
+%
+%    \begin{macrocode}
+\def\klf@RenderContentBox{%
+  \ifklf@ltxengine@latexdvi% tough luck
+  \else
+    \@tempdima=\klf@ppw
+    \multiply\@tempdima \klf@set@xscale\relax
+    \@tempdimb=\klf@pph
+    \multiply\@tempdimb \klf@set@yscale\relax
+    \klf@SetPaperSize@FromDims\@tempdima\@tempdimb%
+  \fi
+%    \end{macrocode}
+%   To render the contents, we check whether any scaling is applied.  If so, we
+%   call |\klf@do@scale| which wraps the argument in an appropriate |\scalebox|
+%   (provided by the \pkgname{graphics} package). (Otherwise we simply render
+%   the box without any |\scalebox|.)
+%    \begin{macrocode}
+  \let\klf@next\@firstofone
+  \ifx\klf@set@xscale\klf@macro@one\else
+    \let\klf@next\klf@do@scale\fi
+  \ifx\klf@set@yscale\klf@macro@one\else
+    \let\klf@next\klf@do@scale\fi
+  \nobreak
+  \klf@next{%
+    \hbox to \z@{\vbox to \z@{%
+        \hrule \@height\z@\nobreak
+        \vskip \klf@vshift\relax\nobreak
+        \hbox{\vrule \@width\z@ \relax
+          \raise \klf@d \hbox to \z@{%
+            \csname klf@baseline@rule@@\klf@set@baselineruletype\endcsname
+          }%
+          \hskip \klf@hshift\relax
+          \raise \klf@d \box\klf@eqnbox}%
+      }}%
+  }%
+}
+\def\klf@do@scale#1{%
+  \scalebox{\klf@set@xscale}[\klf@set@yscale]{#1}%
+}
+%    \end{macrocode}
+% \end{macro}
+% \end{environment}
+% 
+% Now we define the top/bottom alignment correction routines.  These ``fix'' the
+% height and the depth of the box (rather, their values recorded in |\klf@h| and
+% |\klf@d|) according to the given options.
+%
+% The |bbox| top and bottom alignment options is the default, and leaves the box
+% dimensions unchanged.
+%    \begin{macrocode}
+\def\klf@correctboxheight@@bbox{}
+\def\klf@correctboxdepth@@bbox{}
+%    \end{macrocode}
+% The |Xheight| top alignment option sets the height of the ``box'' to be the
+% height of a capital ``X''.  WARNING: This assumes that the box only contains a
+% single line of text.
+%    \begin{macrocode}
+\def\klf@correctboxheight@@Xheight{%
+  \klf@h=\klf@capxhgt
+}
+%    \end{macrocode}
+% The |baseline| bottom alignment option sets the bottom of the ``box'' to be
+% the baseline, so sets the depth to zero.
+%    \begin{macrocode}
+\def\klf@correctboxdepth@@baseline{%
+  \klf@d=\z@
+}
+%    \end{macrocode}
+%
+% Now we define the baseline rule types.  These simply draw whatever they want,
+% typically a simple |\vrule| of a given width (because we're in horizontal
+% mode).
+%
+% First, we have the |none| rule type which simply typesets nothing.
+%    \begin{macrocode}
+\def\klf@baseline@rule@@none{}
+%    \end{macrocode}
+% 
+% Then we have the |line| rule, which draws a horizontal line throughout the box
+% at the baseline height.
+% \begin{macro}{\klfBaselineRuleLineSetup}
+% \begin{macro}{\klfBaselineRuleLineThickness}
+%   The line is controlled by the macros |\klfBaselineRuleLineSetup| and
+%   |\klfBaselineRuleLineThickness|:
+%    \begin{macrocode}
+\def\klfBaselineRuleLineSetup{}
+\def\klfBaselineRuleLineThickness{0.05\p@}
+%    \end{macrocode}
+% You may redefine these to style the line as appropriate.  For instance, this
+% would give you a blue baseline that is 0.2pt thick:
+% \begin{verbatim}
+% \renewcommand\klfBaselineRuleLineSetup{\color{blue}}
+% \renewcommand\klfBaselineRuleLineThickness{0.2pt}
+% \end{verbatim}
+%
+% And finally this is the code that draws the line.
+%    \begin{macrocode}
+\def\klf@baseline@rule@@line{%
+  \begingroup
+    \klfBaselineRuleLineSetup
+    \vrule width\klf@ppw height\z@ depth\klfBaselineRuleLineThickness\relax
+  \endgroup
+}
+%    \end{macrocode}
+% \end{macro}
+% \end{macro}
+% \end{macro}
+%
+% \subsection{Dump meta-info on standard output}
+%
+% Define the routine that communicates back to \emph{klatexformula} meta-info
+% about the typeset content.  This is automatically called in
+% |\end||{klfcontent}|.
+%
+% \begin{macro}{\klfDumpMetaInfo}
+%   Dump meta-info on standard output to provide additional information to
+%   KLatexFormula.  Careful, scaling factors have not been applied yet.  So
+%   apply them here before displaying the quantities.
+%    \begin{macrocode}
+\def\klfDumpMetaInfo{%
+  \begingroup
+    \multiply\klf@em \klf@set@xscale\relax
+    \multiply\klf@ex \klf@set@yscale\relax
+    \multiply\klf@capxhgt \klf@set@yscale\relax
+    \multiply\klf@ppw \klf@set@xscale\relax
+    \multiply\klf@pph \klf@set@yscale\relax
+    \multiply\klf@hshift \klf@set@xscale\relax
+    \multiply\klf@vshift \klf@set@yscale\relax
+    \multiply\klf@w \klf@set@xscale\relax
+    \multiply\klf@h \klf@set@yscale\relax
+    \multiply\klf@d \klf@set@yscale\relax
+    \multiply\klf@th \klf@set@yscale\relax
+    \message{%
+^^J%
+***-KLF-META-INFO-BEGIN-***^^J%
+EM={\the\klf@em}^^J%
+EX={\the\klf@ex}^^J%
+CAP_X_HEIGHT={\the\klf@capxhgt}^^J%
+PAPER_WIDTH={\the\klf@ppw}^^J%
+PAPER_HEIGHT={\the\klf@pph}^^J%
+HSHIFT={\the\klf@hshift}^^J%
+VSHIFT={\the\klf@vshift}^^J%
+BOX_WIDTH={\the\klf@w}^^J%
+BOX_HEIGHT={\the\klf@h}^^J%
+BOX_DEPTH={\the\klf@d}^^J%
+BOX_TOTALHEIGHT={\the\klf@th}^^J%
+^^J%
+***-KLF-META-INFO-END-***^^J%
+    }
+  \endgroup
+}%
+%    \end{macrocode}
+% \end{macro}
+% 
+%\Finale
+%<*cxxdata>
+)%%%###%%%###%%%";
+%</cxxdata>
+\endinput

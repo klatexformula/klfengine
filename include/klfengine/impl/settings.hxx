@@ -68,37 +68,11 @@ std::string settings::get_tex_executable_path(const std::string & exe_name) cons
 
 
 
-// namespace detail {
-// inline bool check_good_tmpdir(const std::string & tmpdir)
-// {
-//   // TODO: check for writeable permissions
-//   return !tmpdir.empty() && fs::exists(tmpdir);
-// }
-// } // namespace detail
-
 //static
 _KLFENGINE_INLINE
 std::string settings::detect_temporary_directory()
 {
   return fs::temp_directory_path();
-  // { std::vector<const char *> varnames{"TMPDIR", "TEMP", "TEMPDIR", "TMP"};
-  //   for (auto it = varnames.begin(); it != varnames.end(); ++it) {
-  //     auto tmpdir_p = std::getenv(*it);
-  //     std::string tmpdir{tmpdir_p != nullptr ? tmpdir_p : ""};
-  //     if (detail::check_good_tmpdir(tmpdir)) {
-  //       return tmpdir;
-  //     }
-  //   }
-  // }
-  // { std::vector<const char *> stdpaths{"/var/tmp", "/tmp"};
-  //   for (auto it = stdpaths.begin(); it != stdpaths.end(); ++it) {
-  //     std::string tmpdir{*it};
-  //     if (detail::check_good_tmpdir(tmpdir)) {
-  //       return tmpdir;
-  //     }
-  //   }
-  // }
-  // throw std::runtime_error("Can't find a suitable temporary directory to use");
 }
 
 
@@ -111,6 +85,9 @@ std::string settings::detect_texbin_directory()
 
   // search $PATH.
   paths = detail::get_environment_PATH();
+
+  // TODO/FIXME: prefer later texlive versions, if multiple are
+  // installed. ......... .........
 
   std::vector<std::string> sys_paths{
 #if defined(_KLFENGINE_OS_WIN)
@@ -130,7 +107,6 @@ std::string settings::detect_texbin_directory()
   // append these paths
   paths.insert(paths.end(), sys_paths.begin(), sys_paths.end());
 
-
   // prepend any hard-coded paths provided via a preprocessor define
 #ifdef KLFENGINE_EXTRA_SEARCH_PATHS
   std::vector<std::string> extra_compiled_paths{
@@ -139,19 +115,18 @@ std::string settings::detect_texbin_directory()
   paths.insert(paths.begin(), extra_compiled_paths.begin(), extra_compiled_paths.end());
 #endif
   
-  // add "/latex" to each path
-  for (std::string & s : paths) {
 #ifdef _KLFENGINE_OS_WIN
-    s += "\\latex.exe";
+  std::vector<std::string> exe_names{"latex.exe"},
 #else
-    s += "/latex";
+  std::vector<std::string> exe_names{"latex"};
 #endif
-  }
 
   // look for "latex" in $PATH + some hard-coded standard paths
   std::vector<fs::path> latex_results =
     detail::find_wildcard_path(
-        paths, detail::is_executable,
+        paths,
+        exe_names,
+        detail::is_executable,
         1 // limit - a single match is good
         );
   if (latex_results.empty()) {
@@ -165,7 +140,59 @@ std::string settings::detect_texbin_directory()
 _KLFENGINE_INLINE
 std::string settings::detect_gs_executable_path()
 {
-  throw std::runtime_error("not implemented");
+  // prepare paths.
+  std::vector<std::string> paths;
+
+  // search $PATH.
+  paths = detail::get_environment_PATH();
+
+  std::vector<std::string> sys_paths{
+#if defined(_KLFENGINE_OS_WIN)
+    "C:\\Program Files*\\gs*\\gs*\\bin"
+    "C:\\Program Files*\\MiKTeX*\\miktex\\bin",
+    "C:\\texlive\\*\\bin\\win*",
+#elif defined(_KLFENGINE_OS_MACOSX)
+    "/usr/local/opt/gs*/bin", // homebrew's version
+    "/usr/texbin",
+    "/Library/TeX/texbin",
+    "/usr/local/bin",
+    "/opt/local/bin",
+    "/sw/bin",
+    "/sw/usr/bin"
+#else
+    "/usr/local/bin"
+#endif
+  };
+  // append these paths
+  paths.insert(paths.end(), sys_paths.begin(), sys_paths.end());
+
+  // prepend any hard-coded paths provided via a preprocessor define
+#ifdef KLFENGINE_EXTRA_SEARCH_PATHS
+  std::vector<std::string> extra_compiled_paths{
+    KLFENGINE_EXTRA_SEARCH_PATHS
+  };
+  paths.insert(paths.begin(), extra_compiled_paths.begin(), extra_compiled_paths.end());
+#endif
+  
+#ifdef _KLFENGINE_OS_WIN
+  std::vector<std::string> exe_names{"gswin32c.exe", "gswin64c.exe", "mgs.exe"},
+#else
+  std::vector<std::string> exe_names{"gs"};
+#endif
+
+  // look for "latex" in $PATH + some hard-coded standard paths
+  std::vector<fs::path> results =
+    detail::find_wildcard_path(
+        paths,
+        exe_names,
+        detail::is_executable,
+        1 // limit - a single match is good
+        );
+  if (results.empty()) {
+    // no matches
+    return std::string{};
+  }
+  return results.front().native();
 }
 
 // not static --

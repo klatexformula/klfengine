@@ -1,0 +1,81 @@
+\documentclass{article}
+
+\usepackage[lualatex]{klfimpl}
+
+\usepackage{xcolor}
+\usepackage{amsmath}
+%\usepackage{breqn}
+%\usepackage{lua-visual-debug}
+
+%\klfSetTopMargin{0pt}
+%\klfSetRightMargin{0pt}
+%\klfSetBottomMargin{0pt}
+%\klfSetLeftMargin{0pt}
+
+%\klfSetFixedWidth{4cm}
+%\klfSetFixedHeight{1cm}
+%\klfSetFixedWidth{10pt}
+%\klfSetFixedHeight{8pt}
+
+%\klfSetScale{5}
+%\klfSetXScale{5}
+%\klfSetYScale{5}
+
+%\klfSetXAlignCoeff{0.1}
+%\klfSetYAlignCoeff{0.8}
+
+%\klfSetBottomAlignment{bbox} % default
+%\klfSetBottomAlignment{baseline}
+%\klfSetTopAlignment{bbox} % default
+%\klfSetTopAlignment{Xheight}
+
+%\klfSetBaselineRuleType{line}
+%\renewcommand\klfBaselineRuleLineSetup{\color{blue}}
+%\renewcommand\klfBaselineRuleLineThickness{0.2pt}
+
+
+\klfSetPaperSize{8cm}{\maxdimen}
+
+
+\long\def\klfXXXautobreakeqn#1{%
+  \setbox0=\hbox{$\displaystyle #1$}%
+  \ifdim\wd0>\textwidth
+    \begin{dmath*}#1\end{dmath*}\relax
+  \else
+    \box0\relax
+  \fi
+}%
+
+\pagestyle{empty}
+\begin{document}
+\begin{klfcontent}{\hbox}{\fontsize{12}{14}\selectfont}%
+bla pla fla.%
+%  pr-y%
+%\hbox{x}%
+%$$ \int g $$%
+%$\displaystyle \mathcal{Z}$%
+%\hsize=1pt\relax
+%$$ h + j $$
+%$$ h + j + \ell + k$$
+%\[ \int \]%
+%\begin{align*} \int \end{align*}%
+%\begin{equation*} \int x \end{equation*}% {equation*} in amsmath
+%\begin{align*} \int g+d+c \end{align*}%
+%\begin{align*}
+%  x_1 &= \int f dg\ ; & x_2 &= \sum z_j\ ;\\
+%  z_1 &= \int x dy\ ; & z_2 &= 0 \end{align*}%
+%$\displaystyle\begin{aligned} \int g+d+c \end{aligned}$%
+%$\displaystyle\begin{aligned}   x_1 &= \int f dg\ ; & x_2 &= \sum z_j\ ;\\   z_1 &= \int x dy\ ; & z_2 &= 0 \end{aligned}$%
+%$\displaystyle\begin{gathered}
+%  x_1 = \int f dg\ ;\\
+% z_2 = 0 \end{gathered}$%
+%\begin{alignat*}{-1} x_1 &= \int f dg\ ; & x_2 &= \sum z_j\ ; \\
+%  z_1 &= \int x dy\ ; & z_2 &= 0 \end{alignat*}%
+%\begin{gather*} \int g \end{gather*}%
+%\sloppy A short paragraph with some words.
+%\begin{dmath*} f = a \end{dmath*}%
+%\klfXXXautobreakeqn{ f = a }
+%\klfXXXautobreakeqn{ f = a + b + c + d = e }
+%
+\end{klfcontent}
+\end{document}

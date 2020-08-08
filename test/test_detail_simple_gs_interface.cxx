@@ -67,11 +67,7 @@
 
 inline std::string get_gs_path()
 {
-  return "/usr/local/bin/gs";
-}
-TEST_CASE( "gs path not hard-coded", "[tests]" )
-{
-  REQUIRE( (false && "hard-coded gs path should not be used in test") );
+  return klfengine::settings::detect_gs_executable_path();
 }
 
 

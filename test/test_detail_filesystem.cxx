@@ -91,9 +91,6 @@ TEST_CASE( "find_wildcard_path works for relative paths", "[detail-filesystem]" 
   REQUIRE( klfengine::fs::exists(*it) );
 }
 
-
-
-
 TEST_CASE( "find_wildcard_path works for absolute paths", "[detail-filesystem]" )
 {
   klfengine::fs::path cwd = klfengine::fs::current_path();
@@ -107,6 +104,28 @@ TEST_CASE( "find_wildcard_path works for absolute paths", "[detail-filesystem]" 
     std::cout << " " << p;
   }
   std::cout << "\n";
+
+  // we should find our own executable test_detail_filesystem(.exe)?
+  auto it = std::find_if(
+      results.begin(), results.end(),
+      [](const klfengine::fs::path & p) {
+        return p.filename().string().rfind("test_detail_filesystem",0)==0;
+      });
+  REQUIRE( it != results.end() );
+  REQUIRE( klfengine::fs::exists(*it) );
+}
+
+TEST_CASE( "find_wildcard_path works with given file_names", "[detail-filesystem]" )
+{
+  std::vector<klfengine::fs::path> results =
+    klfengine::detail::find_wildcard_path(
+        { "test", "." }, {"test_detail_filesystem", "test_detail_filesystem.exe"}
+        );
+  std::cout << "[test] find_wildcard_path results =";
+  for (auto & p: results) {
+    std::cout << " " << p;
+  }
+  std::cout << ".\n";
 
   // we should find our own executable test_detail_filesystem(.exe)?
   auto it = std::find_if(

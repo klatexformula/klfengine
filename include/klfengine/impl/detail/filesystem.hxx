@@ -39,6 +39,8 @@ namespace klfengine {
 namespace detail {
 
 
+
+
 /**
  * \internal
  *
@@ -96,6 +98,37 @@ int find_wildcard_path_impl(
         store_hit
         );
     return n;
+  }
+
+
+  if ( _KLFENGINE_VARIANT_HOLDS_ALTERNATIVE<fs_w_part_alt>(w) ) {
+
+    const fs_w_part_alt & a = _KLFENGINE_VARIANT_GET<fs_w_part_alt>(w);
+    
+    int num_hits = 0;
+
+    // try the different alternatives
+    for (const auto & alternative: a.alternatives) {
+      // next path item is fixed string -- descend into it
+      fs::path next = base / alternative;
+      if ( ! fs::exists(next) ) {
+        // path doesn't exist
+        continue;
+      }
+      int n = find_wildcard_path_impl(
+          next,
+          wildcard_expressions_begin,
+          wildcard_expressions_end,
+          (limit < 0) ? -1 : std::max(0,limit-num_hits),
+          store_hit
+          );
+      num_hits += n;
+      if (limit >= 0 && num_hits >= limit) {
+        return num_hits;
+      }
+
+    }
+    return num_hits;
   }
 
   if ( _KLFENGINE_VARIANT_HOLDS_ALTERNATIVE<std::regex>(w) ) {
@@ -182,9 +215,11 @@ fs_w_part compile_wildcard(const std::string & s)
 _KLFENGINE_INLINE
 std::vector<fs::path>
 find_wildcard_path(const std::vector<std::string> & wildcard_expressions,
+                   const std::vector<std::string> & file_names,
                    int limit)
 {
   return find_wildcard_path(wildcard_expressions,
+                            file_names,
                             std::function<bool(const fs::path&)>{},
                             limit);
 }
@@ -192,6 +227,7 @@ find_wildcard_path(const std::vector<std::string> & wildcard_expressions,
 _KLFENGINE_INLINE
 std::vector<fs::path>
 find_wildcard_path(const std::vector<std::string> & wildcard_expressions,
+                   const std::vector<std::string> & file_names,
                    const std::function<bool(const fs::path&)> & predicate,
                    int limit)
 {
@@ -214,6 +250,10 @@ find_wildcard_path(const std::vector<std::string> & wildcard_expressions,
 
     std::transform(rest.begin(), rest.end(),
                    std::back_inserter(parts), compile_wildcard);
+
+    if (!file_names.empty()) {
+      parts.push_back(detail::fs_w_part_alt{file_names});
+    }
 
     (void) find_wildcard_path_impl(
         base,

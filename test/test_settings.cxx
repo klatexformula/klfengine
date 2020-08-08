@@ -161,8 +161,20 @@ TEST_CASE( "can find latex directory", "[settings]" )
 }
 
 
+TEST_CASE( "can find gs", "[settings]" )
+{
+  std::string result = klfengine::settings::detect_gs_executable_path();
+  std::cout << "[test] detected gs exec = " << result << "\n";
+  REQUIRE( result.size() );
+  REQUIRE( result.rfind("gs") != std::string::npos );
+}
+
+
 TEST_CASE( "can detect default settings", "[settings][!mayfail]" )
 {
   // write tests here
+
+  // also todo: detect latex executable in *latest* texlive version available...
+
   REQUIRE( false ) ;
 }
