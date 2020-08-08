@@ -29,6 +29,8 @@
 // header we are testing gets included first (helps detect missing #include's)
 #include <klfengine/settings>
 
+#include <klfengine/h/detail/filesystem.h>
+
 #include <iostream> // std::cout
 
 #include <catch2/catch.hpp>
@@ -143,38 +145,57 @@ TEST_CASE( "struct settings converts to/from JSON", "[settings]" )
 
 
 
-TEST_CASE( "can detect a temporary directory", "[settings]" )
+// TEST_CASE( "can detect a temporary directory", "[settings]" )
+// {
+//   // found a dir & didn't throw an error
+//   std::string tmpdir = klfengine::settings::detect_temporary_directory();
+//   std::cout << "[test] Detected temporary dir = " << tmpdir << "\n";
+//   REQUIRE( tmpdir != std::string() ) ;
+// }
+
+// TEST_CASE( "can find latex directory on this system", "[settings]" )
+// {
+//   settings s = klfengine::settings::detect_settings();
+//   std::cout << "[test] detected texbin directory " << s.texbin_directory << "\n";
+//   REQUIRE( s.texbin_directory.size() );
+//   REQUIRE( s.texbin_directory.rfind("latex") != std::string::npos );
+// }
+
+// TEST_CASE( "can find latex directory in test directories, choosing latest version",
+//            "[settings]" )
+// {
+//   settings s = klfengine::settings::detect_settings();
+//   const auto & result = s.texbin_directory;
+//   std::cout << "[test] detected texbin directory " << result << "\n";
+//   REQUIRE( result.size() );
+//   REQUIRE( result.rfind("latex") != std::string::npos );
+// }
+
+// TEST_CASE( "can find gs", "[settings]" )
+// {
+//   settings s = klfengine::settings::detect_settings();
+//   const auto & result = s.gs_executable_path;
+//   std::cout << "[test] detected gs exec = " << result << "\n";
+//   REQUIRE( result.size() );
+//   REQUIRE( result.rfind("gs") != std::string::npos );
+// }
+
+
+TEST_CASE( "settings::detect_settings() does its job", "[settings]" )
 {
-  // found a dir & didn't throw an error
-  std::string tmpdir = klfengine::settings::detect_temporary_directory();
-  std::cout << "[test] Detected temporary dir = " << tmpdir << "\n";
-  REQUIRE( tmpdir != std::string() ) ;
-}
+  klfengine::settings s = klfengine::settings::detect_settings(
+      { KLFENGINE_TEST_ROOT_SRC_DIR "/some_path/*/bin",
+        KLFENGINE_TEST_ROOT_SRC_DIR "/some_path/dummy_texlive/<texlive-year>/bin" }
+      );
 
+  using json = nlohmann::json;
+  std::cout << "[test] detected settings = " << json{s}.dump(4) << "\n";
 
-TEST_CASE( "can find latex directory", "[settings]" )
-{
-  std::string result = klfengine::settings::detect_texbin_directory();
-  std::cout << "[test] detected texbin directory " << result << "\n";
-  REQUIRE( result.size() );
-  REQUIRE( result.rfind("latex") != std::string::npos );
-}
+  REQUIRE( klfengine::fs::canonical(s.texbin_directory)
+           == klfengine::fs::canonical(KLFENGINE_TEST_ROOT_SRC_DIR
+                                       "/some_path/dummy_texlive/2030/bin") );
 
-
-TEST_CASE( "can find gs", "[settings]" )
-{
-  std::string result = klfengine::settings::detect_gs_executable_path();
-  std::cout << "[test] detected gs exec = " << result << "\n";
-  REQUIRE( result.size() );
-  REQUIRE( result.rfind("gs") != std::string::npos );
-}
-
-
-TEST_CASE( "can detect default settings", "[settings][!mayfail]" )
-{
-  // write tests here
-
-  // also todo: detect latex executable in *latest* texlive version available...
-
-  REQUIRE( false ) ;
+  REQUIRE( klfengine::fs::canonical(s.gs_executable_path)
+           == klfengine::fs::canonical(KLFENGINE_TEST_ROOT_SRC_DIR
+                                       "/some_path/dummy_gs/bin/gs") );
 }

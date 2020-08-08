@@ -52,6 +52,7 @@ macro(klfengine_create_test test_name)
   target_compile_options("test_${test_name}" PRIVATE
     ${KLFENGINE_TEST_WARN_OPTIONS}
     ${KLFENGINE_CREATE_TEST_COMPILE_OPTIONS}
+    "-DKLFENGINE_TEST_ROOT_SRC_DIR=\"${CMAKE_CURRENT_SOURCE_DIR}\""
     )
 
   set_property(TARGET "test_${test_name}" PROPERTY

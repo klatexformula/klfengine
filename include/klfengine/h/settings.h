@@ -57,13 +57,13 @@ struct cannot_find_executable : exception
  */
 struct settings
 {
-
   std::string temporary_directory;
 
   std::string texbin_directory;
 
   /**
-   * one of "none", "process", "linked-libgs", "load-libgs"
+   * This is one of "none", "process", "linked-libgs", "load-libgs".  The libgs
+   * variants are not yet implemented in \ref detail::simple_gs_interface.
    */
   std::string gs_method;
 
@@ -71,16 +71,17 @@ struct settings
 
   std::map<std::string, std::string> subprocess_add_environment;
 
-
   std::string get_tex_executable_path(const std::string & exe_name) const;
 
-  std::map<std::string, std::string> detect_subprocess_add_environment() const;
+  // static:
 
-  static std::string detect_temporary_directory();
-  static std::string detect_texbin_directory();
-  static std::string detect_gs_executable_path();
-  static settings detect_settings();
+  static settings detect_settings(
+      const std::vector<std::string> & extra_paths = std::vector<std::string>{}
+      );
 
+  static std::vector<std::string> get_wildcard_search_paths(
+      const std::vector<std::string> & extra_paths = std::vector<std::string>{}
+      );
 };
 
 

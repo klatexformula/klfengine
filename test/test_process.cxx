@@ -82,6 +82,107 @@ TEST_CASE( "argument handling with detail::get_kwargs", "[process]" )
 
 
 
+TEST_CASE( "parse_environment parses environment variables", "[process]" )
+{
+  const char * env_vars[] = {
+    "VAR1=some value goes here",
+    "X=135",
+    "AAA_ZZZ_83==13394=",
+    NULL
+  };
+
+  klfengine::environment e = klfengine::parse_environment(
+      const_cast<char**>(env_vars)
+      );
+
+  REQUIRE( e.at("VAR1") == "some value goes here" );
+  REQUIRE( e.at("X") == "135" );
+  REQUIRE( e.at("AAA_ZZZ_83") == "=13394=" );
+}
+
+
+TEST_CASE( "set_environment sets environment accordingly", "[process]" )
+{
+  klfengine::environment e{
+    {"A", "value of A"},
+    {"B", "value of B"},
+    {"R1", "remove this"},
+    {"R2", "remove this (2)"},
+    {"C_PATH", std::string{"/path/to/A"} + klfengine::detail::path_separator +
+               "C\\path\\to\\B" // w/o colon so it works on linux systems
+    }
+  };
+  klfengine::set_environment(
+      e,
+      klfengine::provide_environment_variables{{
+        {"A", "other value of A"},
+        {"Z", "new value of Z"} 
+      }},
+      klfengine::set_environment_variables{{
+        {"B", "set value of B"},
+        {"D", "set value of D"}
+      }},
+      klfengine::remove_environment_variables{{"R1", "R2", "NON_EXISTENT"}},
+      klfengine::prepend_path_environment_variables{{
+        {"C_PATH", std::string{"/first/path"} + klfengine::detail::path_separator
+            + "second/path"},
+        {"X_PATH", std::string{"/some/path/X"} + klfengine::detail::path_separator
+            + "/another/path/X"},
+        {"Y_PATH", std::string{"/some/path"} + klfengine::detail::path_separator
+            + "/another/path"},
+      }},
+      klfengine::append_path_environment_variables{{
+        {"C_PATH", "/last/path"}
+      }},
+      klfengine::set_environment_variables{{ // can override earlier instruction
+        {"X_PATH", "/some/X/path"}
+      }}
+      );
+ 
+  // check the following variables
+  // std::cerr << "New environment is:\n";
+  // for (const auto & item : e) {
+  //   std::cerr << "        " << item.first << ": " << item.second << "\n";
+  // }
+  // std::cerr << "\n";
+
+  REQUIRE( e.find("A") != e.end() );
+  REQUIRE( e["A"] == "value of A" );
+
+  REQUIRE( e.find("B") != e.end() );
+  REQUIRE( e["B"] == "set value of B" );
+
+  REQUIRE( e.find("C_PATH") != e.end() );
+  REQUIRE( e["C_PATH"] ==
+           std::string{"/first/path"} + klfengine::detail::path_separator +
+           "second/path" + klfengine::detail::path_separator +
+           std::string{"/path/to/A"} + klfengine::detail::path_separator +
+           "C\\path\\to\\B" + klfengine::detail::path_separator +
+           "/last/path" );
+
+  REQUIRE( e.find("D") != e.end() );
+  REQUIRE( e["D"] == "set value of D" );
+
+
+  REQUIRE( e.find("R1") == e.end() );
+  REQUIRE( e.find("R2") == e.end() );
+
+  REQUIRE( e.find("X_PATH") != e.end() );
+  REQUIRE( e["X_PATH"] == "/some/X/path" );
+
+  REQUIRE( e.find("Y_PATH") != e.end() );
+  REQUIRE( e["Y_PATH"] ==
+           std::string{"/some/path"} + klfengine::detail::path_separator
+            + "/another/path" );
+
+  REQUIRE( e.find("Z") != e.end() );
+  REQUIRE( e["Z"] == "new value of Z" );
+}
+
+
+
+
+
 TEST_CASE( "can run basic process & detect error exit codes", "[process]" )
 {
   CHECK_THROWS_AS(
@@ -168,3 +269,19 @@ TEST_CASE( "can send process stdin", "[process]" )
 }
 
 
+
+TEST_CASE( "can launch process with modified environment", "[process]" )
+{
+  klfengine::binary_data out;
+
+  klfengine::process::run(
+      {"bash", "-c", "echo \"|$MY_VARIABLE|\""},
+      klfengine::process::executable{"/bin/bash"},
+      klfengine::process::capture_stdout_data{out},
+      klfengine::set_environment_variables{ {
+        {"MY_VARIBLE", "ZZZ"}
+      } }
+      );
+
+  REQUIRE( out == klfengine::binary_data{'|', 'Z', 'Z', 'Z', '|', '\n'} );
+}

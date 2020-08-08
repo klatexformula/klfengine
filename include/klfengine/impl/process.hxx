@@ -29,7 +29,6 @@
 #pragma once
 
 #include <exception>
-// #include <functional>
 
 //#include <iostream> // DEBUG
 
@@ -78,7 +77,49 @@ std::string suffix_out_and_err(const binary_data * out, const binary_data * err)
 
 // -----------------------------------------------------------------------------
 
+#ifdef _KLFENGINE_OS_MACOSX
+#  include <crt_externs.h> // _NSGetEnviron()
+#endif
 
+
+namespace klfengine {
+
+_KLFENGINE_INLINE
+environment current_environment()
+{
+#if defined(_KLFENGINE_OS_MACOSX)
+  char ** environ = *_NSGetEnviron();
+#else
+  extern char ** environ;
+#endif
+  return parse_environment(environ);
+}
+
+_KLFENGINE_INLINE
+environment parse_environment(char ** env_ptr)
+{
+  environment env;
+  // parse list of "VARNAME=value", last item is NULL
+  for (std::size_t i = 0; env_ptr[i] != NULL; ++i) {
+    const char * s = env_ptr[i];
+    std::size_t j;
+    for (j = 0; s[j] != '\0' && s[j] != '='; ++j)
+      ;
+    std::string var_name{&s[0], &s[j]};
+    std::string var_value;
+    if (s[j] == '=') {
+      ++j;
+      std::size_t k;
+      for (k = j; s[k] != '\0'; ++k)
+        ;
+      var_value = std::string{&s[j], &s[k]};
+    }
+    env[var_name] = var_value;
+  }
+  return env;
+}
+
+}
 
 
 
@@ -98,11 +139,8 @@ std::string suffix_out_and_err(const binary_data * out, const binary_data * err)
 #include <unistd.h>
 #include <errno.h>
 
-
 namespace klfengine {
-
 namespace detail {
-
 
 inline void child_process_errno_abort(std::string what)
 {
@@ -353,6 +391,7 @@ void run_process_impl(
     const binary_data * stdin_data,
     binary_data * capture_stdout,
     binary_data * capture_stderr,
+    environment * process_environment,
     int * capture_exit_code
     )
 {
@@ -373,6 +412,18 @@ void run_process_impl(
 
   if (capture_stderr != nullptr) {
     p_err.create();
+  }
+
+  // prepare child environment
+  bool use_envp = false;
+  std::vector<std::string> env_vec;
+  if (process_environment != nullptr) {
+    use_envp = true;
+    for (const auto & item : *process_environment) {
+      env_vec.push_back(item.first + "=" + item.second);
+    }
+    // std::cerr << "will set child environment to:\n";
+    // for (const auto & item: env_vec) { std::cerr << "\t" << item << "\n"; }
   }
 
   const pid_t pid = fork();
@@ -405,8 +456,24 @@ void run_process_impl(
       vc[i] = const_cast<char*>(argv[i].c_str());
     }
 
+    std::vector<char *> envp_vc;
+    if (use_envp) {
+      envp_vc.resize(env_vec.size()+1, 0);
+      for (std::size_t i = 0; i < env_vec.size(); ++i) {
+        envp_vc[i] = const_cast<char*>(env_vec[i].c_str());
+      }
+    }
+
     // execution! this shouldn't return.
-    execv(executable.c_str(), vc.data());
+    if (use_envp) {
+      // fprintf(stderr, "Using custom environment:\n");
+      // for (std::size_t i = 0; envp_vc[i] != NULL; ++i) {
+      //   fprintf(stderr, "\t%s\n", envp_vc[i]);
+      // }
+      execve(executable.c_str(), vc.data(), envp_vc.data());
+    } else {
+      execv(executable.c_str(), vc.data());
+    }
     // error calling execv, since it returned to this program instead of
     // creating the new process -->
     child_process_errno_abort("execv");

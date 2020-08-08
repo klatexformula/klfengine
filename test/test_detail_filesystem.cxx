@@ -41,11 +41,19 @@ TEST_CASE( "fs exposes a std::filesystem interface", "[detail-filesystem]" )
 }
 
 
-// forward declaration of non-public functions
+#ifdef _KLFENGINE_DONT_INCLUDE_IMPL_HXX
+// forward declaration of non-public functions if .hxx wasn't included
 namespace klfengine{ namespace detail {
+struct fs_w_part_alt {
+  std::vector<std::string> alternatives;
+};
+struct fs_w_part_texlive_year {};
+using fs_w_part =
+  variant_type<std::string,std::regex,fs_w_part_alt,fs_w_part_texlive_year>;
 fs_w_part compile_wildcard(const std::string & s);
 std::string compile_wildcard_rx_pattern(const std::string & s);
 } }
+#endif
 
 
 TEST_CASE( "compile_wildcard compiles fixed or wildcard patterns to fs_w_part",

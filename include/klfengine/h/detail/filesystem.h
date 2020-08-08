@@ -32,7 +32,6 @@
 #include <vector>
 #include <string>
 #include <functional>
-#include <regex>
 
 
 #ifdef KLFENGINE_USE_GULRAK_FILESYSTEM
@@ -44,12 +43,6 @@
 #include <klfengine/basedefs>
 #include <klfengine/value>
 
-
-#ifdef _KLFENGINE_OS_WIN
-#  define KLFENGINE_PATH_SEP ';'
-#else
-#  define KLFENGINE_PATH_SEP ':'
-#endif
 
 
 namespace klfengine {
@@ -64,11 +57,11 @@ namespace fs = std::filesystem;
 namespace detail {
 
 
-// these forward definitions are needed here for the tests
-struct fs_w_part_alt {
-  std::vector<std::string> alternatives;
-};
-using fs_w_part = variant_type<std::string,std::regex,fs_w_part_alt>;
+#ifdef _KLFENGINE_OS_WIN
+constexpr char path_separator = ';';
+#else
+constexpr char path_separator = ':';
+#endif
 
 
 
@@ -87,6 +80,7 @@ find_wildcard_path(const std::vector<std::string> & wildcard_expressions,
 
 
 std::vector<std::string> get_environment_PATH(const char * varname = "PATH");
+
 
 } // namespace detail
 

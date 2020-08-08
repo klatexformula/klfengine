@@ -34,11 +34,19 @@
 #include <klfengine/basedefs>
 #include <klfengine/h/detail/filesystem.h>
 
-namespace klfengine {
 
+
+
+
+namespace klfengine {
 namespace detail {
 
-
+struct fs_w_part_alt {
+  std::vector<std::string> alternatives;
+};
+struct fs_w_part_texlive_year {};
+using fs_w_part =
+  variant_type<std::string,std::regex,fs_w_part_alt,fs_w_part_texlive_year>;
 
 
 /**
@@ -102,7 +110,6 @@ int find_wildcard_path_impl(
 
 
   if ( _KLFENGINE_VARIANT_HOLDS_ALTERNATIVE<fs_w_part_alt>(w) ) {
-
     const fs_w_part_alt & a = _KLFENGINE_VARIANT_GET<fs_w_part_alt>(w);
     
     int num_hits = 0;
@@ -130,6 +137,47 @@ int find_wildcard_path_impl(
     }
     return num_hits;
   }
+
+  if ( _KLFENGINE_VARIANT_HOLDS_ALTERNATIVE<fs_w_part_texlive_year>(w) ) {
+
+    // do like regex match, but first collect all matches, sort decreasing by
+    // year (we want latest year searched first). Then recurse down to find
+    // further matches.
+
+    std::regex rx_year{"^\\d\\d\\d\\d$"};
+
+    // std::greater to iterate in reverse order --
+    // https://stackoverflow.com/a/22591713/1694896
+    std::map<int,fs::path,std::greater<int>> year_items;
+
+    for (auto && dir_item : fs::directory_iterator(base)) {
+      std::string fn = dir_item.path().filename().string();
+      if ( std::regex_match(fn, rx_year) ) {
+        // match
+        year_items[std::stoi(fn)] = fs::path{dir_item};
+      }
+    }
+
+    int num_hits = 0;
+
+    for (auto && item : year_items) {
+      // search in this path item
+      int n = find_wildcard_path_impl(
+          item.second,
+          wildcard_expressions_begin,
+          wildcard_expressions_end,
+          (limit < 0) ? -1 : std::max(0,limit-num_hits),
+          store_hit
+          );
+      num_hits += n;
+      if (limit >= 0 && num_hits >= limit) {
+        return num_hits;
+      }
+    }
+
+    return num_hits;
+
+  }    
 
   if ( _KLFENGINE_VARIANT_HOLDS_ALTERNATIVE<std::regex>(w) ) {
 
@@ -200,6 +248,11 @@ std::string compile_wildcard_rx_pattern(const std::string & s)
 inline
 fs_w_part compile_wildcard(const std::string & s)
 {
+  // special placeholder --
+  if (s == "<texlive-year>") {
+    return fs_w_part_texlive_year{};
+  }
+
   if (s.find_first_of("*?") == std::string::npos) {
     // no wildcards -- hard-coded dir name
     return {s};
@@ -281,7 +334,7 @@ std::vector<std::string> get_environment_PATH(const char * varname)
   std::string env_path{ std::getenv(varname) };
   return
     detail::str_split_rx(env_path.begin(), env_path.end(),
-                         std::regex(std::string("\\")+KLFENGINE_PATH_SEP), true);
+                         std::regex(std::string("\\")+path_separator), true);
 }
 
 

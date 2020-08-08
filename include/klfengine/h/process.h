@@ -32,9 +32,11 @@
 #include <type_traits>
 #include <vector>
 #include <string>
-
+#include <map>
+//#include <iostream>
 
 #include <klfengine/basedefs>
+#include <klfengine/h/detail/filesystem.h>
 
 
 namespace klfengine {
@@ -106,6 +108,127 @@ struct get_kwargs {
 } // namespace detail
 
 
+using environment = std::map<std::string, std::string>;
+
+environment current_environment();
+environment parse_environment(char ** env_ptr);
+
+struct provide_environment_variables {
+  environment variables;
+};
+struct set_environment_variables {
+  environment variables;
+};
+struct prepend_path_environment_variables {
+  environment variables;
+};
+struct append_path_environment_variables {
+  environment variables;
+};
+struct remove_environment_variables {
+  std::vector<std::string> variable_names;
+};
+
+namespace detail {
+inline void do_set_environment(environment & env, set_environment_variables && a) {
+  for (environment::iterator it = a.variables.begin(); it != a.variables.end(); ++it) {
+    // set this variable
+    env[it->first] = std::move(it->second);
+  }
+}
+inline void do_set_environment(environment & env, provide_environment_variables && a) {
+  for (environment::iterator it = a.variables.begin(); it != a.variables.end(); ++it) {
+    if (env.find(it->first) == env.end()) {
+      // provide this variable if not defined already
+      env[it->first] = std::move(it->second);
+    }
+  }
+}
+inline void do_set_environment(environment & env, remove_environment_variables && a) {
+  for (std::vector<std::string>::iterator it = a.variable_names.begin();
+       it != a.variable_names.end(); ++it) {
+    auto find_it = env.find(*it);
+    if (find_it != env.end()) {
+      // remove this key
+      env.erase(find_it);
+    }
+  }
+}
+inline void do_set_environment_manip_path(environment & env, environment && variables,
+                                          bool prepend) {
+  for (environment::iterator it = variables.begin(); it != variables.end(); ++it) {
+    if (env.find(it->first) == env.end()) {
+      // if not defined, set the value
+      env[it->first] = std::move(it->second);
+    } else if (prepend) {
+      env[it->first] = it->second + detail::path_separator + std::move(env[it->first]);
+    } else {
+      env[it->first] = std::move(env[it->first]) + detail::path_separator + it->second;
+    }
+  }
+}
+inline void do_set_environment(environment & env, prepend_path_environment_variables && a) {
+  do_set_environment_manip_path(env, std::move(a.variables), true);
+}
+inline void do_set_environment(environment & env, append_path_environment_variables && a) {
+  do_set_environment_manip_path(env, std::move(a.variables), false);
+}
+} // namespace detail
+
+inline void set_environment(environment & ) { }
+template<typename EnvManipArg, typename... EnvManipArgs>
+inline void set_environment(environment & environment_, EnvManipArg && a1,
+                            EnvManipArgs && ... rest)
+{
+  detail::do_set_environment(environment_, std::forward<EnvManipArg>(a1));
+  set_environment(environment_, std::forward<EnvManipArgs>(rest)...);
+}
+
+namespace detail {
+
+template<typename Arg, typename ArgNoRef = typename std::remove_reference<Arg>::type,
+         typename... Args>
+inline typename std::enable_if<
+  (std::is_same<ArgNoRef,set_environment_variables>::value ||
+   std::is_same<ArgNoRef,provide_environment_variables>::value ||
+   std::is_same<ArgNoRef,remove_environment_variables>::value ||
+   std::is_same<ArgNoRef,append_path_environment_variables>::value ||
+   std::is_same<ArgNoRef,prepend_path_environment_variables>::value),
+  void
+  >::type
+do_set_environment_or_ignore_args(environment & e, Arg && a1, Args && ... rest)
+{
+  do_set_environment(e, std::move(a1), std::forward<Args>(rest)...);
+}
+
+template<typename Arg, typename ArgNoRef = typename std::remove_reference<Arg>::type,
+         typename... Args>
+inline typename std::enable_if<
+  !(std::is_same<ArgNoRef,set_environment_variables>::value ||
+    std::is_same<ArgNoRef,provide_environment_variables>::value ||
+    std::is_same<ArgNoRef,remove_environment_variables>::value ||
+    std::is_same<ArgNoRef,append_path_environment_variables>::value ||
+    std::is_same<ArgNoRef,prepend_path_environment_variables>::value),
+  void
+  >::type
+do_set_environment_or_ignore_args(environment & , Arg && , Args && ...)
+{
+}
+
+inline void set_environment_or_ignore_args(environment & ) { }
+template<typename EnvManipArg, typename... EnvManipArgs>
+inline void set_environment_or_ignore_args(environment & environment_,
+                                           EnvManipArg && a1,
+                                           EnvManipArgs && ... rest)
+{
+  do_set_environment_or_ignore_args(environment_, std::forward<EnvManipArg>(a1));
+  set_environment_or_ignore_args(environment_, std::forward<EnvManipArgs>(rest)...);
+}
+
+} // namespace detail
+
+
+
 namespace detail {
 
 std::string suffix_out_and_err(const binary_data * out, const binary_data * err);
@@ -117,6 +240,7 @@ void run_process_impl(
     const binary_data * stdin_data,
     binary_data * capture_stdout,
     binary_data * capture_stderr,
+    environment * process_environment,
     int * capture_exit_code
     );
 
@@ -179,40 +303,17 @@ struct process {
     bool _capture;
   };
 
-  // /** \brief Manipulate the environment of the child process executed by \ref run()
-  //  *
-  //  * Example usage:
-  //  * \code
-  //  *   klfe::process::run(
-  //  *     ... ,
-  //  *     klfe::process::environment{ {
-  //  *       {"PATH", klfe::process::environment::prepend_path{"/some/weird/place/bin/"}},
-  //  *       {"SHELL", klfe::process::environment::set{"/bin/bash"}},
-  //  *       {"DISPLAY", klfe::process::environment::remove{}},
-  //  *     } } ,
-  //  *     ...
-  //  *   )
-  //  */
-  // struct environment {
-  //   .............
-  //   struct set { std::string _value; };
-  //   struct append_path { std::vector<std::string> _values; };
-  //   struct prepend_path { std::vector<std::string> _values; };
-  //   struct remove { };
-  //
-  //   using action = detail::variant_type<
-  //     set, std::string, // specifying std::string is synonym for set
-  //     append_path,
-  //     prepend_path,
-  //     remove
-  //     >;
-  //
-  //   std::map<std::string,action> _env_vars;
-  // };
+  /** \brief Child process executed by \ref run() will not inherit the current environment
+   *
+   * It is your responsibility to provide any values for some standard
+   * environment variables (\a HOME, \a PATH, etc.) the child process might
+   * expect.
+   */
+  struct clear_environment {};
+
 
   template<typename... Args>
-  static void run(const std::vector<std::string> & argv,
-                  Args && ... args)
+  static void run(const std::vector<std::string> & argv, Args && ... args)
   {
     using namespace detail;
 
@@ -281,6 +382,27 @@ struct process {
       }
     }
 
+    environment env;
+    bool want_clear_env = false;
+    bool want_env = false;
+    if (get_kwargs<Args...>::template has_arg<clear_environment>::value) {
+      want_env = true;
+      want_clear_env = true;
+    }
+    if (get_kwargs<Args...>::template has_arg<set_environment_variables>::value ||
+        get_kwargs<Args...>::template has_arg<provide_environment_variables>::value ||
+        get_kwargs<Args...>::template has_arg<remove_environment_variables>::value ||
+        get_kwargs<Args...>::template has_arg<append_path_environment_variables>::value ||
+        get_kwargs<Args...>::template has_arg<prepend_path_environment_variables>::value) {
+      want_env = true;
+      if (!want_clear_env) {
+        env = current_environment();
+      }
+      detail::set_environment_or_ignore_args(env, args...);
+      // using json = nlohmann::json;
+      // std::cerr << "child environ will be set to:\n" << json{env}.dump(4) << "\n";
+    }
+
     int exit_code = -1;
 
     run_process_impl(
@@ -290,6 +412,7 @@ struct process {
         stdin_d,
         capture_stdout,
         capture_stderr,
+        want_env ? &env : nullptr,
         &exit_code
     );
 

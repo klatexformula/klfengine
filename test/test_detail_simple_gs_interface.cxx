@@ -67,7 +67,7 @@
 
 inline std::string get_gs_path()
 {
-  return klfengine::settings::detect_gs_executable_path();
+  return klfengine::settings::detect_settings().gs_executable_path;
 }
 
 
