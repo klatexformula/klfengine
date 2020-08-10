@@ -279,7 +279,7 @@ TEST_CASE( "can launch process with modified environment", "[process]" )
       klfengine::process::executable{"/bin/bash"},
       klfengine::process::capture_stdout_data{out},
       klfengine::set_environment_variables{ {
-        {"MY_VARIBLE", "ZZZ"}
+        {"MY_VARIABLE", "ZZZ"}
       } }
       );
 
