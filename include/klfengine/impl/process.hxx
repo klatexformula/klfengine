@@ -131,7 +131,8 @@ environment parse_environment(char ** env_ptr)
 #if defined(__unix__) || defined(__APPLE__)
 
 #include <thread>
-#include <system_error>
+#include <system_error> // std::system_error
+#include <cerrno>
 
 #include <string.h>
 #include <sys/wait.h>

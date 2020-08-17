@@ -45,7 +45,11 @@ constexpr int temp_dir_default_num_rand_chars = 16;
 
 class temporary_directory {
 public:
+  /** \brief Create temporary directory in default location
+   */
   temporary_directory();
+  /** \brief Create temporary directory in the given location with given prefix etc.
+   */
   explicit temporary_directory(
       fs::path temp_dir,
       std::string name_prefix = std::string(),

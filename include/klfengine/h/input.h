@@ -49,7 +49,12 @@ using length = double;
 // store color as RGBA values 0-255
 using color = std::tuple<std::uint8_t,std::uint8_t,std::uint8_t,std::uint8_t>;
 
-using margins = std::tuple<length, length, length, length>;
+struct margins {
+  length top;
+  length right;
+  length bottom;
+  length left;
+};
 
 /** \brief Description of a piece of LaTeX code and how to compile it
  *
@@ -109,6 +114,12 @@ bool operator!=(const input & a, const input & b);
 
 void to_json(nlohmann::json & j, const input & v);
 void from_json(const nlohmann::json & j, input & v);
+
+bool operator==(const margins & a, const margins & b);
+bool operator!=(const margins & a, const margins & b);
+
+void to_json(nlohmann::json & j, const margins & v);
+void from_json(const nlohmann::json & j, margins & v);
 
 
 } // namespace klfengine

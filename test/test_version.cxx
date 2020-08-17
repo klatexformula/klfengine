@@ -47,13 +47,19 @@ TEST_CASE( "version() and implementation_version() match component macros", "[ve
   REQUIRE( klfengine::implementation_version().suffix == KLFENGINE_VERSION_SUFFIX ) ;
 }
 
-TEST_CASE( "_KLFENGINE_CONCAT_VER_4 works for different suffixes/combinations", "[version]" )
+TEST_CASE( "_KLFENGINE_CONCAT_VER_4_j works for different suffixes/combinations", "[version]" )
 {
-  const char va[] = _KLFENGINE_CONCAT_VER_4(14,0,3, "beta-4.d");
+  const char va[] = _KLFENGINE_CONCAT_VER_4_j(14,0,3, "beta-4.d", ".");
   REQUIRE( std::string( va ) == "14.0.3beta-4.d" );
 
-  const char vb[] = _KLFENGINE_CONCAT_VER_4(0,0,0, "");
+  const char vb[] = _KLFENGINE_CONCAT_VER_4_j(0,0,0, "", ".");
   REQUIRE( std::string( vb ) == "0.0.0" );
+
+  const char va2[] = _KLFENGINE_CONCAT_VER_4_j(14,0,3, "beta-4.d", "xzzx");
+  REQUIRE( std::string( va2 ) == "14xzzx0xzzx3beta-4.d" );
+
+  const char vb2[] = _KLFENGINE_CONCAT_VER_4_j(0,0,0, "", "/");
+  REQUIRE( std::string( vb2 ) == "0/0/0" );
 }
 
 

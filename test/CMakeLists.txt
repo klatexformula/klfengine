@@ -100,6 +100,8 @@ klfengine_create_test(process SOURCES test_process.cxx)
 
 klfengine_create_test(temporary_directory SOURCES test_temporary_directory.cxx)
 
+klfengine_create_test(klfimplpkg_engine SOURCES test_klfimplpkg_engine.cxx)
+
 klfengine_create_test(detail_filesystem SOURCES test_detail_filesystem.cxx)
 
 klfengine_create_test(detail_simple_gs_interface SOURCES test_detail_simple_gs_interface.cxx)
@@ -120,6 +122,7 @@ klfengine_create_test(separate_impl
           test_run.cxx
           test_process.cxx
           test_temporary_directory.cxx
+          test_klfimplpkg_engine.cxx
           #
           test_detail_filesystem.cxx
           test_detail_simple_gs_interface.cxx

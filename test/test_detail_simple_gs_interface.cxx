@@ -80,10 +80,10 @@ TEST_CASE( "check gs version", "[detail-simple_gs_interface]" )
   auto ver = gs.gs_version();
 
   std::cout << "[test] You are running ghostscript version "
-            << ver.first << "." << ver.second << "\n";
+            << ver.major << "." << ver.minor << "\n";
 
-  REQUIRE( ver.first >= 8 );
-  REQUIRE( ver.second >= 0 );
+  REQUIRE( ver.major >= 8 );
+  REQUIRE( ver.minor >= 0 );
 }
 
 template<typename T>

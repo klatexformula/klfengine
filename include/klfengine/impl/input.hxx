@@ -36,6 +36,38 @@
 namespace klfengine {
 
 
+
+_KLFENGINE_INLINE
+bool operator==(const margins & a, const margins & b)
+{
+  return a.top == b.top && a.right == b.right &&
+    a.bottom == b.bottom && a.left == b.left;
+}
+_KLFENGINE_INLINE
+bool operator!=(const margins & a, const margins & b)
+{
+  return ! (a == b);
+}
+
+void to_json(nlohmann::json & j, const margins & v)
+{
+  j = nlohmann::json{
+    {"top", v.top},
+    {"right", v.right},
+    {"bottom", v.bottom},
+    {"left", v.left}
+  };
+}
+void from_json(const nlohmann::json & j, margins & v)
+{
+  j.at("top").get_to(v.top);
+  j.at("right").get_to(v.right);
+  j.at("bottom").get_to(v.bottom);
+  j.at("left").get_to(v.left);
+}
+
+
+
 _KLFENGINE_INLINE
 bool operator==(const input & a, const input & b)
 {

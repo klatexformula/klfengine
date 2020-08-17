@@ -28,56 +28,38 @@
 
 #pragma once
 
-#include <klfengine/engine>
-#include <klfengine/engine_run_implementation>
-#include <klfengine/run>
+#include <klfengine/klfimplpkg_engine>
 
 
 namespace klfengine {
-
-
-
-_KLFENGINE_INLINE
-engine::engine(std::string name_)
-  : _name(std::move(name_))
-{
-}
+namespace klfimplpkg_engine {
 
 _KLFENGINE_INLINE
-void engine::set_settings(klfengine::settings settings_)
+engine::engine()
+  : klfengine::engine("klfimplpkg_engine")
 {
-  _settings = std::move(settings_);
-  adjust_for_new_settings(_settings);
-}
-
-
-_KLFENGINE_INLINE
-std::unique_ptr<klfengine::run>
-engine::run( input input_ )
-{
-  std::unique_ptr<engine_run_implementation> impl_ptr{
-    impl_create_engine_run_implementation(
-        input_,
-        settings()
-        )
+  _gs_iface_tool = std::shared_ptr<klfengine::detail::simple_gs_interface_engine_tool>{
+    new klfengine::detail::simple_gs_interface_engine_tool{}
   };
-
-  std::unique_ptr<klfengine::run> run_ptr{
-    new klfengine::run{ std::move(impl_ptr) }
-  };
-
-  // don't use std::move() here explicitly, see
-  // https://stackoverflow.com/a/19272035/1694896
-  return run_ptr;
 }
-
-
 
 _KLFENGINE_INLINE
-void engine::adjust_for_new_settings(klfengine::settings &)
+void engine::adjust_for_new_settings(klfengine::settings & settings_)
 {
+  _gs_iface_tool->set_settings(settings_);
+}
+
+// reimplemented from klfengine::engine
+_KLFENGINE_INLINE
+klfengine::engine_run_implementation *
+engine::impl_create_engine_run_implementation( klfengine::input input_,
+                                               klfengine::settings settings_ )
+{
+  return new run_implementation(_gs_iface_tool, std::move(input_), std::move(settings_));
 }
 
 
 
+
+} // namespace klfimplpkg_engine
 } // namespace klfengine

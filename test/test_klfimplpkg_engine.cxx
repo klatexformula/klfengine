@@ -26,58 +26,46 @@
  * SOFTWARE.
  */
 
-#pragma once
+// header we are testing gets included first (helps detect missing #include's)
+#include <klfengine/klfimplpkg_engine>
 
-#include <klfengine/engine>
-#include <klfengine/engine_run_implementation>
-#include <klfengine/run>
-
-
-namespace klfengine {
+#include <catch2/catch.hpp>
 
 
-
-_KLFENGINE_INLINE
-engine::engine(std::string name_)
-  : _name(std::move(name_))
+TEST_CASE( "something happens when this and that", "[keyword]" )
 {
-}
+  klfengine::klfimplpkg_engine::engine e;
 
-_KLFENGINE_INLINE
-void engine::set_settings(klfengine::settings settings_)
-{
-  _settings = std::move(settings_);
-  adjust_for_new_settings(_settings);
-}
+  e.set_settings(klfengine::settings::detect_settings());
 
-
-_KLFENGINE_INLINE
-std::unique_ptr<klfengine::run>
-engine::run( input input_ )
-{
-  std::unique_ptr<engine_run_implementation> impl_ptr{
-    impl_create_engine_run_implementation(
-        input_,
-        settings()
-        )
+  klfengine::input in;
+  in.latex = std::string("\\int \\left[a + \\frac{b}{f(x)}\\right] dx =: Z[f]");
+  in.math_mode = std::make_pair("$\\begin{aligned}", "\\end{aligned}$");
+  in.preamble = std::string("\\usepackage{amsmath}\n\\usepackage{amssymb}");
+  in.latex_engine = std::string("pdflatex");
+  in.font_size = -1.0;
+  in.margins = klfengine::margins{0.0, 0.0, 0.0, 0.0};
+  in.dpi = 1200;
+  in.scale = 1.0;
+  in.outline_fonts = true;
+  in.parameters = klfengine::value::dict{
+    {"use_documentclass", klfengine::value{std::string{"article"}}}
   };
 
-  std::unique_ptr<klfengine::run> run_ptr{
-    new klfengine::run{ std::move(impl_ptr) }
-  };
+  auto r = e.run(in);
 
-  // don't use std::move() here explicitly, see
-  // https://stackoverflow.com/a/19272035/1694896
-  return run_ptr;
+  r->compile();
+
+  auto data = r->get_data(klfengine::format_spec{"PDF"});
+
+  fprintf(stderr, "PDF DATA IS:\n");
+  fwrite(&data[0], 1, data.size(), stderr);   fprintf(stderr, "\n");
+
+  // also write to /tmp/ for my own testing...
+  // FILE * fp_debug_out = fopen("/tmp/mytestoutput.pdf", "w");
+  // fwrite(&data[0], 1, data.size(), fp_debug_out);
+  // fclose(fp_debug_out);
+
+  // write tests here
+  REQUIRE( false ) ;
 }
-
-
-
-_KLFENGINE_INLINE
-void engine::adjust_for_new_settings(klfengine::settings &)
-{
-}
-
-
-
-} // namespace klfengine

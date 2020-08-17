@@ -65,7 +65,7 @@ exhale_args = {
     # TIP: if using the sphinx-bootstrap-theme, you need
     # "treeViewIsBootstrap": True,
     "exhaleExecutesDoxygen": True,
-    "exhaleDoxygenStdin":    "INPUT = ../klfengine/h"
+    "exhaleDoxygenStdin":    "INPUT = ../include/klfengine/h"
 }
 
 # Tell sphinx what the primary language being documented is.

@@ -53,7 +53,7 @@ simple_gs_interface::simple_gs_interface(method method_, std::string gs_path)
 
 _KLFENGINE_INLINE
 simple_gs_interface::simple_gs_interface(std::string method_s, std::string gs_path)
-  : _method(get_method(method_s)), _gs_path(std::move(gs_path))
+  : _method(parse_method(method_s)), _gs_path(std::move(gs_path))
 {
   _init();
 }
@@ -73,7 +73,7 @@ void simple_gs_interface::_init()
 // static
 _KLFENGINE_INLINE
 simple_gs_interface::method
-simple_gs_interface::get_method(const std::string & method_s)
+simple_gs_interface::parse_method(const std::string & method_s)
 {
   if (method_s == "none") {
     return method::None;
@@ -88,11 +88,11 @@ simple_gs_interface::get_method(const std::string & method_s)
 }
 
 _KLFENGINE_INLINE
-std::pair<int,int> simple_gs_interface::gs_version()
+simple_gs_interface::gs_version_t simple_gs_interface::gs_version()
 {
   binary_data out_buf;
-  process::run( {_gs_path, "--version"},
-                process::capture_stdout_data{out_buf} );
+  process::run_and_wait( {_gs_path, "--version"},
+                         process::capture_stdout_data{out_buf} );
   std::string out{out_buf.begin(), out_buf.end()};
 
   std::regex rx_ver("^(\\d+)[.](\\d+)");
@@ -141,8 +141,8 @@ _KLFENGINE_INLINE
 simple_gs_interface::gs_info_t simple_gs_interface::gs_info()
 {
   binary_data out_buf;
-  process::run( {_gs_path, "--help"},
-                process::capture_stdout_data{out_buf} );
+  process::run_and_wait( {_gs_path, "--help"},
+                         process::capture_stdout_data{out_buf} );
   std::string out{out_buf.begin(), out_buf.end()};
 
   constexpr auto rxflg = std::regex::ECMAScript | std::regex::icase;
@@ -178,6 +178,18 @@ simple_gs_interface::gs_info_t simple_gs_interface::gs_info()
   return{ std::move(head), std::move(devices), std::move(search_paths) };
 }
 
+_KLFENGINE_INLINE
+simple_gs_interface::gs_version_and_info_t simple_gs_interface::gs_version_and_info()
+{
+  // I'm a bit wary of parsing the version information from the --help heading,
+  // because the heading might change.  In contrast --version is specifically
+  // for this purpose so we should rely on that.  The second process call
+  // shouldn't add a big overhead, especially since --version should return
+  // really quickly.
+  return { gs_version(), gs_info() };
+}
+
+
 // static
 _KLFENGINE_INLINE
 binary_data simple_gs_interface::run_gs(
@@ -212,7 +224,7 @@ binary_data simple_gs_interface::run_gs(
   };
   CopyStderrOnExit scoped_exit_obj{&err, set_stderr};
 
-  process::run(
+  process::run_and_wait(
       argv,
       process::send_stdin_data{stdin_data},
       process::capture_stdout_data{out},
@@ -222,6 +234,35 @@ binary_data simple_gs_interface::run_gs(
 
   return out;
 }
+
+
+
+
+
+_KLFENGINE_INLINE
+simple_gs_interface_engine_tool::simple_gs_interface_engine_tool()
+{
+}
+
+_KLFENGINE_INLINE
+void simple_gs_interface_engine_tool::set_settings(const settings & settings)
+{
+  if (_gs_interface) {
+    if (simple_gs_interface::parse_method(settings.gs_method)
+        == _gs_interface->gs_method() &&
+        settings.gs_executable_path == _gs_interface->gs_executable_path()) {
+      return; // no changes to gs method / path
+    }
+  }
+  // changes, need to create new simple_gs_interface object.  Being a
+  // std::unique_ptr, this will delete any old instance, if any.
+  _gs_interface = std::unique_ptr<simple_gs_interface>{
+    new simple_gs_interface{settings.gs_method, settings.gs_executable_path}
+  };
+
+  _gs_version_and_info = _gs_interface->gs_version_and_info();
+}
+
 
 
 

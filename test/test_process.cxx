@@ -42,7 +42,7 @@ struct another_arg_test {
   std::string & _data_ref;
 };
 
-// test our tools for parsing the arguments to klfengine::process::run()
+// test our tools for parsing the arguments to klfengine::process::run_and_wait()
 template<typename... Args>
 static std::string test_run_args(Args && ... args)
 {
@@ -186,7 +186,7 @@ TEST_CASE( "set_environment sets environment accordingly", "[process]" )
 TEST_CASE( "can run basic process & detect error exit codes", "[process]" )
 {
   CHECK_THROWS_AS(
-      klfengine::process::run(
+      klfengine::process::run_and_wait(
           {"bash", "-c", "exit 39;"},
           klfengine::process::executable{"/bin/bash"}
           ),
@@ -194,7 +194,7 @@ TEST_CASE( "can run basic process & detect error exit codes", "[process]" )
       );
 
   CHECK_THROWS_WITH(
-      klfengine::process::run(
+      klfengine::process::run_and_wait(
           {"bash", "-c", "exit 39;"},
           klfengine::process::executable{"/bin/bash"}
           ),
@@ -202,7 +202,7 @@ TEST_CASE( "can run basic process & detect error exit codes", "[process]" )
       );
 
   // doesn't throw
-  klfengine::process::run(
+  klfengine::process::run_and_wait(
       {"bash", "-c", "exit 0;"},
       klfengine::process::executable{"/bin/bash"}
       );
@@ -214,7 +214,7 @@ TEST_CASE( "can capture process out/err", "[process]" )
 {
   { klfengine::binary_data out;
 
-    klfengine::process::run(
+    klfengine::process::run_and_wait(
         {"bash", "-c", "echo 'out' && echo >&2 'err'"},
         klfengine::process::executable{"/bin/bash"},
         klfengine::process::capture_stdout_data{out}
@@ -224,7 +224,7 @@ TEST_CASE( "can capture process out/err", "[process]" )
   }
   { klfengine::binary_data err;
 
-    klfengine::process::run(
+    klfengine::process::run_and_wait(
         {"bash", "-c", "echo 'out' && echo >&2 'err'"},
         klfengine::process::executable{"/bin/bash"},
         klfengine::process::capture_stderr_data{err}
@@ -235,7 +235,7 @@ TEST_CASE( "can capture process out/err", "[process]" )
   { klfengine::binary_data out;
     klfengine::binary_data err;
 
-    klfengine::process::run(
+    klfengine::process::run_and_wait(
         {"bash", "-c", "echo 'out' && echo >&2 'err'"},
         klfengine::process::executable{"/bin/bash"},
         klfengine::process::capture_stdout_data{out},
@@ -256,7 +256,7 @@ TEST_CASE( "can send process stdin", "[process]" )
   const std::string in = "echo 'out' && echo >&2 'err'";
   const klfengine::binary_data stdin_d{in.begin(), in.end()};
 
-  klfengine::process::run(
+  klfengine::process::run_and_wait(
       {"bash"},
       klfengine::process::executable{"/bin/bash"},
       klfengine::process::capture_stdout_data{out},
@@ -274,7 +274,7 @@ TEST_CASE( "can launch process with modified environment", "[process]" )
 {
   klfengine::binary_data out;
 
-  klfengine::process::run(
+  klfengine::process::run_and_wait(
       {"bash", "-c", "echo \"|$MY_VARIABLE|\""},
       klfengine::process::executable{"/bin/bash"},
       klfengine::process::capture_stdout_data{out},

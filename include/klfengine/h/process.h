@@ -305,15 +305,17 @@ struct process {
 
   /** \brief Child process executed by \ref run() will not inherit the current environment
    *
-   * It is your responsibility to provide any values for some standard
-   * environment variables (\a HOME, \a PATH, etc.) the child process might
-   * expect.
+   * It is your responsibility to provide any values for standard environment
+   * variables (\a HOME, \a PATH, etc.) the child process might expect.
    */
   struct clear_environment {};
 
-
+  /** \brief Execute a process and wait until it terminates
+   *
+   *
+   */
   template<typename... Args>
-  static void run(const std::vector<std::string> & argv, Args && ... args)
+  static void run_and_wait(const std::vector<std::string> & argv, Args && ... args)
   {
     using namespace detail;
 

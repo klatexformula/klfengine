@@ -75,6 +75,21 @@ private:
   const std::string _name;
   klfengine::settings _settings;
 
+  /** \brief Called immediately after new settings were set
+   *
+   * This is called from set_settings(), after saving the new settings.
+   * Subclasses can reimplement this method to adjust internal objects (a gs
+   * interface, or instance) to the new settings.
+   *
+   * Subclasses can also directly alter the settings, if required.
+   *
+   * The default implementation does nothing.
+   */
+  virtual void adjust_for_new_settings(klfengine::settings & settings);
+
+  /** \brief Create new engine run implementation instance for a new klf job
+   *
+   */
   virtual klfengine::engine_run_implementation *
   impl_create_engine_run_implementation(
       input input_,

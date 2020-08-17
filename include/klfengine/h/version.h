@@ -69,11 +69,11 @@
 
 
 
-#define _KLFENGINE_STRINGIFY(x)  #x
-#define _KLFENGINE_CONCAT_VER_3(a, b, c)        \
-  _KLFENGINE_STRINGIFY(a.b.c)
-#define _KLFENGINE_CONCAT_VER_4(a, b, c, dstr)  \
-  ( _KLFENGINE_CONCAT_VER_3(a, b, c)   dstr )
+#define _KLFENGINE_STRINGIFY_VER_3_j(a, b, c, joiner)  #a joiner #b joiner #c
+#define _KLFENGINE_CONCAT_VER_3_j(a, b, c, joiner)      \
+  _KLFENGINE_STRINGIFY_VER_3_j(a, b, c, joiner)
+#define _KLFENGINE_CONCAT_VER_4_j(a, b, c, dstr, joiner)        \
+  ( _KLFENGINE_CONCAT_VER_3_j(a,b,c,joiner)   dstr )
 
 /** \brief String representing the current klfengine version
  *
@@ -82,11 +82,12 @@
  * instance.
  */
 #define KLFENGINE_VERSION_STRING                \
-  _KLFENGINE_CONCAT_VER_4(                      \
+  _KLFENGINE_CONCAT_VER_4_j(                    \
       KLFENGINE_VERSION_MAJOR,                  \
       KLFENGINE_VERSION_MINOR,                  \
       KLFENGINE_VERSION_RELEASE,                \
-      KLFENGINE_VERSION_SUFFIX )
+      KLFENGINE_VERSION_SUFFIX,                 \
+      ".")
 
 
 namespace klfengine {

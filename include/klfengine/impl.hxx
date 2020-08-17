@@ -2,7 +2,10 @@
 // headers. This is only necessary if you're compiling the implementation into a
 // separate translation unit (see docs).
 
-// public API implementation headers
+
+//
+// *** public API implementation headers ***
+//
 #include <klfengine/impl/basedefs.hxx>
 #include <klfengine/impl/version.hxx>
 #include <klfengine/impl/value.hxx>
@@ -15,5 +18,11 @@
 #include <klfengine/impl/process.hxx>
 #include <klfengine/impl/temporary_directory.hxx>
 
-// all necessary implementation headers for non-public parts of the API
+// engine(s)
+#include <klfengine/impl/latex_dvips_gs_engine.hxx>
+
+
+//
+// *** all necessary implementation headers for non-public parts of the API ***
+//
 #include <klfengine/impl/detail.hxx>

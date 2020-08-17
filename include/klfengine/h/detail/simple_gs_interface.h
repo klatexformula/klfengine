@@ -50,11 +50,16 @@ public:
     LinkedLibgs,
     LoadLibgs
   };
-  
-  static method get_method(const std::string & method_s);
-  
+  static method parse_method(const std::string & method_s);
+
+  // constructors
   explicit simple_gs_interface(method method_, std::string gs_path = std::string());
   explicit simple_gs_interface(std::string method_s, std::string gs_path = std::string());
+
+  inline method gs_method() const { return _method; }
+  inline const std::string & gs_executable_path() const { return _gs_path; }
+
+  // gs information
 
   struct gs_info_t {
     std::string head;
@@ -62,8 +67,13 @@ public:
     std::vector<std::string> search_path;
   };
 
-  std::pair<int,int> gs_version();
+  struct gs_version_t { int major; int minor; };
+  struct gs_version_and_info_t { gs_version_t version; gs_info_t info; };
+
+  gs_version_t gs_version();
   gs_info_t gs_info();
+
+  gs_version_and_info_t gs_version_and_info();
 
   binary_data run_gs(const std::vector<std::string> & gs_args,
                      const binary_data & stdin_data,
@@ -76,6 +86,28 @@ private:
 
   void _init();
 };
+
+
+
+
+
+
+class simple_gs_interface_engine_tool
+{
+public:
+  simple_gs_interface_engine_tool();
+
+  void set_settings(const settings & settings);
+
+  simple_gs_interface * gs_interface() { return _gs_interface.get(); }
+
+private:
+  std::unique_ptr<simple_gs_interface> _gs_interface;
+  simple_gs_interface::gs_version_and_info_t _gs_version_and_info;
+};
+
+
+
 
 
 } // namespace detail

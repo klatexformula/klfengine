@@ -92,11 +92,15 @@ std::vector<std::string> settings::get_wildcard_search_paths(
   std::vector<std::string> env_paths = detail::get_environment_PATH();
   search_paths.insert(search_paths.end(), env_paths.begin(), env_paths.end());
 
+  // then finally add some hard-coded common paths.
   std::vector<std::string> sys_paths{
 #if defined(_KLFENGINE_OS_WIN)
     "C:\\Program Files*\\MiKTeX*\\miktex\\bin",
-    "C:\\texlive\\<texlive-year>\\bin\\*"
-    "C:\\texlive\\*\\bin\\*"
+    "C:\\texlive\\<texlive-year>\\bin\\*",
+    "C:\\texlive\\*\\bin\\*",
+    "C:\\texlive\\<texlive-year>\\tlpkg\\tlgs\\bin",
+//    "C:\\texlive\\*\\tlpkg\\tlgs\\bin" // TODO -- add this but also associated
+//                                       //         GS_LIB value (klf/klf issue #15)
 #elif defined(_KLFENGINE_OS_MACOSX)
     "/usr/texbin",
     "/Library/TeX/texbin",
@@ -108,8 +112,9 @@ std::vector<std::string> settings::get_wildcard_search_paths(
     "/usr/local/bin"
 #endif
   };
-  // append these paths
   search_paths.insert(search_paths.end(), sys_paths.begin(), sys_paths.end());
+
+  // these are the search paths.
   return search_paths;
 }
 

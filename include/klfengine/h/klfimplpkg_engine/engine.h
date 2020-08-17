@@ -28,56 +28,40 @@
 
 #pragma once
 
-#include <klfengine/engine>
-#include <klfengine/engine_run_implementation>
-#include <klfengine/run>
+#include <klfengine/basedefs>
 
+#include <klfengine/engine>
+#include <klfengine/run>
+#include <klfengine/engine_run_implementation>
+
+#include <klfengine/h/klfimplpkg_engine/run_implementation.h>
+#include <klfengine/h/detail/simple_gs_interface.h>
 
 namespace klfengine {
 
+namespace klfimplpkg_engine {
+
+class engine : public klfengine::engine {
+public:
+  engine();
+
+protected:
+  void adjust_for_new_settings(klfengine::settings & settings);
+
+private:
+  // reimplemented from klfengine::engine
+  klfengine::engine_run_implementation *
+  impl_create_engine_run_implementation( klfengine::input input_,
+                                         klfengine::settings settings_ );
+
+  std::shared_ptr<klfengine::detail::simple_gs_interface_engine_tool> _gs_iface_tool;
+};
 
 
-_KLFENGINE_INLINE
-engine::engine(std::string name_)
-  : _name(std::move(name_))
-{
-}
-
-_KLFENGINE_INLINE
-void engine::set_settings(klfengine::settings settings_)
-{
-  _settings = std::move(settings_);
-  adjust_for_new_settings(_settings);
-}
-
-
-_KLFENGINE_INLINE
-std::unique_ptr<klfengine::run>
-engine::run( input input_ )
-{
-  std::unique_ptr<engine_run_implementation> impl_ptr{
-    impl_create_engine_run_implementation(
-        input_,
-        settings()
-        )
-  };
-
-  std::unique_ptr<klfengine::run> run_ptr{
-    new klfengine::run{ std::move(impl_ptr) }
-  };
-
-  // don't use std::move() here explicitly, see
-  // https://stackoverflow.com/a/19272035/1694896
-  return run_ptr;
-}
-
-
-
-_KLFENGINE_INLINE
-void engine::adjust_for_new_settings(klfengine::settings &)
-{
-}
-
-
-
+} // namespace klfimplpkg_engine
 } // namespace klfengine
+
+
+#ifndef _KLFENGINE_DONT_INCLUDE_IMPL_HXX
+#include <klfengine/impl/klfimplpkg_engine/engine.hxx>
+#endif

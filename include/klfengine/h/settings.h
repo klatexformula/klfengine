@@ -62,8 +62,10 @@ struct settings
   std::string texbin_directory;
 
   /**
-   * This is one of "none", "process", "linked-libgs", "load-libgs".  The libgs
-   * variants are not yet implemented in \ref detail::simple_gs_interface.
+   * This is one of "none", "process", "linked-libgs", "load-libgs".
+   *
+   * \todo TODO: The libgs variants are not yet implemented in the internal
+   *       detail::simple_gs_interface.
    */
   std::string gs_method;
 
