@@ -82,6 +82,12 @@ std::string suffix_out_and_err(const binary_data * out, const binary_data * err)
 #endif
 
 
+#if defined(_KLFENGINE_OS_MACOSX)
+// don't have extern environ, use _NSGetEnviron() instead
+#else
+extern char ** environ;
+#endif
+
 namespace klfengine {
 
 _KLFENGINE_INLINE
@@ -89,8 +95,6 @@ environment current_environment()
 {
 #if defined(_KLFENGINE_OS_MACOSX)
   char ** environ = *_NSGetEnviron();
-#else
-  extern char ** environ;
 #endif
   return parse_environment(environ);
 }

@@ -31,8 +31,6 @@
 
 #include <klfengine/h/detail/filesystem.h>
 
-#include <iostream> // std::cout
-
 #include <catch2/catch.hpp>
 
 
@@ -189,7 +187,7 @@ TEST_CASE( "settings::detect_settings() does its job", "[settings]" )
       );
 
   using json = nlohmann::json;
-  std::cout << "[test] detected settings = " << json{s}.dump(4) << "\n";
+  INFO( "detected settings = " << json{s}.dump(4) );
 
   REQUIRE( klfengine::fs::canonical(s.texbin_directory)
            == klfengine::fs::canonical(KLFENGINE_TEST_ROOT_SRC_DIR

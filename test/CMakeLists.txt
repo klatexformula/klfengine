@@ -11,18 +11,19 @@ message(STATUS
   "Compiler warnings for tests are \"${KLFENGINE_TEST_WARN_OPTIONS}\" (KLFENGINE_TEST_WARN_OPTIONS)")
 
 
-# FIXME: Worry later about compatibility with C++11, do C++17 for now (for std::variant)
+## FIXME: Worry later about compatibility with C++11, do C++17 for now (for std::variant)
 set(KLFENGINE_TEST_CXX_STANDARD "17"
   CACHE STRING "Which C++ standard(s) to compile tests with (\"17\" -> C++17)")
-
 message(STATUS
   "Compiling tests with C++${KLFENGINE_TEST_CXX_STANDARD} (KLFENGINE_TEST_CXX_STANDARD=11|14|17)")
 
 
-
 add_library(test_main OBJECT test_main.cxx)
 target_compile_options(test_main PRIVATE ${KLFENGINE_TEST_WARN_OPTIONS})
-set_property(TARGET test_main PROPERTY CXX_STANDARD ${KLFENGINE_TEST_CXX_STANDARD})
+set_target_properties(test_main
+  PROPERTIES
+    CXX_STANDARD ${KLFENGINE_TEST_CXX_STANDARD}
+    CXX_STANDARD_REQUIRED ON)
 target_link_libraries(test_main PRIVATE
   klfengine
   Catch2::Catch2
@@ -55,8 +56,10 @@ macro(klfengine_create_test test_name)
     "-DKLFENGINE_TEST_ROOT_SRC_DIR=\"${CMAKE_CURRENT_SOURCE_DIR}\""
     )
 
-  set_property(TARGET "test_${test_name}" PROPERTY
-    CXX_STANDARD ${KLFENGINE_TEST_CXX_STANDARD})
+  set_target_properties("test_${test_name}"
+    PROPERTIES
+      CXX_STANDARD ${KLFENGINE_TEST_CXX_STANDARD}
+      CXX_STANDARD_REQUIRED ON)
 
   # include directories etc. for <klfengine/xxx>.  Here in CMake, "linking"
   # against klfengine automatically links against nlohmann_json and other direct
@@ -65,6 +68,7 @@ macro(klfengine_create_test test_name)
   target_link_libraries("test_${test_name}" PRIVATE
     klfengine
     Catch2::Catch2
+    Threads::Threads
     ${KLFENGINE_CREATE_TEST_LIBRARIES}
     )
 

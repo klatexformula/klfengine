@@ -1,31 +1,10 @@
 cmake_minimum_required(VERSION 3.8)
 # CMake >= 3.XXX? for "linking" object libraries in test subdir
-# ( CMake >= 3.8 for CXX_STANDARD==17 target property )
+# ( CMake >= 3.8 for "cxx_std_17" as C++ known feature )
 
+set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 
-#
-# Read and parse current header version.  (We parse the header instead
-# of having the value in CMake and generating a header with version
-# info, because we'd like people to able to use the raw headers
-# directly from the repo without running any build scripts.)
-#
-file(READ "include/klfengine/h/version_number_raw.h" _klfe_version_raw_header)
-string(REGEX MATCH "#define KLFENGINE_VERSION_MAJOR [0-9]+"
-  _klfe_version_macrodef "${_klfe_version_raw_header}")
-string(REGEX MATCH "[0-9]+" KLFENGINE_VERSION_MAJOR "${_klfe_version_macrodef}")
-string(REGEX MATCH "#define KLFENGINE_VERSION_MINOR [0-9]+"
-  _klfe_version_macrodef "${_klfe_version_raw_header}")
-string(REGEX MATCH "[0-9]+" KLFENGINE_VERSION_MINOR "${_klfe_version_macrodef}")
-string(REGEX MATCH "#define KLFENGINE_VERSION_RELEASE [0-9]+"
-  _klfe_version_macrodef "${_klfe_version_raw_header}")
-string(REGEX MATCH "[0-9]+" KLFENGINE_VERSION_RELEASE "${_klfe_version_macrodef}")
-string(REGEX MATCH "#define KLFENGINE_VERSION_SUFFIX \"[^\"]*\""
-  _klfe_version_macrodef "${_klfe_version_raw_header}")
-string(REGEX REPLACE "#define KLFENGINE_VERSION_SUFFIX \"([^\"]*)\""  "\\1"
-  KLFENGINE_VERSION_SUFFIX "${_klfe_version_macrodef}")
-
-set(KLFENGINE_VERSION "${KLFENGINE_VERSION_MAJOR}.${KLFENGINE_VERSION_MINOR}.${KLFENGINE_VERSION_RELEASE}${KLFENGINE_VERSION_SUFFIX}")
-
+include(klfengine_get_version)
 
 #
 # CMAKE project() DIRECTIVE HERE.
@@ -118,11 +97,9 @@ below.
 
 
 
-include(GnuInstallDirs)
+include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 
-
-set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 
 
 #
@@ -152,6 +129,12 @@ else()
   message(STATUS
     "Will use C++17's std::filesystem (KLFENGINE_USE_GULRAK_FILESYSTEM)")
 endif()
+
+
+
+# needed for std::thread
+set(THREADS_PREFER_PTHREAD_FLAG ON)
+find_package(Threads REQUIRED)
 
 
 

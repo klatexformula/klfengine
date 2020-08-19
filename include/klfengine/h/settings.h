@@ -145,7 +145,7 @@ struct settings
    * <code>-DKLFENGINE_EXTRA_SEARCH_PATHS="..."</code>,
    *
    *   - and some hard-coded standard paths (such as
-   *     <code>"/usr/local/texlive/*<em></em>/bin/<em></em>*"</code> etc.).
+   *     <code>"/usr/local/texlive/<em></em>*<em></em>/bin/<em></em>*"</code> etc.).
    *
    * You can specify at compile-time any additional paths that should be
    * included in this list by specifying the
