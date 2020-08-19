@@ -37,9 +37,9 @@
 #include <klfengine/h/latex_dvips_gs_engine/run_implementation.h>
 
 namespace klfengine {
-
 namespace latex_dvips_gs_engine {
 
+/*
 class engine : public klfengine::engine {
 public:
   engine();
@@ -50,6 +50,7 @@ private:
   impl_create_engine_run_implementation( klfengine::input input_,
                                          klfengine::settings settings_ );
 };
+*/
 
 
 } // namespace latex_dvips_gs_engine

@@ -27,45 +27,15 @@
  */
 
 // header we are testing gets included first (helps detect missing #include's)
-#include <klfengine/klfimplpkg_engine>
+#include <klfengine/h/latex_dvips_gs_engine/engine.h>
+
 
 #include <catch2/catch.hpp>
 
 
-TEST_CASE( "something happens when this and that", "[keyword]" )
+
+TEST_CASE( "something happens when this and that f8yr93guibdsnjk", "[keyword]" )
 {
-  klfengine::klfimplpkg_engine::engine e;
-
-  e.set_settings(klfengine::settings::detect_settings());
-
-  klfengine::input in;
-  in.latex = std::string("\\int \\left[a + \\frac{b}{f(x)}\\right] dx =: Z[f]");
-  in.math_mode = std::make_pair("$\\begin{aligned}", "\\end{aligned}$");
-  in.preamble = std::string("\\usepackage{amsmath}\n\\usepackage{amssymb}");
-  in.latex_engine = std::string("pdflatex");
-  in.font_size = -1.0;
-  in.margins = klfengine::margins{0.0, 0.0, 0.0, 0.0};
-  in.dpi = 1200;
-  in.scale = 1.0;
-  in.outline_fonts = true;
-  in.parameters = klfengine::value::dict{
-    {"use_documentclass", klfengine::value{std::string{"article"}}}
-  };
-
-  auto r = e.run(in);
-
-  r->compile();
-
-  auto data = r->get_data(klfengine::format_spec{"PDF"});
-
-  fprintf(stderr, "PDF DATA IS:\n");
-  fwrite(&data[0], 1, data.size(), stderr);   fprintf(stderr, "\n");
-
-  // also write to /tmp/ for my own testing...
-  // FILE * fp_debug_out = fopen("/tmp/mytestoutput.pdf", "w");
-  // fwrite(&data[0], 1, data.size(), fp_debug_out);
-  // fclose(fp_debug_out);
-
   // write tests here
   REQUIRE( false ) ;
 }

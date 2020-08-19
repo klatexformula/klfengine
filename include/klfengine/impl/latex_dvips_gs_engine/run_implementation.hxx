@@ -30,11 +30,11 @@
 
 #include <klfengine/latex_dvips_gs_engine>
 
-
 namespace klfengine {
 namespace latex_dvips_gs_engine {
 
 
+/*
 
 struct run_implementation_private
 {
@@ -124,7 +124,7 @@ klfengine::binary_data impl_produce_data(const klfengine::format_spec & format)
 {
 }
 
-
+*/
 
 
 } // namespace latex_dvips_gs_engine

@@ -45,7 +45,7 @@ namespace klfengine {
  * or vector graphics.
  *
  * \note We fix the convention that the JPEG format name is spelled out as
- *       "JPEG", not as "JPG".  We'll raise \ref no_such_format() if you use the
+ *       "JPEG", not as "JPG".  We'll raise \ref no_such_format if you use the
  *       format "JPG".
  *
  * \warning Currently, we fix the \a format name to be case-sensitive, and

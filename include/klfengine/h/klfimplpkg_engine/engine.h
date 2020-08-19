@@ -44,6 +44,7 @@ namespace klfimplpkg_engine {
 class engine : public klfengine::engine {
 public:
   engine();
+  virtual ~engine();
 
 protected:
   void adjust_for_new_settings(klfengine::settings & settings);

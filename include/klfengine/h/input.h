@@ -45,10 +45,26 @@
 namespace klfengine
 {
 
+/** \brief Store a LaTeX length (for now, only in points)
+ *
+ * For now, this is a double floating-point value, with units of LaTeX points
+ * ("1pt").
+ *
+ * \bug  In the future, we should have a fp-value associated with an explicit
+ *       latex unit, without normalizing everything to points, so that we can
+ *       specify font-dependent lengths such as "0.3ex".
+ */
 using length = double;
-// store color as RGBA values 0-255
+
+/** \brief Store an RGBA color with transparency
+ *
+ * The color is stored as a tuple of R,G,B,A values, each ranging 0-255.
+ */
 using color = std::tuple<std::uint8_t,std::uint8_t,std::uint8_t,std::uint8_t>;
 
+
+/** \brief Margins around a box
+ */
 struct margins {
   length top;
   length right;
@@ -102,7 +118,7 @@ struct input
 
   bool outline_fonts;
 
-  /** \brief Custom implementation-specific parameters
+  /** \brief Custom, implementation-specific parameters
    *
    */
   value::dict parameters;

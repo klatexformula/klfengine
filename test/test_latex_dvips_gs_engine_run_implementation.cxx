@@ -26,45 +26,16 @@
  * SOFTWARE.
  */
 
-#pragma once
+// header we are testing gets included first (helps detect missing #include's)
+#include <klfengine/h/latex_dvips_gs_engine/run_implementation.h>
 
-#include <klfengine/klfimplpkg_engine>
+
+#include <catch2/catch.hpp>
 
 
-namespace klfengine {
-namespace klfimplpkg_engine {
 
-_KLFENGINE_INLINE
-engine::engine()
-  : klfengine::engine("klfimplpkg_engine")
+TEST_CASE( "another something happens when this and hfu9egrdinj", "[keyword]" )
 {
-  _gs_iface_tool = std::shared_ptr<klfengine::detail::simple_gs_interface_engine_tool>{
-    new klfengine::detail::simple_gs_interface_engine_tool{}
-  };
+  // write tests here
+  REQUIRE( false ) ;
 }
-
-_KLFENGINE_INLINE
-engine::~engine()
-{
-}
-
-_KLFENGINE_INLINE
-void engine::adjust_for_new_settings(klfengine::settings & settings_)
-{
-  _gs_iface_tool->set_settings(settings_);
-}
-
-// reimplemented from klfengine::engine
-_KLFENGINE_INLINE
-klfengine::engine_run_implementation *
-engine::impl_create_engine_run_implementation( klfengine::input input_,
-                                               klfengine::settings settings_ )
-{
-  return new run_implementation(_gs_iface_tool, std::move(input_), std::move(settings_));
-}
-
-
-
-
-} // namespace klfimplpkg_engine
-} // namespace klfengine

@@ -59,7 +59,12 @@ bool is_executable(const fs::path& p) { // can be used as predicate to check exe
 _KLFENGINE_INLINE
 std::string settings::get_tex_executable_path(const std::string & exe_name) const
 {
-  std::string s = texbin_directory + "/" + exe_name;
+  std::string s = texbin_directory + "/" + exe_name
+#ifdef _KLFENGINE_OS_WIN
+                                                    + ".exe"
+#endif
+    ;
+
   if (!fs::exists(s)) {
     throw cannot_find_executable(exe_name, "no such executable in " + texbin_directory);
   }

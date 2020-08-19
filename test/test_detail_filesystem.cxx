@@ -29,8 +29,6 @@
 // header we are testing gets included first (helps detect missing #include's)
 #include <klfengine/h/detail/filesystem.h>
 
-#include <iostream>
-
 #include <catch2/catch.hpp>
 
 
@@ -83,11 +81,8 @@ TEST_CASE( "find_wildcard_path works for relative paths", "[detail-filesystem]" 
         "test/test_detail_*",
         "test_detail_*",
       });
-  std::cout << "[test] find_wildcard_path results =";
-  for (auto & p: results) {
-    std::cout << " " << p;
-  }
-  std::cout << ".\n";
+  
+  CAPTURE( results );
 
   // we should find our own executable test_detail_filesystem(.exe)?
   auto it = std::find_if(
@@ -107,11 +102,7 @@ TEST_CASE( "find_wildcard_path works for absolute paths", "[detail-filesystem]" 
         cwd.string() + "/test/test_detail_*",
         cwd.string() + "/test_detail_*",
       });
-  std::cout << "[test] cwd = " << cwd << "; find_wildcard_path results =";
-  for (auto & p: results) {
-    std::cout << " " << p;
-  }
-  std::cout << "\n";
+  CAPTURE( cwd, results );
 
   // we should find our own executable test_detail_filesystem(.exe)?
   auto it = std::find_if(
@@ -129,11 +120,7 @@ TEST_CASE( "find_wildcard_path works with given file_names", "[detail-filesystem
     klfengine::detail::find_wildcard_path(
         { "test", "." }, {"test_detail_filesystem", "test_detail_filesystem.exe"}
         );
-  std::cout << "[test] find_wildcard_path results =";
-  for (auto & p: results) {
-    std::cout << " " << p;
-  }
-  std::cout << ".\n";
+  CAPTURE( results );
 
   // we should find our own executable test_detail_filesystem(.exe)?
   auto it = std::find_if(

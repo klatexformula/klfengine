@@ -34,6 +34,7 @@
 namespace klfengine {
 namespace latex_dvips_gs_engine {
 
+/*
 
 engine::engine()
   : klfengine::engine("latex_dvips_gs_engine")
@@ -49,7 +50,7 @@ engine::impl_create_engine_run_implementation( klfengine::input input_,
 }
 
 
-
+*/
 
 } // namespace latex_dvips_gs_engine
 } // namespace klfengine

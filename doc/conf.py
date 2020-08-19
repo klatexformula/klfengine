@@ -14,6 +14,7 @@
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
 
+import textwrap # dedent()
 
 # -- Project information -----------------------------------------------------
 
@@ -65,7 +66,15 @@ exhale_args = {
     # TIP: if using the sphinx-bootstrap-theme, you need
     # "treeViewIsBootstrap": True,
     "exhaleExecutesDoxygen": True,
-    "exhaleDoxygenStdin":    "INPUT = ../include/klfengine/h"
+    "exhaleDoxygenStdin":    textwrap.dedent("""
+
+        # where our documented header files are
+        INPUT = ../include/klfengine/h
+
+        # some predefined macros
+        PREDEFINED += _KLFENGINE_PROCESSED_BY_DOXYGEN
+
+""")
 }
 
 # Tell sphinx what the primary language being documented is.

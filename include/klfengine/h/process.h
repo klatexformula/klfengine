@@ -64,12 +64,6 @@ template<typename T, typename... Ts>
 struct contains : my_disjunction<std::is_same<T, Ts>...> {};
 
 
-template<typename T>
-struct arg_name_to_str
-{
-  static inline std::string get() { return "<unknown>"; }
-};
-
 template<typename... A>
 struct get_kwargs {
   template<typename T>
@@ -108,25 +102,41 @@ struct get_kwargs {
 } // namespace detail
 
 
+/** \brief A mapping object of names with values, representing a process environment
+ */
 using environment = std::map<std::string, std::string>;
 
+/** \brief Get the current process environment
+ */
 environment current_environment();
+/** \brief Get an \ref klfengine::environment instance from an C-style environ pointer
+ */
 environment parse_environment(char ** env_ptr);
 
+/** \brief Instruct \ref set_environment() to include variables if not already defined
+ */
 struct provide_environment_variables {
   environment variables;
 };
+/** \brief Instruct \ref set_environment() to set variables to new values
+ */
 struct set_environment_variables {
   environment variables;
 };
+/** \brief Instruct \ref set_environment() to remove some variables
+ */
+struct remove_environment_variables {
+  std::vector<std::string> variable_names;
+};
+/** \brief Instruct \ref set_environment() to prepend paths to some variables
+ */
 struct prepend_path_environment_variables {
   environment variables;
 };
+/** \brief Instruct \ref set_environment() to append paths to some variables
+ */
 struct append_path_environment_variables {
   environment variables;
-};
-struct remove_environment_variables {
-  std::vector<std::string> variable_names;
 };
 
 namespace detail {
@@ -175,6 +185,35 @@ inline void do_set_environment(environment & env, append_path_environment_variab
 }
 } // namespace detail
 
+#ifdef _KLFENGINE_PROCESSED_BY_DOXYGEN
+/** \brief Change the given environment with the specified operations
+ *
+ * The given \a environment is modified according to the keyword-like arguments
+ * \a arg0, \a arg1, ..., which are processed in the given order.  The args must
+ * be temporary instances that are of type \ref set_environment_variables, \ref
+ * provide_environment_variables, \ref remove_environment_variables, \ref
+ * prepend_path_environment_variables, or \ref
+ * append_path_environment_variables.  See the documentation of those objects
+ * for more details about their effect.
+ *
+ * Example:
+ * \code
+ *   klfe::environment e{{"VAR1", "value 1"}, {"MY_PATH_VAR", "/usr/bin:/bin"}};
+ *   klfe::set_environment(
+ *       e,
+ *       klfe::set_environment_variables{ {{"VAR2", "value 2"}} },
+ *       klfe::remove_environment_variables{ {"VAR1"} },
+ *       klfe::prepend_path_environment_variables{
+ *         {{"MY_PATH_VAR", "/usr/local/bin:/opt/bin"}}
+ *       },
+ *   );
+ *   // e == { {"VAR2", "value 2"},
+ *   //        {"MY_PATH_VAR", "/usr/local/bin:/opt/bin:/usr/bin:/bin"} }
+ * \endcode
+ */
+void set_environment(environment & environment,
+                     EnvManipArg0 arg0, EnvManipArg1 arg1, ...);
+#else
 inline void set_environment(environment & ) { }
 template<typename EnvManipArg, typename... EnvManipArgs>
 inline void set_environment(environment & environment_, EnvManipArg && a1,
@@ -183,6 +222,7 @@ inline void set_environment(environment & environment_, EnvManipArg && a1,
   detail::do_set_environment(environment_, std::forward<EnvManipArg>(a1));
   set_environment(environment_, std::forward<EnvManipArgs>(rest)...);
 }
+#endif
 
 namespace detail {
 
@@ -247,8 +287,20 @@ void run_process_impl(
 } // namespace detail
 
 
-struct process {
+/** Interface to run an external process and capture its output
+ *
+ * \todo The API might still change.  I'm thinking about having running
+ *       processes and pipes, etc.
+ */
+class process {
+public:
 
+  /** \brief Specifies the executable file that should be run
+   *
+   * If you don't specify this argument to \ref run_and_wait(), then the first
+   * item in \a argv is used as the executable file name (but the executable is
+   * not searched in the system \a $PATH)
+   */
   struct executable {
     const std::string & _data_ref;
   };
@@ -256,43 +308,51 @@ struct process {
     const std::string & _data_ref;
   };
 
-  /** \brief Instruct \ref run() to send data to process' standard input
+  /** \brief Instruction to send data to process' standard input
    *
-   * After executing the process, \ref run() will write the given data to its
-   * standard input.  Example usage:
+   * After executing the process, \ref run_and_wait() will write the given data
+   * to its standard input.  Example usage:
    * \code
    *   binary_data in_data = ...;
-   *   klfe::process::run(..., klfe::process::send_stdin_data{in_data}, ...);
+   *   klfe::process::run_and_wait(
+   *       ...,
+   *       klfe::process::send_stdin_data{in_data},
+   *       ...
+   *   );
    * \endcode
    */
   struct send_stdin_data {
     const binary_data & _data_ref;
   };
 
-  /** \brief Capture stdout to given buffer in \ref run()
+  /** \brief Instruct to capture stdout data to the given buffer
    *
-   * Instructs \ref run() to capture the standard output of the process into the
-   * referenced buffer.  Use as follows:
+   * Instructs \ref run_and_wait() to capture the standard output of the process
+   * into the referenced buffer.  Use as follows:
    * \code
    *   binary_data out_buffer;
-   *   klfe::process::run(..., klfe::process::capture_stdout_data{out_buffer}, ...);
+   *   klfe::process::run_and_wait(
+   *       ...,
+   *       klfe::process::capture_stdout_data{out_buffer},
+   *       ...
+   *   );
    * \endcode
    */
   struct capture_stdout_data {
     binary_data & _data_ref;
   };
-  /** \brief Capture stderr to given buffer in \ref run()
+  /** \brief Instruct to capture stderr data to the given buffer 
    *
    * Same as \ref capture_stdout_data, but for standard error output.
    */
   struct capture_stderr_data {
     binary_data & _data_ref;
   };
-  /** \brief Dynamically control whether stdout capture is to be activated in \ref run()
+  /** \brief Dynamically control whether stdout capture is to be activated
    *
    * Only works in conjuction with \ref capture_stdout_data.  If
-   * <code>capture_stdout_if{false}</code> is provided to \ref run(), then the
-   * effect of any <code>capture_stderr_data</code> is inhibited.
+   * <code>capture_stdout_if{false}</code> is provided to \ref run_and_wait(),
+   * then the effect of any <code>capture_stderr_data</code> is inhibited.
    */
   struct capture_stdout_if{
     bool _capture;
@@ -303,7 +363,7 @@ struct process {
     bool _capture;
   };
 
-  /** \brief Child process executed by \ref run() will not inherit the current environment
+  /** \brief Instruction for executed subprocess to not inherit the current environment
    *
    * It is your responsibility to provide any values for standard environment
    * variables (\a HOME, \a PATH, etc.) the child process might expect.
@@ -312,7 +372,26 @@ struct process {
 
   /** \brief Execute a process and wait until it terminates
    *
+   * The first parameter is the standard \a argv list for the new process, with
+   * the first element being the process name (or what you want it to think it's
+   * named).  Specify any other arguments as pseudo-keyword arguments using the
+   * following helper classes:
    *
+   * - <code>executable{"/path/to/exectuable"}</code> -- see \ref executable
+   *
+   * - <code>capture_stdout_data{buffer}, capture_stderr_data{buffer},
+   *   capture_stdout_if{??}, capture_stderr_if{??}</code> -- capture the
+   *   process output to a given buffer.  See \ref capture_stdout_data, \ref
+   *   capture_stderr_data, \ref capture_stdout_if, \ref capture_stderr_if
+   *
+   * - any acceptable argument to \ref klfengine::set_environment(),
+   *   possibly in combination with <code>clear_environment{}</code> -- specify
+   *   how to set the subprocess' environment.
+   *
+   * Errors are reported by throwing suitable execptions.  If the process exits
+   * with a nonzero return code this is considered an error and an exception is
+   * thrown.  In case of errors and if you're capturing stdout and/or stderr,
+   * the buffers will contain the data that has been received so far.
    */
   template<typename... Args>
   static void run_and_wait(const std::vector<std::string> & argv, Args && ... args)
@@ -320,7 +399,7 @@ struct process {
     using namespace detail;
 
     if (argv.empty()) {
-      throw std::invalid_argument("klfengine::process::run(): cannot have empty argv");
+      throw std::invalid_argument("klfengine::process::run_and_wait(): cannot have empty argv");
     }
 
     std::string ex;

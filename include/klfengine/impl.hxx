@@ -20,6 +20,7 @@
 
 // engine(s)
 #include <klfengine/impl/latex_dvips_gs_engine.hxx>
+#include <klfengine/impl/klfimplpkg_engine.hxx>
 
 
 //
