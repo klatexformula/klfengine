@@ -6,10 +6,10 @@
 //
 
 const char * klfimpl_sty_data =
-  R"%%%###%%%###%%%(%% This is klfimpl.sty exported as C++ data
+  R"%%%###%%%###%%%(%% This is klfimpl.sty exported as C++ source code
 \NeedsTeXFormat{LaTeX2e}[2005/12/01]
 \ProvidesPackage{klfimpl}
-    [2020/05/16 v0.1 klfimpl package]
+    [2020/08/08 v0.2 klfimpl package]
 \newbox\klf@eqnbox
 \newdimen\klf@w
 \newdimen\klf@h
@@ -217,9 +217,9 @@ const char * klfimpl_sty_data =
   \ifklf@ltxengine@latexdvi% tough luck
   \else
     \@tempdima=\klf@ppw
-    \multiply\@tempdima \klf@set@xscale\relax
+    \@tempdima=\klf@set@xscale\@tempdima\relax
     \@tempdimb=\klf@pph
-    \multiply\@tempdimb \klf@set@yscale\relax
+    \@tempdimb=\klf@set@yscale\@tempdimb\relax
     \klf@SetPaperSize@FromDims\@tempdima\@tempdimb%
   \fi
   \let\klf@next\@firstofone
@@ -263,17 +263,17 @@ const char * klfimpl_sty_data =
 }
 \def\klfDumpMetaInfo{%
   \begingroup
-    \multiply\klf@em \klf@set@xscale\relax
-    \multiply\klf@ex \klf@set@yscale\relax
-    \multiply\klf@capxhgt \klf@set@yscale\relax
-    \multiply\klf@ppw \klf@set@xscale\relax
-    \multiply\klf@pph \klf@set@yscale\relax
-    \multiply\klf@hshift \klf@set@xscale\relax
-    \multiply\klf@vshift \klf@set@yscale\relax
-    \multiply\klf@w \klf@set@xscale\relax
-    \multiply\klf@h \klf@set@yscale\relax
-    \multiply\klf@d \klf@set@yscale\relax
-    \multiply\klf@th \klf@set@yscale\relax
+    \klf@em=\klf@set@xscale\klf@em\relax
+    \klf@ex=\klf@set@yscale\klf@ex\relax
+    \klf@capxhgt=\klf@set@yscale\klf@capxhgt\relax
+    \klf@ppw=\klf@set@xscale\klf@ppw\relax
+    \klf@pph=\klf@set@yscale\klf@pph\relax
+    \klf@hshift=\klf@set@xscale\klf@hshift\relax
+    \klf@vshift=\klf@set@yscale\klf@vshift\relax
+    \klf@w=\klf@set@xscale\klf@w\relax
+    \klf@h=\klf@set@yscale\klf@h\relax
+    \klf@d=\klf@set@yscale\klf@d\relax
+    \klf@th=\klf@set@yscale\klf@th\relax
     \message{%
 ^^J%
 ***-KLF-META-INFO-BEGIN-***^^J%

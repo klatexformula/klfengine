@@ -9,3 +9,7 @@
 #include <klfengine/engine_run_implementation>
 #include <klfengine/run>
 #include <klfengine/temporary_directory>
+
+// engines
+#include <klfengine/klfimplpkg_engine>
+#include <klfengine/latex_dvips_gs_engine>

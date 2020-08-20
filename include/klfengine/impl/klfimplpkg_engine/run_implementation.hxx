@@ -152,7 +152,7 @@ void run_implementation::impl_compile()
   std::string latex_str;
   latex_str += "\\documentclass[11pt]{article}\n";
   latex_str += "\\usepackage[" + in.latex_engine + "]{klfimpl}\n";
-  
+
   latex_str += "\\klfSetTopMargin{" + std::to_string(in.margins.top) + "pt}\n";
   latex_str += "\\klfSetRightMargin{" + std::to_string(in.margins.right) + "pt}\n";
   latex_str += "\\klfSetBottomMargin{" + std::to_string(in.margins.bottom) + "pt}\n";
@@ -162,6 +162,11 @@ void run_implementation::impl_compile()
   //\klfSetFixedHeight{1cm}
   //\klfSetFixedWidth{10pt}
   //\klfSetFixedHeight{8pt}
+
+  if (in.scale <= 0) {
+    // invalid scale
+    throw std::invalid_argument("input.scale has invalid value " + std::to_string(in.scale));
+  }
 
   if (in.scale != 1) {
     latex_str += "\\klfSetScale{" + std::to_string(in.scale) + "}\n";
