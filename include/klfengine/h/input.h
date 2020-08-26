@@ -60,7 +60,12 @@ using length = double;
  *
  * The color is stored as a tuple of R,G,B,A values, each ranging 0-255.
  */
-using color = std::tuple<std::uint8_t,std::uint8_t,std::uint8_t,std::uint8_t>;
+struct color {
+  std::uint8_t red;
+  std::uint8_t green;
+  std::uint8_t blue;
+  std::uint8_t alpha;
+};
 
 
 /** \brief Margins around a box
@@ -77,6 +82,16 @@ struct margins {
  */
 struct input
 {
+  // initialize with some reasonable default values
+  input();
+
+  // default copy & move semantics
+  input(const input & copy) = default;
+  input(input && move) = default;
+  input & operator=(const input & copy) = default;
+  input & operator=(input && move) = default;
+
+
   /** \brief The LaTeX code to process.
    *
    * This is typically the equation code, without <code>\\begin{equation}
@@ -125,17 +140,20 @@ struct input
 };
 
 
-bool operator==(const input & a, const input & b);
-bool operator!=(const input & a, const input & b);
-
-void to_json(nlohmann::json & j, const input & v);
-void from_json(const nlohmann::json & j, input & v);
+bool operator==(const color & a, const color & b);
+bool operator!=(const color & a, const color & b);
+void to_json(nlohmann::json & j, const color & v);
+void from_json(const nlohmann::json & j, color & v);
 
 bool operator==(const margins & a, const margins & b);
 bool operator!=(const margins & a, const margins & b);
-
 void to_json(nlohmann::json & j, const margins & v);
 void from_json(const nlohmann::json & j, margins & v);
+
+bool operator==(const input & a, const input & b);
+bool operator!=(const input & a, const input & b);
+void to_json(nlohmann::json & j, const input & v);
+void from_json(const nlohmann::json & j, input & v);
 
 
 } // namespace klfengine

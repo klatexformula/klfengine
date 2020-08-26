@@ -133,6 +133,19 @@ static binary_data load_file_data(const std::string & fname)
   return data;
 }
 
+namespace detail {
+std::string dbl_to_string(double dval)
+{
+  // // to_string gives "8.000000", and I'm not a fan of stringstream...
+  // return std::to_string(dval);
+  std::vector<char> s;
+  s.resize(128);
+  int n = std::snprintf(s.data(), s.size(), "%.8g", dval);
+  s.resize(n);
+  return std::string{s.begin(), s.end()};
+}
+} // namespace detail
+
 _KLFENGINE_INLINE
 void run_implementation::impl_compile()
 {
@@ -149,14 +162,62 @@ void run_implementation::impl_compile()
   // prepare latex template
   std::string tempfname = d->temp_dir.path() / "klfetmp";
 
-  std::string latex_str;
-  latex_str += "\\documentclass[11pt]{article}\n";
-  latex_str += "\\usepackage[" + in.latex_engine + "]{klfimpl}\n";
+  bool need_latex_color_package = false;
 
-  latex_str += "\\klfSetTopMargin{" + std::to_string(in.margins.top) + "pt}\n";
-  latex_str += "\\klfSetRightMargin{" + std::to_string(in.margins.right) + "pt}\n";
-  latex_str += "\\klfSetBottomMargin{" + std::to_string(in.margins.bottom) + "pt}\n";
-  latex_str += "\\klfSetLeftMargin{" + std::to_string(in.margins.left) + "pt}\n";
+  std::string pre_preamble;
+  std::string klf_preamble;
+
+  std::string font_cmds;
+
+  if (in.font_size > 0) {
+    font_cmds += "\\fontsize{" + detail::dbl_to_string(in.font_size) + "}{" +
+      detail::dbl_to_string(in.font_size * 1.25) + "}\\selectfont";
+  }
+
+  if (in.fg_color != color{0,0,0,255}) {
+    need_latex_color_package = true;
+    klf_preamble += "\\definecolor{klffgcolor}{rgb}{"
+      + detail::dbl_to_string(in.fg_color.red/255.0) + ","
+      + detail::dbl_to_string(in.fg_color.green/255.0) + ","
+      + detail::dbl_to_string(in.fg_color.blue/255.0) + "}\n";
+    // TODO: treat alpha!=255 case correctly
+
+    font_cmds += "\\color{klffgcolor}";
+  }
+
+  bool baseline_rule = false;
+  std::string baseline_rule_type{"line"};
+  std::string baseline_rule_setup{"\\color{blue}"};
+  std::string baseline_rule_thickness{"0.2pt"};
+  { auto br_it = in.parameters.find("baseline_rule");
+    if (br_it != in.parameters.end()) {
+      // specify baseline rule.
+      if (br_it->second.has_type<bool>()) {
+        baseline_rule = br_it->second.get<bool>();
+        if (baseline_rule) {
+          need_latex_color_package = true; // the default baseline_rule_setup uses \color{...}
+        }
+      } else {
+        // it's a dict with values
+        baseline_rule = true;
+        auto d = br_it->second.get<value::dict>();
+        { auto it = d.find("type");
+          if (it != d.end()) { baseline_rule_type = it->second.get<std::string>(); } }
+        { auto it = d.find("setup");
+          if (it != d.end()) { baseline_rule_setup = it->second.get<std::string>(); } }
+        { auto it = d.find("thickness");
+          if (it != d.end()) { baseline_rule_thickness = it->second.get<std::string>(); } }
+      }
+    }
+  }
+
+  if (baseline_rule) {
+    pre_preamble += 
+      "\\klfSetBaselineRuleType{" + baseline_rule_type + "}\n"
+      "\\renewcommand\\klfBaselineRuleLineSetup{" + baseline_rule_setup + "}\n"
+      "\\renewcommand\\klfBaselineRuleLineThickness{" + baseline_rule_thickness + "}\n"
+      ;
+  }
 
   //\klfSetFixedWidth{4cm}
   //\klfSetFixedHeight{1cm}
@@ -165,11 +226,11 @@ void run_implementation::impl_compile()
 
   if (in.scale <= 0) {
     // invalid scale
-    throw std::invalid_argument("input.scale has invalid value " + std::to_string(in.scale));
+    throw std::invalid_argument("input.scale has invalid value " + detail::dbl_to_string(in.scale));
   }
 
   if (in.scale != 1) {
-    latex_str += "\\klfSetScale{" + std::to_string(in.scale) + "}\n";
+    pre_preamble += "\\klfSetScale{" + detail::dbl_to_string(in.scale) + "}\n";
     //\klfSetXScale{5}
     //\klfSetYScale{5}
   }
@@ -182,31 +243,51 @@ void run_implementation::impl_compile()
   //\klfSetTopAlignment{bbox} % default
   //\klfSetTopAlignment{Xheight}
 
-  //\klfSetBaselineRuleType{line}
-  //\renewcommand\klfBaselineRuleLineSetup{\color{blue}}
-  //\renewcommand\klfBaselineRuleLineThickness{0.2pt}
+  pre_preamble += "\\klfSetTopMargin{" + detail::dbl_to_string(in.margins.top) + "pt}\n";
+  pre_preamble += "\\klfSetRightMargin{" + detail::dbl_to_string(in.margins.right) + "pt}\n";
+  pre_preamble += "\\klfSetBottomMargin{" + detail::dbl_to_string(in.margins.bottom) + "pt}\n";
+  pre_preamble += "\\klfSetLeftMargin{" + detail::dbl_to_string(in.margins.left) + "pt}\n";
 
+
+  std::string latex_str;
+  latex_str += "\\documentclass[11pt]{article}\n";
+  latex_str += "\\usepackage[" + in.latex_engine + "]{klfimpl}\n";
+
+
+  if (need_latex_color_package) {
+    latex_str +=
+      "\\makeatletter"
+      "\\newcommand\\klfEnsureColorPackageLoaded{%\n"
+      "  \\@ifpackageloaded{color}{}{\\@ifpackageloaded{xcolor}{}{\\RequirePackage{xcolor}}}}"
+      "\\makeatother\n"
+      ;
+  }
+  latex_str += pre_preamble;
+
+  latex_str += "%%% --- begin user preamble ---\n";
   latex_str += in.preamble;
+  latex_str += "\n";
+  latex_str += "%%% --- end user preamble ---\n";
+  if (need_latex_color_package) {
+    // ensure color or xcolor have been loaded
+    latex_str += "\\klfEnsureColorPackageLoaded\n";
+  }
+  latex_str += klf_preamble; // klf_preamble ends with "\n" already, we built it ourselves
 
   latex_str +=
-    "\n"
     "\\pagestyle{empty}\n"
     "\\begin{document}%\n";
 
-  std::string font_cmds;
-  if (in.font_size > 0) {
-    font_cmds = "\\fontsize{" + std::to_string(in.font_size) + "}{" +
-      std::to_string(in.font_size * 1.25) + "}\\selectfont";
-  }
-
   latex_str += "\\begin{klfcontent}{\\hbox}{" + font_cmds + "}%\n";
 
+  latex_str += "%%% --- begin user math_mode and latex ---\n";
   latex_str += in.math_mode.first;
   latex_str += "%\n";
   latex_str += in.latex;
   latex_str += "%\n";
   latex_str += in.math_mode.second;
   latex_str += "%\n";
+  latex_str += "%%% --- end user math_mode and latex ---\n";
 
   latex_str += "\\end{klfcontent}\n\\end{document}\n";
 

@@ -92,6 +92,11 @@ struct recursive_variant_with_vector_and_map
   inline GetValueType & get() {
     return _KLFENGINE_VARIANT_GET<GetValueType>(_data);
   }
+  
+  template<typename GetValueType>
+  inline bool has_type() const {
+    return _KLFENGINE_VARIANT_HOLDS_ALTERNATIVE<GetValueType>(_data);
+  }
 
   // template<typename RhsType>
   // inline recursive_variant_with_vector_and_map

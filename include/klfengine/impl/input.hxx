@@ -38,6 +38,39 @@ namespace klfengine {
 
 
 _KLFENGINE_INLINE
+bool operator==(const color & a, const color & b)
+{
+  return a.red == b.red && a.green == b.green && a.blue == b.blue && a.alpha == b.alpha;
+}
+_KLFENGINE_INLINE
+bool operator!=(const color & a, const color & b)
+{
+  return ! (a == b);
+}
+
+_KLFENGINE_INLINE
+void to_json(nlohmann::json & j, const color & v)
+{
+  j = nlohmann::json{
+    {"red", v.red},
+    {"green", v.green},
+    {"blue", v.blue},
+    {"alpha", v.alpha}
+  };
+}
+_KLFENGINE_INLINE
+void from_json(const nlohmann::json & j, color & v)
+{
+  j.at("red").get_to(v.red);
+  j.at("green").get_to(v.green);
+  j.at("blue").get_to(v.blue);
+  j.at("alpha").get_to(v.alpha);
+}
+
+
+
+
+_KLFENGINE_INLINE
 bool operator==(const margins & a, const margins & b)
 {
   return a.top == b.top && a.right == b.right &&
@@ -49,6 +82,7 @@ bool operator!=(const margins & a, const margins & b)
   return ! (a == b);
 }
 
+_KLFENGINE_INLINE
 void to_json(nlohmann::json & j, const margins & v)
 {
   j = nlohmann::json{
@@ -58,6 +92,7 @@ void to_json(nlohmann::json & j, const margins & v)
     {"left", v.left}
   };
 }
+_KLFENGINE_INLINE
 void from_json(const nlohmann::json & j, margins & v)
 {
   j.at("top").get_to(v.top);
@@ -93,6 +128,24 @@ bool operator!=(const input & a, const input & b)
   return ! (a == b);
 }
 
+
+
+_KLFENGINE_INLINE
+input::input()
+  : latex{},
+    math_mode{"\\(", "\\)"},
+    preamble{""},
+    latex_engine{"pdflatex"},
+    font_size{11.0},
+    fg_color{0,0,0,255},
+    bg_color{255,255,255,0},
+    margins{0, 0, 0, 0},
+    dpi{600},
+    scale{1.0},
+    outline_fonts{true},
+    parameters{}
+{
+}
 
 
 

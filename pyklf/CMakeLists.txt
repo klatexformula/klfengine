@@ -11,4 +11,6 @@ set_target_properties(_cxx_pyklf PROPERTIES
   CXX_STANDARD_REQURIED on
   )
 
+target_compile_definitions(_cxx_pyklf PRIVATE -DKLFENGINE_USE_GULRAK_FILESYSTEM)
+
 target_include_directories(_cxx_pyklf PRIVATE ../deps_install/include ../include)

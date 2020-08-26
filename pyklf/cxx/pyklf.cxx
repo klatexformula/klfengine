@@ -30,6 +30,7 @@
 #include <klfengine/klfengine>
 
 #include <pybind11/pybind11.h>
+#include <pybind11/eval.h>
 #include <pybind11/stl.h>
 
 namespace py = pybind11;
@@ -37,21 +38,117 @@ namespace py = pybind11;
 using namespace pybind11::literals;
 
 
+template<typename ClassType, typename MemberType>
+void set_if_in_kwargs(ClassType & x, MemberType ClassType::* member, std::string member_name,
+                      py::kwargs & kwargs)
+{
+  auto member_name_s = py::str(member_name);
+  if (kwargs.attr("__contains__")(member_name_s).cast<bool>()) {
+    x.*member = kwargs.attr("pop")(member_name_s).cast<MemberType>();
+  }
+}
+
 
 PYBIND11_MODULE(_cxx_pyklf, m)
 {
   auto json_module = py::module::import("json");
 
+  m.attr("length") = py::eval("float"); // the "float" python type object
+
+  py::class_<klfengine::color>(m, "color")
+    .def(py::init(
+             [](uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
+               return std::unique_ptr<klfengine::color>{ new klfengine::color{
+                   r, g, b, a
+                 } };
+             }),
+         "red"_a = 0,
+         "green"_a = 0,
+         "blue"_a = 0,
+         "alpha"_a = 255
+        )
+    .def_readwrite("red", &klfengine::color::red)
+    .def_readwrite("green", &klfengine::color::green)
+    .def_readwrite("blue", &klfengine::color::blue)
+    .def_readwrite("alpha", &klfengine::color::alpha)
+    .def("__repr__",
+         [](const klfengine::color & c) {
+           nlohmann::json j;
+           j = c;
+           return "pyklf.color(*" + j.dump() + ")";
+         })
+    ;
+
+  py::class_<klfengine::margins>(m, "margins")
+    .def(py::init(
+             [json_module](py::dict d) {
+               nlohmann::json j =
+                 nlohmann::json::parse( json_module.attr("dumps")(d).cast<std::string>() );
+               auto m = std::unique_ptr<klfengine::margins>{ new klfengine::margins{} };
+               j.get_to(*m);
+
+               return m;
+             }
+             ))
+    .def(py::init(
+             [](klfengine::length top, klfengine::length right,
+                klfengine::length bottom, klfengine::length left) {
+               return std::unique_ptr<klfengine::margins>{ new klfengine::margins{
+                   top, right, bottom, left
+                 } };
+             }),
+         "top"_a = 0.0,
+         "right"_a = 0.0,
+         "bottom"_a = 0.0,
+         "left"_a = 0.0
+        )
+    .def_readwrite("top", &klfengine::margins::top)
+    .def_readwrite("right", &klfengine::margins::right)
+    .def_readwrite("bottom", &klfengine::margins::bottom)
+    .def_readwrite("left", &klfengine::margins::left)
+    .def("__repr__",
+         [](const klfengine::margins & m) {
+           nlohmann::json j;
+           j = m;
+           return "pyklf.margins(*" + j.dump() + ")";
+         })
+    ;
+
   py::class_<klfengine::input>(m, "input")
-    .def(py::init<>())
+    .def(py::init(
+             [json_module](py::kwargs kwargs) {
+               auto inptr = std::unique_ptr<klfengine::input>{new klfengine::input{}};
+
+               klfengine::input & in = *inptr;
+
+               set_if_in_kwargs(in, &klfengine::input::latex, "latex", kwargs);
+               set_if_in_kwargs(in, &klfengine::input::math_mode, "math_mode", kwargs);
+               set_if_in_kwargs(in, &klfengine::input::preamble, "preamble", kwargs);
+               set_if_in_kwargs(in, &klfengine::input::latex_engine, "latex_engine", kwargs);
+               set_if_in_kwargs(in, &klfengine::input::font_size, "font_size", kwargs);
+               set_if_in_kwargs(in, &klfengine::input::fg_color, "fg_color", kwargs);
+               set_if_in_kwargs(in, &klfengine::input::bg_color, "bg_color", kwargs);
+               set_if_in_kwargs(in, &klfengine::input::margins, "margins", kwargs);
+               set_if_in_kwargs(in, &klfengine::input::dpi, "dpi", kwargs);
+               set_if_in_kwargs(in, &klfengine::input::scale, "scale", kwargs);
+               set_if_in_kwargs(in, &klfengine::input::outline_fonts, "outline_fonts", kwargs);
+               set_if_in_kwargs(in, &klfengine::input::parameters, "parameters", kwargs);
+
+               if (py::len(kwargs) > 0) {
+                 throw py::value_error("Invalid keyword argument for pyklf.input: "
+                                       + py::repr(kwargs).cast<std::string>());
+               }
+
+               return inptr;
+             }))
     .def_readwrite("latex", &klfengine::input::latex)
-    //.def_readwrite("math_mode" &klfengine::input::math_mode)
+    .def_readwrite("math_mode", &klfengine::input::math_mode)
     .def_readwrite("preamble", &klfengine::input::preamble)
     .def_readwrite("latex_engine", &klfengine::input::latex_engine)
     .def_readwrite("font_size", &klfengine::input::font_size)
-    //.def_readwrite("fg_color", &klfengine::input::fg_color)
-    //.def_readwrite("bg_color", &klfengine::input::bg_color)
-    //.def_readwrite("margins", &klfengine::input::margins)
+    .def_readwrite("fg_color", &klfengine::input::fg_color)
+    .def_readwrite("bg_color", &klfengine::input::bg_color)
+    .def_readwrite("margins", &klfengine::input::margins)
     .def_readwrite("dpi", &klfengine::input::dpi)
     .def_readwrite("scale", &klfengine::input::scale)
     .def_readwrite("outline_fonts", &klfengine::input::outline_fonts)
@@ -63,7 +160,9 @@ PYBIND11_MODULE(_cxx_pyklf, m)
           return json_module.attr("loads")( j.dump() );
         },
         [json_module](klfengine::input & obj, py::dict dic) {
-          nlohmann::json::parse( json_module.attr("dumps")(dic).cast<std::string>() ).get_to(obj);
+          nlohmann::json::parse(
+              json_module.attr("dumps")(dic).cast<std::string>()
+              ).get_to(obj.parameters);
         }
         )
     .def("to_json", [](klfengine::input & obj) {
