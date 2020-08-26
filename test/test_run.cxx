@@ -216,8 +216,10 @@ inline dummy_engine::dummy_run_impl * make_dummy_run_impl_ptr(
     std::string tex_input
     )
 {
+  klfengine::input in;
+  in.latex = tex_input;
   return new dummy_engine::dummy_run_impl{
-    klfengine::input{tex_input},
-      klfengine::settings{"/tmp", "/Library/TeX/texbin/", "none", "", {}}
+    in,
+    klfengine::settings{"/tmp", "/Library/TeX/texbin/", "none", "", {}}
   };
 }

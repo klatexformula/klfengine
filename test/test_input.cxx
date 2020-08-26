@@ -43,8 +43,8 @@ TEST_CASE( "struct input has the right fields of the right type", "[input]" )
   in.preamble = std::string("latex preamble");
   in.latex_engine = std::string("pdflatex");
   in.font_size = 16.0;
-  in.fg_color = std::make_tuple(22, 80, 127, 255);
-  in.bg_color = std::make_tuple(250, 252, 253, 0);
+  in.fg_color = klfengine::color{22, 80, 127, 255};
+  in.bg_color = klfengine::color{250, 252, 253, 0};
   in.margins = klfengine::margins{1.0, 2.0, 3.0, 4.0};
   in.dpi = 1200;
   in.scale = 2.0;
@@ -58,8 +58,8 @@ TEST_CASE( "struct input has the right fields of the right type", "[input]" )
   REQUIRE( in.preamble == std::string("latex preamble") );
   REQUIRE( in.latex_engine == std::string("pdflatex") );
   REQUIRE( in.font_size == 16.0 );
-  REQUIRE( in.fg_color == std::make_tuple(22, 80, 127, 255) );
-  REQUIRE( in.bg_color == std::make_tuple(250, 252, 253, 0) );
+  REQUIRE( in.fg_color == klfengine::color{22, 80, 127, 255} );
+  REQUIRE( in.bg_color == klfengine::color{250, 252, 253, 0} );
   REQUIRE( in.margins == klfengine::margins{1.0, 2.0, 3.0, 4.0} );
   REQUIRE( in.dpi == 1200 );
   REQUIRE( in.scale == 2.0 );
@@ -70,43 +70,74 @@ TEST_CASE( "struct input has the right fields of the right type", "[input]" )
 }
 
 
-TEST_CASE( "struct input initializes the fields in the correct order", "[input]" )
+// TEST_CASE( "struct input initializes the fields in the correct order", "[input]" )
+// {
+//   klfengine::input in{
+//     "latex input", // latex
+//     {"\\[", "\\]"}, // math_mode
+//     "latex preamble", // preamble
+//     "pdflatex", // latex_engine
+//     16.0, // font_size
+//     {22, 80, 127, 255}, // fg_color
+//     {250, 252, 253, 0}, // bg_color
+//     {1.0, 2.0, 3.0, 4.0}, // margins
+//     1200, // dpi
+//     2.0, // scale
+//     true, // outline_fonts
+//     {{"use_documentclass", klfengine::value{std::string{"article"}}}} // parameters
+//   };
+//
+//   REQUIRE( in.latex == std::string("latex input") );
+//   REQUIRE( in.math_mode == std::pair<std::string,std::string>("\\[", "\\]") );
+//   REQUIRE( in.preamble == std::string("latex preamble") );
+//   REQUIRE( in.latex_engine == std::string("pdflatex") );
+//   REQUIRE( in.font_size == 16.0 );
+//   REQUIRE( in.fg_color == klfengine::color{22, 80, 127, 255} );
+//   REQUIRE( in.bg_color == klfengine::color{250, 252, 253, 0} );
+//   REQUIRE( in.margins == klfengine::margins{1.0, 2.0, 3.0, 4.0} );
+//   REQUIRE( in.dpi == 1200 );
+//   REQUIRE( in.scale == 2.0 );
+//   REQUIRE( in.outline_fonts == true );
+//   REQUIRE( in.parameters == klfengine::value::dict{
+//     {"use_documentclass", klfengine::value{std::string{"article"}}}
+//   } );
+// }
+
+klfengine::input test_make_input(
+    std::string latex,
+    std::pair<std::string,std::string> math_mode,
+    std::string preamble,
+    std::string latex_engine,
+    klfengine::length font_size,
+    klfengine::color fg_color,
+    klfengine::color bg_color,
+    klfengine::margins margins,
+    int dpi,
+    double scale,
+    bool outline_fonts,
+    klfengine::value::dict parameters)
 {
-  klfengine::input in{
-    "latex input", // latex
-    {"\\[", "\\]"}, // math_mode
-    "latex preamble", // preamble
-    "pdflatex", // latex_engine
-    16.0, // font_size
-    {22, 80, 127, 255}, // fg_color
-    {250, 252, 253, 0}, // bg_color
-    {1.0, 2.0, 3.0, 4.0}, // margins
-    1200, // dpi
-    2.0, // scale
-    true, // outline_fonts
-    {{"use_documentclass", klfengine::value{std::string{"article"}}}} // parameters
-  };
-
-  REQUIRE( in.latex == std::string("latex input") );
-  REQUIRE( in.math_mode == std::pair<std::string,std::string>("\\[", "\\]") );
-  REQUIRE( in.preamble == std::string("latex preamble") );
-  REQUIRE( in.latex_engine == std::string("pdflatex") );
-  REQUIRE( in.font_size == 16.0 );
-  REQUIRE( in.fg_color == std::make_tuple(22, 80, 127, 255) );
-  REQUIRE( in.bg_color == std::make_tuple(250, 252, 253, 0) );
-  REQUIRE( in.margins == klfengine::margins{1.0, 2.0, 3.0, 4.0} );
-  REQUIRE( in.dpi == 1200 );
-  REQUIRE( in.scale == 2.0 );
-  REQUIRE( in.outline_fonts == true );
-  REQUIRE( in.parameters == klfengine::value::dict{
-    {"use_documentclass", klfengine::value{std::string{"article"}}}
-  } );
+  klfengine::input in;
+  in.latex = std::move(latex);
+  in.math_mode = std::move(math_mode);
+  in.preamble = std::move(preamble);
+  in.latex_engine = std::move(latex_engine);
+  in.font_size = std::move(font_size);
+  in.fg_color = std::move(fg_color);
+  in.bg_color = std::move(bg_color);
+  in.margins = std::move(margins);
+  in.dpi = std::move(dpi);
+  in.scale = std::move(scale);
+  in.outline_fonts = std::move(outline_fonts);
+  in.parameters = std::move(parameters);
+  return in;
 }
+
 
 
 TEST_CASE( "struct input compares for (in)equality", "[input]" )
 {
-  klfengine::input in{
+  klfengine::input in = test_make_input(
     "latex input", // latex
     {"\\[", "\\]"}, // math_mode
     "latex preamble", // preamble
@@ -119,9 +150,9 @@ TEST_CASE( "struct input compares for (in)equality", "[input]" )
     2.0, // scale
     true, // outline_fonts
     {{"use_documentclass", klfengine::value{std::string{"article"}}}} // parameters
-  };
+  );
 
-  klfengine::input in2{
+  klfengine::input in2 = test_make_input(
     "latex input", // latex
     {"\\[", "\\]"}, // math_mode
     "latex preamble", // preamble
@@ -134,9 +165,9 @@ TEST_CASE( "struct input compares for (in)equality", "[input]" )
     2.0, // scale
     true, // outline_fonts
     {{"use_documentclass", klfengine::value{std::string{"article"}}}} // parameters
-  };
+  );
 
-  klfengine::input in_x{
+  klfengine::input in_x = test_make_input(
     "latex input", // latex
     {"\\[", "\\]xx"}, // math_mode    // <-- typo here
     "latex preamble", // preamble
@@ -149,7 +180,7 @@ TEST_CASE( "struct input compares for (in)equality", "[input]" )
     2.0, // scale
     true, // outline_fonts
     {{"use_documentclass", klfengine::value{std::string{"article"}}}} // parameters
-  };
+  );
 
   REQUIRE( in == in2 );
   REQUIRE( !(in != in2) );
@@ -163,7 +194,7 @@ TEST_CASE( "struct input compares for (in)equality", "[input]" )
 
 TEST_CASE( "struct input converts to/from JSON", "[input]" )
 {
-  klfengine::input in{
+  klfengine::input in = test_make_input(
     "latex input", // latex
     {"\\[", "\\]"}, // math_mode
     "latex preamble", // preamble
@@ -176,7 +207,7 @@ TEST_CASE( "struct input converts to/from JSON", "[input]" )
     2.0, // scale
     true, // outline_fonts
     {{"use_documentclass", klfengine::value{std::string{"article"}}}} // parameters
-  };
+  );
 
   nlohmann::json j;
   j = in;

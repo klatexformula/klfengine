@@ -60,7 +60,9 @@ TEST_CASE( "engine_run_implementation.compile() calls impl_compile",
 TEST_CASE( "engine_run_implementation returns references to input and settings",
            "[engine_run_implementation]" )
 {
-  const klfengine::input in{"a + b = c"};
+  klfengine::input in;
+  in.latex = "a + b = c";
+
   const klfengine::settings sett{"/tmp", "/Library/TeX/texbin/", "none", "", {}};
 
   dummy_engine::dummy_run_impl x{ in, sett };
@@ -229,8 +231,10 @@ TEST_CASE( "engine_run_implementation.has_format() calls impl_make_canonical "
 TEST_CASE( "engine_run_implementation.get_data_cref produces data and stores to cache",
            "[engine_run_implementation]" )
 {
-  dummy_engine::dummy_run_impl x{ klfengine::input{"hello world"},
-                                  klfengine::settings{} };
+  klfengine::input in;
+  in.latex = "hello world";
+
+  dummy_engine::dummy_run_impl x{ in, klfengine::settings{} };
 
   x.compile();
 
