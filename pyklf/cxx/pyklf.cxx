@@ -49,9 +49,93 @@ void set_if_in_kwargs(ClassType & x, MemberType ClassType::* member, std::string
 }
 
 
-PYBIND11_MODULE(_cxx_pyklf, m)
+// py::object value_to_pyobj(const klfengine::value & value);
+// klfengine::value pyobj_to_value(const py::object & obj);
+//
+//
+// py::dict valuedict_to_pydict(const klfengine::value::dict & d)
+// {
+//   py::dict pyd{};
+//   for (const auto & item : d) {
+//     pyd[item.first] = value_to_pyobj(item.second);
+//   }
+//   return pyd;
+// }
+// klfengine::value::dict pydict_to_valuedict(const py::dict & pyd)
+// {
+//   klfengine::value::dict d;
+//   for (auto item : pyd) {
+//     d[item.first] = pyobj_to_value(item.second);
+//   }
+//   return d;
+// }
+//
+// py::list valuearray_to_pylist(const klfengine::value::array & d)
+// {
+//   py::list pyd{};
+//   for (const auto & item : d) {
+//     pyd.append(value_to_pyobj(item));
+//   }
+//   return pyd;
+// }
+// template<typename PyListOrTuple>
+// klfengine::value::array pylist_to_valuearray(const PyListOrTuple & pyd)
+// {
+//   klfengine::value::array d;
+//   for (auto item : pyd) {
+//     d.push_back(pyobj_to_value(item));
+//   }
+//   return d;
+// }
+//
+// struct value_to_pyobj_transformer
+// {
+//   py::object operator()(const klfengine::value::array & a)
+//   {
+//     return valuearray_to_pylist(a);
+//   }
+//   py::object operator()(const klfengine::value::dict & d)
+//   {
+//     return valuedict_to_pylist(d);
+//   }
+//   template<typename SimpleType,
+//            typename SimpleTypeNoRef = typename std::remove_reference<SimpleType>::type,
+//            typename std::enable_if<
+//              !(std::is_same<SimpleTypeNoRef, value::array>::value ||
+//                std::is_same<SimpleTypeNoRef, value::dict>::value),
+//            bool>::type = true>
+//   py::object operator()(SimpleType x) {
+//     return py::cast(x);
+//   }
+// };
+//
+// py::object value_to_pyobj(const klfengine::value & value)
+// {
+//   return value.transform(value_to_pyobj_transformer{});
+// }
+// klfengine::value pyobj_to_value(py::object obj)
+// {
+//   if ( py::isinstance<py::list>(obj) ) {
+//     return klfengine::value{pylist_to_valuearray(py::list{obj})};
+//   }
+//   if ( py::isinstance<py::tuple>(obj) ) {
+//     return klfengine::value{pylist_to_valuearray(py::tuple{obj})};
+//   }
+//   if ( py::isinstance<py::dict>(obj) ) {
+//     return klfengine::value{pydict_to_valuedict(py::dict{obj})};
+//   }
+//   return 
+// }
+
+
+
+PYBIND11_MODULE(pyklf, m)
 {
   auto json_module = py::module::import("json");
+  
+  //
+  // input
+  //
 
   m.attr("length") = py::eval("float"); // the "float" python type object
 

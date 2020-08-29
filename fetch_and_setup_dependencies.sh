@@ -11,6 +11,7 @@ MAKE="${MAKE:-`which make`}"
 NLOHMANN_JSON_TAG=v3.9.0
 MPARK_VARIANT_TAG=v1.4.0
 GULRAK_FILESYSTEM_TAG=v1.3.2
+ARUN11299_CPPSUBPROCESS_TAG=v2.0
 CATCH2_TAG=v2.13.0
 
 
@@ -27,6 +28,7 @@ mkdir -p deps_src deps_install
 if [ -d deps_src/nlohmann-json  -o  \
      -d deps_src/mpark-variant  -o  \
      -d deps_src/gulrak-filesystem  -o  \
+     -d deps_src/arun11299-cppsubprocess  -o \
      -d deps_src/catch2 ]; then
 
     echo >&2 "Please remove (or rename) any existing downloads in deps_src/ before continuing."
@@ -61,7 +63,6 @@ INSTALL_PREFIX=`pwd`/deps_install
  "$MAKE" install)
 
 
-
 #
 # Download & install gulrak/filesystem in local deps_* dir
 #
@@ -74,6 +75,19 @@ INSTALL_PREFIX=`pwd`/deps_install
  "$CMAKE" .. -DCMAKE_INSTALL_PREFIX="$INSTALL_PREFIX" \
           -DGHC_FILESYSTEM_BUILD_TESTING=off  -DGHC_FILESYSTEM_BUILD_EXAMPLES=off \
           -DGHC_FILESYSTEM_WITH_INSTALL=on   && \
+ "$MAKE" install)
+
+
+#
+# Download & install arun11299/cpp-subprocess in local deps_* dir
+#
+
+(cd deps_src && \
+ "$GIT" clone https://github.com/arun11299/cpp-subprocess.git \
+        --depth=1 --branch "$ARUN11299_CPPSUBPROCESS_TAG" arun11299-cppsubprocess  && \
+ mkdir -p arun11299-cppsubprocess/build  && \
+ cd arun11299-cppsubprocess/build   && \
+ "$CMAKE" .. -DCMAKE_INSTALL_PREFIX="$INSTALL_PREFIX" -DBUILD_TESTING=off  && \
  "$MAKE" install)
 
 

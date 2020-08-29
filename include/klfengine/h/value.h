@@ -63,11 +63,13 @@ template<typename... Args>
 using variant_type = mpark::variant<Args...>;
 #define _KLFENGINE_VARIANT_GET mpark::get
 #define _KLFENGINE_VARIANT_HOLDS_ALTERNATIVE mpark::holds_alternative
+#define _KLFENGINE_VARIANT_VISIT mpark::visit
 #else
 template<typename... Args>
 using variant_type = std::variant<Args...>;
 #define _KLFENGINE_VARIANT_GET std::get
 #define _KLFENGINE_VARIANT_HOLDS_ALTERNATIVE std::holds_alternative
+#define _KLFENGINE_VARIANT_VISIT std::visit
 #endif
 
 
@@ -96,6 +98,18 @@ struct recursive_variant_with_vector_and_map
   template<typename GetValueType>
   inline bool has_type() const {
     return _KLFENGINE_VARIANT_HOLDS_ALTERNATIVE<GetValueType>(_data);
+  }
+
+  template<typename FnVisitor>
+  inline void visit(FnVisitor && fn) const
+  {
+    _KLFENGINE_VARIANT_VISIT(fn, _data);
+  }
+  template<typename FnVisitor>
+  inline auto transform(FnVisitor && fn) const
+    -> decltype( _KLFENGINE_VARIANT_VISIT(fn, _data) )
+  {
+    return _KLFENGINE_VARIANT_VISIT(fn, _data);
   }
 
   // template<typename RhsType>

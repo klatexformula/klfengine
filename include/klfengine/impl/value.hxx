@@ -37,75 +37,56 @@ namespace klfengine {
 
 namespace detail {
 
-// !!!?!?! THESE FUNCTIONS need to be in the "detail" namespace ??! prolly
-// !!!bc. the original class recursive_variant_with_array_and_dict is there.
-//
-// TODO - FIXME: template these functions and write them for general
-// recursive_variant_with_array_and_dict objects, with variant visitors
-// etc. (??? ### - but then how do we resolve types to JSON types reliably?)
+// !!: The to/from_json() functions need to be in the detail namespace, because
+//     that's where 'recursive_variant_with_vector_and_map' is defined.  To
+//     avoid additional ambiguity, we also define the 'value' type in the detail
+//     namespace and then "import" value in the klfengine namespace.  This way
+//     it makes sense in all cases to define to/from_json() in the detail
+//     namespace.
+
+struct value_to_json_visitor {
+  nlohmann::json & j;
+
+  void operator()(const value::array & a);
+  void operator()(const value::dict & a);
+
+  template<typename SimpleType,
+           typename SimpleTypeNoRef = typename std::remove_reference<SimpleType>::type,
+           typename std::enable_if<
+             !(std::is_same<SimpleTypeNoRef, value::array>::value ||
+               std::is_same<SimpleTypeNoRef, value::dict>::value),
+           bool>::type = true>
+  void operator()(SimpleType x) {
+    j = x;
+  }
+};
 
 inline void to_json(nlohmann::json & j, const value & v)
 {
-  // types order is:
-  // bool,
-  // int,
-  // double,
-  // std::nullptr_t,
-  // std::string,
-  // array,
-  // dict
-
-  // TODO:FIXME: ......... this should really be implemented with a template
-  // visitor.  Let's worry about this a bit later after everything runs
-  // smoothly, to ease debugging
-
-  const auto index = v._data.index();
-
-  switch (index) {
-  case 0: // bool
-    j = v.get<bool>();
-    return;
-  case 1: // int
-    j = v.get<int>();
-    return;
-  case 2: // double
-    j = v.get<double>();
-    return;
-  case 3: // nullptr_t
-    j = nullptr;
-    return;
-  case 4: // std::string
-    j = v.get<std::string>();
-    return;
-  case 5: // array
-    {
-      const value::array & a = v.get<value::array>();
-      nlohmann::json ja = nlohmann::json::array();
-      for (value::array::const_iterator it = a.begin(); it != a.end(); ++it) {
-        nlohmann::json jj;
-        to_json(jj, *it);
-        ja.push_back(std::move(jj));
-      }
-      j = std::move(ja);
-      return;
-    }
-  case 6: // dict
-    {
-      const value::dict & d = v.get<value::dict>();
-      nlohmann::json jd = nlohmann::json::object();
-      for (value::dict::const_iterator it = d.begin(); it != d.end(); ++it) {
-        nlohmann::json jv;
-        to_json(jv, it->second);
-        jd[it->first] = std::move(jv);
-      }
-      j = std::move(jd);
-      return;
-    }
-  default:
-    throw std::runtime_error("Invalid klfengine::value variant index: "
-                             + std::to_string(index));
-  }
+  v.visit( value_to_json_visitor{j} );
 }
+
+inline void value_to_json_visitor::operator()(const value::array & a)
+{
+  nlohmann::json ja = nlohmann::json::array();
+  for (value::array::const_iterator it = a.begin(); it != a.end(); ++it) {
+    nlohmann::json jj;
+    to_json(jj, *it);
+    ja.push_back(std::move(jj));
+  }
+  j = std::move(ja);
+}
+inline void value_to_json_visitor::operator()(const value::dict & d)
+{
+  nlohmann::json jd = nlohmann::json::object();
+  for (value::dict::const_iterator it = d.begin(); it != d.end(); ++it) {
+    nlohmann::json jv;
+    to_json(jv, it->second);
+    jd[it->first] = std::move(jv);
+  }
+  j = std::move(jd);
+}
+
 
 inline void from_json(const nlohmann::json & j, value & v)
 {

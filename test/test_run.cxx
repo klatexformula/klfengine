@@ -201,17 +201,6 @@ TEST_CASE( "find_format finds acceptable formats", "[run]" )
 
 
 
-//
-// GCC/Clang warn about initializations like ``klfengine::input{"a+b=c"}``
-// because there is no initializer for the remaining fields.  The warning is
-// enabled via -Wall/-Wextra and we turn warnings into errors to help catch
-// errors. But the standard allows this initialization, so we deactivate this
-// warning entirely for these tests.  See also
-// https://stackoverflow.com/a/13373951/1694896
-//
-#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
-
-
 inline dummy_engine::dummy_run_impl * make_dummy_run_impl_ptr(
     std::string tex_input
     )

@@ -151,3 +151,10 @@ klfengine_create_test(separate_impl
   COMPILE_OPTIONS
           -DKLFENGINE_SEPARATE_IMPLEMENTATION
 )
+
+
+# --- usage test, scratch stuff ---
+klfengine_create_test(usage_subprocess
+  SOURCES test_usage_subprocess.cxx)
+
+
