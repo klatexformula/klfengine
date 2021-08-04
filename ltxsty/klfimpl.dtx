@@ -1,9 +1,9 @@
 % \iffalse meta-comment
 %
-% Copyright (C) 2020 by Philippe Faist, philippe.faist@bluewin.ch
+% Copyright (C) 2021 by Philippe Faist, philippe.faist@bluewin.ch
 % -------------------------------------------------------
 % 
-% This file is part of the KLatexFormula sources.  See LICENSE file
+% This file is part of the klfengine sources.  See LICENSE file
 % for more information.
 %
 % \fi
@@ -65,26 +65,25 @@
 %
 % \begin{abstract}
 %   \pkgname{klfimpl}---LaTeX helper code for the implementation of
-%   the klfengine tool that runs KLatexFormula 5.
+%   the klfengine (the engine of KLatexFormula~5).
 % \end{abstract}
 %
 % \inlinetoc
 %
 % \section{Introduction}
 %
-% KLatexFormula 5 will ship with a new implementation that converts a LaTeX
-% equation to different formats such as PDF or PNG.  While KLatexFormula up to
-% version 4 required a few runs of |gs| and other manual EPS fixes after running
-% |latex| and |dvips|, the new workflow aims at directly doing everything from
-% the latex end of things---get the correct paper size, correct background
-% color, page margins, and so on---therefore cleaning up the workflow and
-% speeding up the whole compilation.
+% \emph{KLatexFormula~5} will ship with a new engine, \emph{klfengine}.  This
+% implementation converts a LaTeX equation to different formats such as PDF or
+% PNG.  While KLatexFormula up to version 4 required a few runs of |gs| and
+% other manual EPS fixes after running |latex| and |dvips|, the new workflow
+% aims at directly doing as muh as possible from the latex end of things---get
+% the correct paper size, correct background color, page margins, and so
+% on---therefore cleaning up the workflow and speeding up the whole compilation.
 %
-% This package provides an environment
-% |\begin{klfcontent}...\end{klfcontent}| which typesets the given content
-% in a box, measures the box dimensions, then resizes the page to fit the box as
-% requested including margins and/or alignment to some fixed size, and renders
-% the whole thing.
+% This package provides an environment |\begin{klfcontent}...\end{klfcontent}|
+% which typesets the given content in a box, measures the box dimensions, then
+% resizes the page to fit the box as requested including margins and/or
+% alignment to some fixed size, and renders the whole thing.
 %
 % This package expects that there is a single such environment in the entire
 % document and no other content.
@@ -464,12 +463,15 @@
 %    \begin{macrocode}
   \csname klf@correctboxheight@@\klf@set@topalignment\endcsname
   \csname klf@correctboxdepth@@\klf@set@bottomalignment\endcsname
-% \end{environment}
-% Add an epsilon in each dimension to prevent rounding errors from causing
-% unwanted breaks.  Compute the ``total height'' = height + depth.
+%    \end{macrocode}
+% \iffalse
+%  % Add an epsilon in each dimension to prevent rounding errors from causing
+%  % unwanted breaks.  Compute the ``total height'' = height + depth.
+%  %    \begin{macrocode}
+%  %\advance \klf@w 0.00001pt \relax
+%  %\advance \klf@h 0.00001pt \relax
+% \fi
 %    \begin{macrocode}
-  %\advance \klf@w 0.00001pt \relax
-  %\advance \klf@h 0.00001pt \relax
   \klf@th=\klf@h\relax
   \advance \klf@th \klf@d \relax
 %    \end{macrocode}

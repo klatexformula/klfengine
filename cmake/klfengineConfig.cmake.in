@@ -3,6 +3,36 @@
 # Avoid repeatedly including the targets
 if(NOT TARGET klfengine::klfengine)
 
+  # Provide dependency locations found when we installed klfengine's headers
+
+  include(CMakeFindDependencyMacro)
+
+  message(STATUS "Using nlohmann_json from @nlohmann_json_DIR@ configured by klfengine")
+  find_dependency(nlohmann_json REQUIRED
+    CONFIG
+    PATHS "@nlohmann_json_DIR@"
+    NO_DEFAULT_PATH
+    )
+
+  if(@KLFENGINE_USE_MPARK_VARIANT@)
+    message(STATUS "Using mpark_variant from @mpark_variant_DIR@ configured by klfengine")
+    find_dependency(mpark_variant REQUIRED
+      CONFIG
+      PATHS "@mpark_variant_DIR@"
+      NO_DEFAULT_PATH
+      )
+  endif()
+  if(@KLFENGINE_USE_GULRAK_FILESYSTEM@)
+    message(STATUS "Using gulrak/filesystem from @ghcFilesystem_DIR@ configured by klfengine")
+    find_dependency(ghcFilesystem REQUIRED
+      CONFIG
+      PATHS "@ghcFilesystem_DIR@"
+      NO_DEFAULT_PATH
+      )
+  endif()
+
+  # Do CMake stuff
+
   include("${CMAKE_CURRENT_LIST_DIR}/klfengineTargets.cmake")
   check_required_components("@PROJECT_NAME@")
 

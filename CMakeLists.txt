@@ -2,6 +2,11 @@ cmake_minimum_required(VERSION 3.8)
 # CMake >= 3.XXX? for "linking" object libraries in test subdir
 # ( CMake >= 3.8 for "cxx_std_17" as C++ known feature )
 
+# It seems using FetchContent would be a good idea for dealing with external
+# dependencies (as opposed to my crappy shell script), but I can't seem to
+# figure out a good way to integrate it with find_package() (e.g., only download
+# if a system version isn't found, etc.)
+
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 
 include(klfengine_get_version)
@@ -13,9 +18,7 @@ project(klfengine LANGUAGES CXX VERSION "${KLFENGINE_VERSION}")
 
 
 #
-# Some initial variable settings, place in cache ---- FIXME THESE
-# DETECTIONS ETC. SHOULD BE DONE IN THE CMAKE CONFIG FILE THAT IS
-# INSTALLED.......
+# Some initial variable settings, place in cache
 #
 set(KLFENGINE_TESTS false CACHE STRING "Build tests")
 
@@ -33,9 +36,7 @@ set(KLFENGINE_USE_GULRAK_FILESYSTEM ON CACHE BOOL
   "Use gulrak/filesystem instead of C++17 std::filesystem")
 
 
-if(EXISTS "${CMAKE_SOURCE_DIR}/deps_install")
-  set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} "${CMAKE_SOURCE_DIR}/deps_install")
-endif()
+
 
 
 #
@@ -91,6 +92,14 @@ Some important CMake variables to set are:
     in C++11 or C++14 mode.  If set to true, you should make sure you
     have the mpark/variant library installed.
 
+  - KLFENGINE_USE_GULRAK_FILESYSTEM=true|false
+
+    Whether to use the alternative library gulrak/filesystem instead of
+    C++17's std::filesystem.  This does not make much sense if your
+    compiler supports C++17, but it is necessary if you are compiling
+    in C++11 or C++14 mode.  If set to true, you should make sure you
+    have the gulrak/filesystem library installed.
+
 Other variables that you can set will be specified in status messages
 below.
 ")
@@ -103,7 +112,7 @@ include(CMakePackageConfigHelpers)
 
 
 #
-# TODO: MOVE LOGIC of finding dependencies to the installed cmake files!!
+# TODO: SAVE found dependencies to the installed cmake target files
 #
 
 find_package(nlohmann_json REQUIRED)
@@ -122,7 +131,7 @@ endif()
 
 if(KLFENGINE_USE_GULRAK_FILESYSTEM)
   message(STATUS
-    "Will use gulrak/filesystem instead of C++17 std::filesystem (KLFENGINE_USE_GULRAK_FILESYSTEM)")
+    "Will use gulrak/filesystem and not std::filesystem (KLFENGINE_USE_GULRAK_FILESYSTEM)")
   find_package(ghcFilesystem REQUIRED)
   message(STATUS "Using gulrak/filesystem at ${ghcFilesystem_DIR} (ghcFilesystem_DIR)")
 else()
@@ -175,6 +184,7 @@ install(
   DESTINATION   "${CMAKE_INSTALL_INCLUDEDIR}"
   FILES_MATCHING PATTERN REGEX "^[a-zA-Z_0-9/-]+(\\.h(xx)?)?$"
 )
+
 
 install(
   TARGETS       klfengine
