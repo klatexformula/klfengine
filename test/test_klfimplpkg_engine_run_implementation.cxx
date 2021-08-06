@@ -29,13 +29,15 @@
 // header we are testing gets included first (helps detect missing #include's)
 #include <klfengine/h/klfimplpkg_engine/run_implementation.h>
 
-
 #include <klfengine/h/klfimplpkg_engine/engine.h>
-
 
 #include <catch2/catch.hpp>
 
-TEST_CASE( "something happens when this and that 89yt43urnj", "[keyword]" )
+#include "testutils.hxx"
+
+
+TEST_CASE( "simple compilation with klfimplpkg_engine produces correct equation image",
+           "[klfimplpkg_engine-run_implementation]" )
 {
   klfengine::klfimplpkg_engine::engine e;
 
@@ -52,17 +54,21 @@ TEST_CASE( "something happens when this and that 89yt43urnj", "[keyword]" )
   in.scale = 1.0;
   in.outline_fonts = true;
   in.parameters = klfengine::value::dict{
-    {"use_documentclass", klfengine::value{std::string{"article"}}}
+    {"document_class", klfengine::value{std::string{"article"}}},
+    {"document_class_options", klfengine::value{std::string{"11pt"}}}
   };
 
   auto r = e.run(in);
 
   r->compile();
 
-  auto data = r->get_data(klfengine::format_spec{"PDF"});
+  auto pdfdata = r->get_data(klfengine::format_spec{"PDF"});
 
-  std::string data_str{reinterpret_cast<const char*>(&data[0]), data.size()};
-  CAPTURE( data_str );
+  //std::string data_str{reinterpret_cast<const char*>(&pdfdata[0]), pdfdata.size()};
+  std::string data_str{pdfdata.begin(), pdfdata.end()};
+
+  // CAPTURE( data_str );
+
   // fprintf(stderr, "PDF DATA IS:\n");
   // fwrite(&data[0], 1, data.size(), stderr);   fprintf(stderr, "\n");
 
@@ -71,6 +77,10 @@ TEST_CASE( "something happens when this and that 89yt43urnj", "[keyword]" )
   // fwrite(&data[0], 1, data.size(), fp_debug_out);
   // fclose(fp_debug_out);
 
-  // write tests here
-  REQUIRE( false ) ;
+  pdfdata_to_pngfile(pdfdata, "testoutf_xyz123.png", false, 1200);
+
+  require_images_similar("testoutf_xyz123.png",
+                         //KLFENGINE_TEST_DATA_DIR "testoutf_xyz123.png");
+                         KLFENGINE_TEST_DATA_DIR "klfimplpkg_engine_run_implementation_1.png");
+
 }

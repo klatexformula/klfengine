@@ -27,15 +27,47 @@
  */
 
 // header we are testing gets included first (helps detect missing #include's)
-#include <klfengine/h/latex_dvips_gs_engine/run_implementation.h>
+#include <klfengine/h/latextoimage_engine/run_implementation.h>
 
+#include <klfengine/h/latextoimage_engine/engine.h>
 
 #include <catch2/catch.hpp>
 
+#include "testutils.hxx"
 
 
-TEST_CASE( "another something happens when this and hfu9egrdinj", "[keyword]" )
+TEST_CASE( "simple compilation with latextoimage_engine produces correct equation image",
+           "[latextoimage_engine-run_implementation]" )
 {
-  // write tests here
-  REQUIRE( false ) ;
+  klfengine::latextoimage_engine::engine e;
+
+  e.set_settings(klfengine::settings::detect_settings());
+
+  klfengine::input in;
+  in.latex = std::string("\\int \\left[a + \\frac{b}{f(x)}\\right] dx =: Z[f]");
+  in.math_mode = std::make_pair("\\begin{align*}", "\\end{align*}");
+  in.preamble = std::string("\\usepackage{amsmath}\n\\usepackage{amssymb}");
+  in.latex_engine = std::string("pdflatex");
+  in.font_size = -1.0;
+  in.margins = klfengine::margins{1,1,1,1};
+  in.dpi = 1200;
+  in.scale = 1.0;
+  in.outline_fonts = true;
+  in.bg_color = klfengine::color{255,255,255,255};
+  in.parameters = klfengine::value::dict{
+    {"document_class", klfengine::value{std::string{"article"}}},
+    {"document_class_options", klfengine::value{std::string{"11pt"}}}
+  };
+
+  auto r = e.run(in);
+
+  r->compile();
+
+  auto pngdata = r->get_data(klfengine::format_spec{"PNG"});
+
+  klfengine::detail::utils::dump_binary_data_to_file("testoutf_931ieowf.png", pngdata);
+
+  require_images_similar("testoutf_931ieowf.png",
+                         KLFENGINE_TEST_DATA_DIR "latextoimage_engine_run_implementation_1.png");
+
 }

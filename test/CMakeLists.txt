@@ -112,14 +112,17 @@ klfengine_create_test(klfimplpkg_engine_run_implementation
 klfengine_create_test(klfimplpkg_engine_engine
   SOURCES test_klfimplpkg_engine_engine.cxx)
 
-klfengine_create_test(latex_dvips_gs_engine_run_implementation
-  SOURCES test_latex_dvips_gs_engine_run_implementation.cxx)
+klfengine_create_test(latextoimage_engine_run_implementation
+  SOURCES test_latextoimage_engine_run_implementation.cxx)
 
-klfengine_create_test(latex_dvips_gs_engine_engine
-  SOURCES test_latex_dvips_gs_engine_engine.cxx)
+klfengine_create_test(latextoimage_engine_engine
+  SOURCES test_latextoimage_engine_engine.cxx)
 
 klfengine_create_test(detail_filesystem
   SOURCES test_detail_filesystem.cxx)
+
+klfengine_create_test(detail_utils
+  SOURCES test_detail_utils.cxx)
 
 klfengine_create_test(detail_simple_gs_interface
   SOURCES test_detail_simple_gs_interface.cxx)
@@ -142,10 +145,11 @@ klfengine_create_test(separate_impl
           test_temporary_directory.cxx
           test_klfimplpkg_engine_run_implementation.cxx
           test_klfimplpkg_engine_engine.cxx
-          test_latex_dvips_gs_engine_run_implementation.cxx
-          test_latex_dvips_gs_engine_engine.cxx
-           #
+          test_latextoimage_engine_run_implementation.cxx
+          test_latextoimage_engine_engine.cxx
+          #
           test_detail_filesystem.cxx
+          test_detail_utils.cxx
           test_detail_simple_gs_interface.cxx
           
   COMPILE_OPTIONS

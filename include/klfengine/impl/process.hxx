@@ -570,14 +570,7 @@ void run_process_impl(
     int exit_code = WEXITSTATUS(ret_status);
 
     *capture_exit_code = exit_code;
-
-    if (exit_code == 0) {
-      return;
-    }
-    throw process_exit_error{
-      "Process " + executable + " exited with code " + std::to_string(exit_code)
-      + suffix_out_and_err(capture_stdout, capture_stderr)
-    };
+    return;
   }
 
   if (WIFSIGNALED(ret_status)) {

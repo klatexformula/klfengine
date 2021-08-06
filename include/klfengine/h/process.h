@@ -37,10 +37,10 @@
 
 #include <klfengine/basedefs>
 #include <klfengine/h/detail/filesystem.h>
+#include <klfengine/h/detail/utils.h>
 
 
 namespace klfengine {
-
 
 struct process_exit_error : exception
 {
@@ -48,58 +48,6 @@ struct process_exit_error : exception
   virtual ~process_exit_error();
 };
 
-
-namespace detail {
-
-// from https://en.cppreference.com/w/cpp/types/disjunction
-template<class...> struct my_disjunction : std::false_type { };
-template<class B1> struct my_disjunction<B1> : B1 { };
-template<class B1, class... Bn>
-struct my_disjunction<B1, Bn...> 
-    : std::conditional<bool(B1::value), B1, my_disjunction<Bn...>>::type
-{ };
-
-// see https://stackoverflow.com/a/34099948/1694896
-template<typename T, typename... Ts>
-struct contains : my_disjunction<std::is_same<T, Ts>...> {};
-
-
-template<typename... A>
-struct get_kwargs {
-  template<typename T>
-  using has_arg = contains<T, A...>;
-
-  // warning: get_arg() can only be called ONCE for each type, because its
-  // return value *has been std::move'ed*
-
-  template<typename T, typename... Rest>
-  static T && get_arg(T && t, Rest&&... ) {
-    return t;
-  }
-  template<typename T, typename... Rest>
-  static T && get_arg(T & t, Rest&&... ) {
-    static_assert( ! get_kwargs<Rest...>::template has_arg<T>::value,
-                   "You cannot specify the same keyword argument multiple times" );
-    return std::move(t);
-  }
-  template<typename T, typename O, typename... Rest>
-  static auto get_arg(O && , Rest&&... a) -> 
-    typename std::enable_if<
-      !std::is_same<T,typename std::remove_reference<O>::type>::value,
-      T &&>::type
-  {
-    return get_arg<T>(std::forward<Rest>(a)...);
-  }
-  template<typename T>
-  static T && get_arg()
-  {
-    throw std::invalid_argument(
-        std::string("Expected argument ") + get_type_name<T>() + "{}"
-        );
-  }
-};
-
-} // namespace detail
 
 
 /** \brief A mapping object of names with values, representing a process environment
@@ -370,6 +318,21 @@ public:
    */
   struct clear_environment {};
 
+  /** \brief Store the exit code of the process
+   *
+   */
+  struct capture_exit_code{
+    int & _exit_code_ref;
+  };
+
+  /** \brief Raise an exception if the process did not have exit code zero
+   *
+   * (default true)
+   */
+  struct check_exit_code{
+    bool _check;
+  };
+
   /** \brief Execute a process and wait until it terminates
    *
    * The first parameter is the standard \a argv list for the new process, with
@@ -397,6 +360,7 @@ public:
   static void run_and_wait(const std::vector<std::string> & argv, Args && ... args)
   {
     using namespace detail;
+    using namespace detail::utils;
 
     if (argv.empty()) {
       throw std::invalid_argument("klfengine::process::run_and_wait(): cannot have empty argv");
@@ -404,8 +368,8 @@ public:
 
     std::string ex;
 
-    if (get_kwargs<Args...>::template has_arg<executable>::value) {
-      executable d{get_kwargs<Args...>::template get_arg<executable>(args...)};
+    if (kwargs<Args...>::template has_arg<executable>::value) {
+      executable d{kwargs<Args...>::template pop_arg<executable>(args...)};
       ex = d._data_ref;
     } else {
       ex = argv.front();
@@ -413,33 +377,33 @@ public:
 
     std::string run_cwd;
 
-    if (get_kwargs<Args...>::template has_arg<run_in_directory>::value) {
+    if (kwargs<Args...>::template has_arg<run_in_directory>::value) {
       run_in_directory d{
-        get_kwargs<Args...>::template get_arg<run_in_directory>(args...)
+        kwargs<Args...>::template pop_arg<run_in_directory>(args...)
       };
       run_cwd = d._data_ref;
     }
 
     const binary_data * stdin_d = nullptr;
 
-    if (get_kwargs<Args...>::template has_arg<send_stdin_data>::value) {
+    if (kwargs<Args...>::template has_arg<send_stdin_data>::value) {
       send_stdin_data d{
-        get_kwargs<Args...>::template get_arg<send_stdin_data>(args...)
+        kwargs<Args...>::template pop_arg<send_stdin_data>(args...)
       };
       stdin_d = & d._data_ref;
     }
 
     binary_data * capture_stdout = nullptr;
 
-    if (get_kwargs<Args...>::template has_arg<capture_stdout_data>::value) {
+    if (kwargs<Args...>::template has_arg<capture_stdout_data>::value) {
       capture_stdout_data d{
-        get_kwargs<Args...>::template get_arg<capture_stdout_data>(args...)
+        kwargs<Args...>::template pop_arg<capture_stdout_data>(args...)
       };
       capture_stdout = & d._data_ref;
     }
-    if (get_kwargs<Args...>::template has_arg<capture_stdout_if>::value) {
+    if (kwargs<Args...>::template has_arg<capture_stdout_if>::value) {
       capture_stdout_if d{
-        get_kwargs<Args...>::template get_arg<capture_stdout_if>(args...)
+        kwargs<Args...>::template pop_arg<capture_stdout_if>(args...)
       };
       if (d._capture == false) {
         capture_stdout = nullptr;
@@ -448,33 +412,52 @@ public:
 
     binary_data * capture_stderr = nullptr;
 
-    if (get_kwargs<Args...>::template has_arg<capture_stderr_data>::value) {
+    if (kwargs<Args...>::template has_arg<capture_stderr_data>::value) {
       capture_stderr_data d{
-        get_kwargs<Args...>::template get_arg<capture_stderr_data>(args...)
+        kwargs<Args...>::template pop_arg<capture_stderr_data>(args...)
       };
       capture_stderr = & d._data_ref;
     }
-    if (get_kwargs<Args...>::template has_arg<capture_stderr_if>::value) {
+    if (kwargs<Args...>::template has_arg<capture_stderr_if>::value) {
       capture_stderr_if d{
-        get_kwargs<Args...>::template get_arg<capture_stderr_if>(args...)
+        kwargs<Args...>::template pop_arg<capture_stderr_if>(args...)
       };
       if (d._capture == false) {
         capture_stderr = nullptr;
       }
     }
 
+    int _default_exit_code_var = 0;
+    int * exit_code_ptr = &_default_exit_code_var;
+
+    if (kwargs<Args...>::template has_arg<capture_exit_code>::value) {
+      capture_exit_code d{
+        kwargs<Args...>::template pop_arg<capture_exit_code>(args...)
+      };
+      exit_code_ptr = &d._exit_code_ref;
+    }
+
+    bool flag_check_exit_code = true;
+
+    if (kwargs<Args...>::template has_arg<check_exit_code>::value) {
+      check_exit_code d{
+        kwargs<Args...>::template pop_arg<check_exit_code>(args...)
+      };
+      flag_check_exit_code = d._check;
+    }
+
     environment env;
     bool want_clear_env = false;
     bool want_env = false;
-    if (get_kwargs<Args...>::template has_arg<clear_environment>::value) {
+    if (kwargs<Args...>::template has_arg<clear_environment>::value) {
       want_env = true;
       want_clear_env = true;
     }
-    if (get_kwargs<Args...>::template has_arg<set_environment_variables>::value ||
-        get_kwargs<Args...>::template has_arg<provide_environment_variables>::value ||
-        get_kwargs<Args...>::template has_arg<remove_environment_variables>::value ||
-        get_kwargs<Args...>::template has_arg<append_path_environment_variables>::value ||
-        get_kwargs<Args...>::template has_arg<prepend_path_environment_variables>::value) {
+    if (kwargs<Args...>::template has_arg<set_environment_variables>::value ||
+        kwargs<Args...>::template has_arg<provide_environment_variables>::value ||
+        kwargs<Args...>::template has_arg<remove_environment_variables>::value ||
+        kwargs<Args...>::template has_arg<append_path_environment_variables>::value ||
+        kwargs<Args...>::template has_arg<prepend_path_environment_variables>::value) {
       want_env = true;
       if (!want_clear_env) {
         env = current_environment();
@@ -484,8 +467,6 @@ public:
       // std::cerr << "child environ will be set to:\n" << json{env}.dump(4) << "\n";
     }
 
-    int exit_code = -1;
-
     run_process_impl(
         ex,
         argv,
@@ -494,12 +475,12 @@ public:
         capture_stdout,
         capture_stderr,
         want_env ? &env : nullptr,
-        &exit_code
+        exit_code_ptr
     );
 
-    if (exit_code != 0) {
+    if (flag_check_exit_code && *exit_code_ptr != 0) {
       throw process_exit_error{
-          "Process " + ex + " exited with code " + std::to_string(exit_code)
+          "Process " + ex + " exited with code " + std::to_string(*exit_code_ptr)
           + suffix_out_and_err(capture_stdout, capture_stderr)
       };
     }

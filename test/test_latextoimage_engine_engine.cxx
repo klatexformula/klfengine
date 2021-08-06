@@ -26,31 +26,16 @@
  * SOFTWARE.
  */
 
-#pragma once
+// header we are testing gets included first (helps detect missing #include's)
+#include <klfengine/h/latextoimage_engine/engine.h>
 
-#include <klfengine/latex_dvips_gs_engine>
+
+#include <catch2/catch.hpp>
 
 
-namespace klfengine {
-namespace latex_dvips_gs_engine {
 
-/*
-
-engine::engine()
-  : klfengine::engine("latex_dvips_gs_engine")
+TEST_CASE( "something happens when this and that f8yr93guibdsnjk", "[keyword]" )
 {
+  // write tests here
+  REQUIRE( false ) ;
 }
-
-// reimplemented from klfengine::engine
-klfengine::engine_run_implementation *
-engine::impl_create_engine_run_implementation( klfengine::input input_,
-                                               klfengine::settings settings_ )
-{
-  return new run_implementation(std::move(input_), std::move(settings_));
-}
-
-
-*/
-
-} // namespace latex_dvips_gs_engine
-} // namespace klfengine

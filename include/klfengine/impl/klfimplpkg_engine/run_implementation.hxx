@@ -34,6 +34,7 @@
 
 #include <klfengine/klfimplpkg_engine>
 #include <klfengine/temporary_directory>
+#include <klfengine/h/detail/utils.h>
 #include <klfengine/h/detail/simple_gs_interface.h>
 #include <klfengine/version>
 
@@ -93,62 +94,11 @@ run_implementation::~run_implementation()
   d = nullptr;
 }
 
-
-static void dump_cstr_to_file(const std::string & fname, const char * c_buffer)
-{
-  std::FILE * fp;
-  fp = std::fopen(fname.c_str(), "w");
-  if (fp == NULL) {
-    throw std::system_error{errno, std::generic_category()};
-  }
-  int res = std::fputs(c_buffer, fp);
-  if (res == EOF) {
-    throw std::system_error{errno, std::generic_category()};
-  }
-  std::fclose(fp);
-}
-
-static binary_data load_file_data(const std::string & fname)
-{
-  std::size_t fsiz = fs::file_size(fs::path{fname});
-  binary_data data;
-  data.resize(fsiz);
-
-  std::FILE * fp;
-  fp = std::fopen(fname.c_str(), "rb");
-  if (fp == NULL) {
-    throw std::system_error{errno, std::generic_category()};
-  }
-  std::size_t res = std::fread(&data[0], 1, fsiz, fp);
-  if (res < fsiz) {
-    throw std::system_error{errno, std::generic_category()};
-  }
-  // check that all data was read
-  // if ( ! std::feof(fp) ) {
-  //   throw std::runtime_error{"Expected that we were at end of stream after reading "
-  //                            + std::to_string(fsiz) + " bytes from " + fname};
-  // }
-  std::fclose(fp);
-
-  return data;
-}
-
-namespace detail {
-std::string dbl_to_string(double dval)
-{
-  // // to_string gives "8.000000", and I'm not a fan of stringstream...
-  // return std::to_string(dval);
-  std::vector<char> s;
-  s.resize(128);
-  int n = std::snprintf(s.data(), s.size(), "%.8g", dval);
-  s.resize(n);
-  return std::string{s.begin(), s.end()};
-}
-} // namespace detail
-
 _KLFENGINE_INLINE
 void run_implementation::impl_compile()
 {
+  using namespace klfengine::detail::utils;
+
   const klfengine::input & in = input();
   const klfengine::settings & sett = settings();
 
@@ -167,19 +117,35 @@ void run_implementation::impl_compile()
   std::string pre_preamble;
   std::string klf_preamble;
 
+  std::string docclass{"article"};
+  std::string docoptions{}; // don't include [] argument wrapper
+
+  { auto it_docclass = in.parameters.find("document_class");
+    if (it_docclass != in.parameters.end()) {
+      docclass = it_docclass->second.get<std::string>();
+    }
+  }
+
+  { auto it_docoptions = in.parameters.find("document_class_options");
+    if (it_docoptions != in.parameters.end()) {
+      docoptions = it_docoptions->second.get<std::string>();
+    }
+  }
+
+
   std::string font_cmds;
 
   if (in.font_size > 0) {
-    font_cmds += "\\fontsize{" + detail::dbl_to_string(in.font_size) + "}{" +
-      detail::dbl_to_string(in.font_size * 1.25) + "}\\selectfont";
+    font_cmds += "\\fontsize{" + dbl_to_string(in.font_size) + "}{" +
+      dbl_to_string(in.font_size * 1.25) + "}\\selectfont";
   }
 
   if (in.fg_color != color{0,0,0,255}) {
     need_latex_color_package = true;
     klf_preamble += "\\definecolor{klffgcolor}{rgb}{"
-      + detail::dbl_to_string(in.fg_color.red/255.0) + ","
-      + detail::dbl_to_string(in.fg_color.green/255.0) + ","
-      + detail::dbl_to_string(in.fg_color.blue/255.0) + "}\n";
+      + dbl_to_string(in.fg_color.red/255.0) + ","
+      + dbl_to_string(in.fg_color.green/255.0) + ","
+      + dbl_to_string(in.fg_color.blue/255.0) + "}\n";
     // TODO: treat alpha!=255 case correctly
 
     font_cmds += "\\color{klffgcolor}";
@@ -226,11 +192,11 @@ void run_implementation::impl_compile()
 
   if (in.scale <= 0) {
     // invalid scale
-    throw std::invalid_argument("input.scale has invalid value " + detail::dbl_to_string(in.scale));
+    throw std::invalid_argument("input.scale has invalid value " + dbl_to_string(in.scale));
   }
 
   if (in.scale != 1) {
-    pre_preamble += "\\klfSetScale{" + detail::dbl_to_string(in.scale) + "}\n";
+    pre_preamble += "\\klfSetScale{" + dbl_to_string(in.scale) + "}\n";
     //\klfSetXScale{5}
     //\klfSetYScale{5}
   }
@@ -243,16 +209,27 @@ void run_implementation::impl_compile()
   //\klfSetTopAlignment{bbox} % default
   //\klfSetTopAlignment{Xheight}
 
-  pre_preamble += "\\klfSetTopMargin{" + detail::dbl_to_string(in.margins.top) + "pt}\n";
-  pre_preamble += "\\klfSetRightMargin{" + detail::dbl_to_string(in.margins.right) + "pt}\n";
-  pre_preamble += "\\klfSetBottomMargin{" + detail::dbl_to_string(in.margins.bottom) + "pt}\n";
-  pre_preamble += "\\klfSetLeftMargin{" + detail::dbl_to_string(in.margins.left) + "pt}\n";
+  pre_preamble += "\\klfSetTopMargin{" + dbl_to_string(in.margins.top) + "pt}\n";
+  pre_preamble += "\\klfSetRightMargin{" + dbl_to_string(in.margins.right) + "pt}\n";
+  pre_preamble += "\\klfSetBottomMargin{" + dbl_to_string(in.margins.bottom) + "pt}\n";
+  pre_preamble += "\\klfSetLeftMargin{" + dbl_to_string(in.margins.left) + "pt}\n";
 
+
+  // ---
 
   std::string latex_str;
-  latex_str += "\\documentclass[11pt]{article}\n";
-  latex_str += "\\usepackage[" + in.latex_engine + "]{klfimpl}\n";
+  latex_str += "\\documentclass";
+  if (docoptions.size()) {
+    latex_str += "[";
+    latex_str += docoptions;
+    latex_str += "]";
+  }
+  latex_str += "{";
+  latex_str += docclass;
+  latex_str += "}\n";
 
+  // our main klfimpl class
+  latex_str += "\\usepackage[" + in.latex_engine + "]{klfimpl}\n";
 
   if (need_latex_color_package) {
     latex_str +=
@@ -294,7 +271,12 @@ void run_implementation::impl_compile()
   dump_cstr_to_file(tempfname + ".tex", latex_str.c_str());
 
 
-  fprintf(stderr, "LATEX DOCUMENT IS =\n%s\n", latex_str.c_str());
+  //fprintf(stderr, "LATEX DOCUMENT IS =\n%s\n", latex_str.c_str());
+  (void) store_to_cache(format_spec{"LATEX", value::dict{{"raw", value{true}}}},
+                        binary_data{latex_str.begin(), latex_str.end()});
+
+  // TODO: add meta-information to latex string!
+
 
   binary_data out;
   binary_data err;
@@ -313,10 +295,10 @@ void run_implementation::impl_compile()
       );
 
   binary_data pdf_data_obj;
-  pdf_data_obj = load_file_data( (tempfname + ".pdf").c_str() );
-  value::dict rawtrue{{"raw", value{true}}};
-//  const binary_data & pdf_data =
-    store_to_cache(format_spec{"PDF", rawtrue}, std::move(pdf_data_obj));
+  pdf_data_obj = load_file_data( tempfname + ".pdf" );
+
+  (void) store_to_cache(format_spec{"PDF", value::dict{{"raw", value{true}}}},
+                        std::move(pdf_data_obj));
 
 }
 
@@ -331,6 +313,9 @@ klfengine::format_spec run_implementation::impl_make_canonical(
     const klfengine::format_spec & format, bool /*check_only*/
     )
 {
+  if (format.format == "LATEX") {
+    return {"LATEX", value::dict{{"raw", value{true}}}};
+  }
   if (format.format == "PDF") {
     return {"PDF", value::dict{{"raw", value{true}}}};
   }

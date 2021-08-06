@@ -34,51 +34,6 @@
 #include <catch2/catch.hpp>
 
 
-struct string_arg_test {
-  std::string _data;
-};
-
-struct another_arg_test {
-  std::string & _data_ref;
-};
-
-// test our tools for parsing the arguments to klfengine::process::run_and_wait()
-template<typename... Args>
-static std::string test_run_args(Args && ... args)
-{
-  using namespace klfengine;
-  using namespace klfengine::detail;
-
-  if (get_kwargs<Args...>::template has_arg<string_arg_test>::value) {
-    string_arg_test d{
-      get_kwargs<Args...>::template get_arg<string_arg_test>(args...)
-    };
-    return "yes! string_arg_test._data is: " + d._data;
-  }
-  return "no.";
-}
-
-TEST_CASE( "argument handling with detail::get_kwargs", "[process]" )
-{
-  { auto res = test_run_args(string_arg_test{"hello world"});
-    REQUIRE( res == "yes! string_arg_test._data is: hello world" ) ; }
-  { auto res = test_run_args(string_arg_test{"hello world"});
-    REQUIRE( res == "yes! string_arg_test._data is: hello world" ) ; }
-  { auto res = test_run_args();
-    REQUIRE( res == "no." ) ; }
-  { std::string x;
-    auto res = test_run_args(another_arg_test{x});
-    REQUIRE( res == "no." ) ; }
-  { std::string x;
-    auto res = test_run_args(another_arg_test{x},
-                             string_arg_test{"hello world"});
-    REQUIRE( res == "yes! string_arg_test._data is: hello world" ) ; }
-  { std::string x;
-    auto res = test_run_args(string_arg_test{"hello world"},
-                             another_arg_test{x});
-    REQUIRE( res == "yes! string_arg_test._data is: hello world" ) ; }
-}
-
 
 
 

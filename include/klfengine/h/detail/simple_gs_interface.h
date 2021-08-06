@@ -70,10 +70,11 @@ public:
   struct gs_version_t { int major; int minor; };
   struct gs_version_and_info_t { gs_version_t version; gs_info_t info; };
 
-  gs_version_t gs_version();
-  gs_info_t gs_info();
+  gs_version_t get_gs_version();
 
-  gs_version_and_info_t gs_version_and_info();
+  gs_info_t get_gs_info();
+
+  gs_version_and_info_t get_gs_version_and_info();
 
   binary_data run_gs(const std::vector<std::string> & gs_args,
                      const binary_data & stdin_data,
@@ -100,6 +101,15 @@ public:
   void set_settings(const settings & settings);
 
   simple_gs_interface * gs_interface() { return _gs_interface.get(); }
+
+  inline simple_gs_interface::gs_version_t
+  gs_version() const { return _gs_version_and_info.version; };
+
+  inline simple_gs_interface::gs_info_t
+  gs_info() const { return _gs_version_and_info.info; };
+
+  inline simple_gs_interface::gs_version_and_info_t
+  gs_version_and_info() const { return _gs_version_and_info; };
 
 private:
   std::unique_ptr<simple_gs_interface> _gs_interface;

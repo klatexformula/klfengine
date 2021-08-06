@@ -30,14 +30,13 @@
 
 #include <klfengine/basedefs>
 
+#include <klfengine/h/detail/simple_gs_interface.h>
 #include <klfengine/run>
 #include <klfengine/engine_run_implementation>
 
 
 namespace klfengine {
-namespace latex_dvips_gs_engine {
-
-/*
+namespace latextoimage_engine {
 
 struct run_implementation_private;
 
@@ -45,9 +44,10 @@ class run_implementation : public klfengine::engine_run_implementation
 {
 public:
   run_implementation(
-      klfengine::input input_,
-      klfengine::settings settings_
-      );
+    std::shared_ptr<klfengine::detail::simple_gs_interface_engine_tool> gs_iface_tool_,
+    klfengine::input input_,
+    klfengine::settings settings_
+    );
   virtual ~run_implementation();
 
 protected:
@@ -66,12 +66,12 @@ private:
       );
   virtual klfengine::binary_data impl_produce_data(const klfengine::format_spec & format);
 };
-*/
 
-} // namespace latex_dvips_gs_engine
+
+} // namespace latextoimage_engine
 } // namespace klfengine
 
 
 #ifndef _KLFENGINE_DONT_INCLUDE_IMPL_HXX
-#include <klfengine/impl/latex_dvips_gs_engine/run_implementation.hxx>
+#include <klfengine/impl/latextoimage_engine/run_implementation.hxx>
 #endif

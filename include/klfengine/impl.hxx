@@ -19,7 +19,7 @@
 #include <klfengine/impl/temporary_directory.hxx>
 
 // engine(s)
-#include <klfengine/impl/latex_dvips_gs_engine.hxx>
+#include <klfengine/impl/latextoimage_engine.hxx>
 #include <klfengine/impl/klfimplpkg_engine.hxx>
 
 

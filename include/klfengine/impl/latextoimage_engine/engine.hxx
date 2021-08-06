@@ -28,35 +28,42 @@
 
 #pragma once
 
-#include <klfengine/basedefs>
+#include <klfengine/latextoimage_engine>
 
-#include <klfengine/engine>
-#include <klfengine/run>
-#include <klfengine/engine_run_implementation>
-
-#include <klfengine/h/latex_dvips_gs_engine/run_implementation.h>
 
 namespace klfengine {
-namespace latex_dvips_gs_engine {
+namespace latextoimage_engine {
 
-/*
-class engine : public klfengine::engine {
-public:
-  engine();
+_KLFENGINE_INLINE
+engine::engine()
+  : klfengine::engine("latextoimage_engine")
+{
+  _gs_iface_tool = std::shared_ptr<klfengine::detail::simple_gs_interface_engine_tool>{
+    new klfengine::detail::simple_gs_interface_engine_tool{}
+  };
+}
 
-private:
-  // reimplemented from klfengine::engine
-  klfengine::engine_run_implementation *
-  impl_create_engine_run_implementation( klfengine::input input_,
-                                         klfengine::settings settings_ );
-};
-*/
+_KLFENGINE_INLINE
+engine::~engine()
+{
+}
+
+_KLFENGINE_INLINE
+void engine::adjust_for_new_settings(klfengine::settings & settings_)
+{
+  _gs_iface_tool->set_settings(settings_);
+}
+
+// reimplemented from klfengine::engine
+klfengine::engine_run_implementation *
+engine::impl_create_engine_run_implementation( klfengine::input input_,
+                                               klfengine::settings settings_ )
+{
+  return new run_implementation(_gs_iface_tool, std::move(input_), std::move(settings_));
+}
 
 
-} // namespace latex_dvips_gs_engine
+
+
+} // namespace latextoimage_engine
 } // namespace klfengine
-
-
-#ifndef _KLFENGINE_DONT_INCLUDE_IMPL_HXX
-#include <klfengine/impl/latex_dvips_gs_engine/engine.hxx>
-#endif

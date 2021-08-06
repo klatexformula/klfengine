@@ -5,7 +5,7 @@
  *
  * The MIT License (MIT)
  *
- * Copyright 2020 Philippe Faist
+ * Copyright 2021 Philippe Faist
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,16 +26,43 @@
  * SOFTWARE.
  */
 
-// header we are testing gets included first (helps detect missing #include's)
-#include <klfengine/h/latex_dvips_gs_engine/engine.h>
+#pragma once
+
+#include <klfengine/basedefs>
+
+#include <klfengine/engine>
+#include <klfengine/run>
+#include <klfengine/engine_run_implementation>
+
+#include <klfengine/h/latextoimage_engine/run_implementation.h>
+
+namespace klfengine {
+namespace latextoimage_engine {
 
 
-#include <catch2/catch.hpp>
+class engine : public klfengine::engine {
+public:
+  engine();
+  virtual ~engine();
+
+protected:
+  void adjust_for_new_settings(klfengine::settings & settings);
+
+private:
+  // reimplemented from klfengine::engine
+  klfengine::engine_run_implementation *
+  impl_create_engine_run_implementation( klfengine::input input_,
+                                         klfengine::settings settings_ );
+
+  std::shared_ptr<klfengine::detail::simple_gs_interface_engine_tool> _gs_iface_tool;
+};
 
 
 
-TEST_CASE( "something happens when this and that f8yr93guibdsnjk", "[keyword]" )
-{
-  // write tests here
-  REQUIRE( false ) ;
-}
+} // namespace latextoimage_engine
+} // namespace klfengine
+
+
+#ifndef _KLFENGINE_DONT_INCLUDE_IMPL_HXX
+#include <klfengine/impl/latextoimage_engine/engine.hxx>
+#endif

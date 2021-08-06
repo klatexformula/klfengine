@@ -88,7 +88,7 @@ simple_gs_interface::parse_method(const std::string & method_s)
 }
 
 _KLFENGINE_INLINE
-simple_gs_interface::gs_version_t simple_gs_interface::gs_version()
+simple_gs_interface::gs_version_t simple_gs_interface::get_gs_version()
 {
   binary_data out_buf;
   process::run_and_wait( {_gs_path, "--version"},
@@ -138,7 +138,7 @@ get_gs_help_section(const std::string & out, const char * sec_name)
 
 // static
 _KLFENGINE_INLINE
-simple_gs_interface::gs_info_t simple_gs_interface::gs_info()
+simple_gs_interface::gs_info_t simple_gs_interface::get_gs_info()
 {
   binary_data out_buf;
   process::run_and_wait( {_gs_path, "--help"},
@@ -179,18 +179,17 @@ simple_gs_interface::gs_info_t simple_gs_interface::gs_info()
 }
 
 _KLFENGINE_INLINE
-simple_gs_interface::gs_version_and_info_t simple_gs_interface::gs_version_and_info()
+simple_gs_interface::gs_version_and_info_t simple_gs_interface::get_gs_version_and_info()
 {
   // I'm a bit wary of parsing the version information from the --help heading,
   // because the heading might change.  In contrast --version is specifically
   // for this purpose so we should rely on that.  The second process call
   // shouldn't add a big overhead, especially since --version should return
   // really quickly.
-  return { gs_version(), gs_info() };
+  return { get_gs_version(), get_gs_info() };
 }
 
 
-// static
 _KLFENGINE_INLINE
 binary_data simple_gs_interface::run_gs(
     const std::vector<std::string> & gs_args,
@@ -260,7 +259,7 @@ void simple_gs_interface_engine_tool::set_settings(const settings & settings)
     new simple_gs_interface{settings.gs_method, settings.gs_executable_path}
   };
 
-  _gs_version_and_info = _gs_interface->gs_version_and_info();
+  _gs_version_and_info = _gs_interface->get_gs_version_and_info();
 }
 
 

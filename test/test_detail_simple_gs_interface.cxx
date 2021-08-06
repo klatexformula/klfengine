@@ -77,7 +77,7 @@ TEST_CASE( "check gs version", "[detail-simple_gs_interface]" )
     klfengine::detail::simple_gs_interface::method::Process,
     get_gs_path()
   };
-  auto ver = gs.gs_version();
+  auto ver = gs.get_gs_version();
 
   std::cout << "[test] You are running ghostscript version "
             << ver.major << "." << ver.minor << "\n";
@@ -105,7 +105,7 @@ TEST_CASE( "check gs information", "[detail-simple_gs_interface]" )
     klfengine::detail::simple_gs_interface::method::Process,
     get_gs_path()
   };
-  auto info = gs.gs_info();
+  auto info = gs.get_gs_info();
 
   std::cout << "[test] Ghostscript info:\n"
             << "Head: " << info.head << "\n"
