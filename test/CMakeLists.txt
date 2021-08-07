@@ -1,4 +1,9 @@
 
+# needed for std::thread
+set(THREADS_PREFER_PTHREAD_FLAG ON)
+find_package(Threads REQUIRED)
+
+
 find_package(Catch2 REQUIRED)
 message(STATUS "Using Catch2 at ${Catch2_DIR} (Catch2_DIR)")
 

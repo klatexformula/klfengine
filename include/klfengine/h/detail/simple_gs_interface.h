@@ -38,6 +38,12 @@ namespace detail {
 
 struct simple_gs_interface_private;
 
+struct ghostscript_error : exception
+{
+  ghostscript_error(std::string msg);
+  virtual ~ghostscript_error();
+};
+
 /**
  * \internal
  *

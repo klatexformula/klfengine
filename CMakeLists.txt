@@ -35,8 +35,11 @@ set(KLFENGINE_USE_MPARK_VARIANT "${_klfe_default_use_mpark_variant}" CACHE BOOL
 set(KLFENGINE_USE_GULRAK_FILESYSTEM ON CACHE BOOL
   "Use gulrak/filesystem instead of C++17 std::filesystem")
 
+set(KLFENGINE_USE_LINKED_GHOSTSCRIPT OFF CACHE BOOL
+  "klfengine: Whether to compile against ghostscript's C API library")
 
-
+set(KLFENGINE_USE_LOAD_GHOSTSCRIPT OFF CACHE BOOL
+  "klfengine: Whether to enable loading ghostscript's libgs at runtime (need ghostscript headers at compile-time)")
 
 
 #
@@ -92,6 +95,10 @@ Some important CMake variables to set are:
     in C++11 or C++14 mode.  If set to true, you should make sure you
     have the mpark/variant library installed.
 
+    CMake projects that import klfengine will use the provided value as the
+    default; they can still override this choice by setting this variable before
+    calling find_package(klfengine...).
+
   - KLFENGINE_USE_GULRAK_FILESYSTEM=true|false
 
     Whether to use the alternative library gulrak/filesystem instead of
@@ -99,6 +106,31 @@ Some important CMake variables to set are:
     compiler supports C++17, but it is necessary if you are compiling
     in C++11 or C++14 mode.  If set to true, you should make sure you
     have the gulrak/filesystem library installed.
+
+    CMake projects that import klfengine will use the provided value as the
+    default; they can still override this choice by setting this variable before
+    calling find_package(klfengine...).
+
+  - KLFENGINE_USE_LINKED_GHOSTSCRIPT=true|false
+
+    Whether to link to ghostscript's C API library at compile time. This might
+    speed up calls to ghostscript as we don't have to start a new process at
+    each call.
+
+    CMake projects that import klfengine will use the provided value as the
+    default; they can still override this choice by setting this variable before
+    calling find_package(klfengine...).
+
+  - KLFENGINE_USE_LOAD_GHOSTSCRIPT=true|false
+
+    Prepare klfengine's sources so that it can load libgs.so at runtime to run
+    ghostscript without executing new processes.  this option is similar to
+    KLFENGINE_USE_LINKED_GHOSTSCRIPT, except that the sources are not explicitly
+    linked to libgs.
+
+    CMake projects that import klfengine will use the provided value as the
+    default; they can still override this choice by setting this variable before
+    calling find_package(klfengine...).
 
 Other variables that you can set will be specified in status messages
 below.
@@ -112,38 +144,35 @@ include(CMakePackageConfigHelpers)
 
 
 #
-# TODO: SAVE found dependencies to the installed cmake target files
+# ### in progress -- TODO: SAVE found dependencies to the installed cmake target files
 #
 
-find_package(nlohmann_json REQUIRED)
+set(_klfengine_no_msg_prefix TRUE)
+include(klfengine_setup_dependencies)
 
-message(STATUS "Using nlohmann_json at ${nlohmann_json_DIR} (nlohmann_json_DIR)")
+# find_package(nlohmann_json REQUIRED)
 
-if(KLFENGINE_USE_MPARK_VARIANT)
-  message(STATUS
-    "Will use mpark/variant instead of C++17 std::variant (KLFENGINE_USE_MPARK_VARIANT)")
-  find_package(mpark_variant REQUIRED)
-  message(STATUS "Using mpark_variant at ${mpark_variant_DIR} (mpark_variant_DIR)")
-else()
-  message(STATUS
-    "Will use C++17's std::variant (KLFENGINE_USE_MPARK_VARIANT)")
-endif()
+# message(STATUS "Using nlohmann_json at ${nlohmann_json_DIR} (nlohmann_json_DIR)")
 
-if(KLFENGINE_USE_GULRAK_FILESYSTEM)
-  message(STATUS
-    "Will use gulrak/filesystem and not std::filesystem (KLFENGINE_USE_GULRAK_FILESYSTEM)")
-  find_package(ghcFilesystem REQUIRED)
-  message(STATUS "Using gulrak/filesystem at ${ghcFilesystem_DIR} (ghcFilesystem_DIR)")
-else()
-  message(STATUS
-    "Will use C++17's std::filesystem (KLFENGINE_USE_GULRAK_FILESYSTEM)")
-endif()
+# if(KLFENGINE_USE_MPARK_VARIANT)
+#   message(STATUS
+#     "Will use mpark/variant instead of C++17 std::variant (KLFENGINE_USE_MPARK_VARIANT)")
+#   find_package(mpark_variant REQUIRED)
+#   message(STATUS "Using mpark_variant at ${mpark_variant_DIR} (mpark_variant_DIR)")
+# else()
+#   message(STATUS
+#     "Will use C++17's std::variant (KLFENGINE_USE_MPARK_VARIANT)")
+# endif()
 
-
-
-# needed for std::thread
-set(THREADS_PREFER_PTHREAD_FLAG ON)
-find_package(Threads REQUIRED)
+# if(KLFENGINE_USE_GULRAK_FILESYSTEM)
+#   message(STATUS
+#     "Will use gulrak/filesystem and not std::filesystem (KLFENGINE_USE_GULRAK_FILESYSTEM)")
+#   find_package(ghcFilesystem REQUIRED)
+#   message(STATUS "Using gulrak/filesystem at ${ghcFilesystem_DIR} (ghcFilesystem_DIR)")
+# else()
+#   message(STATUS
+#     "Will use C++17's std::filesystem (KLFENGINE_USE_GULRAK_FILESYSTEM)")
+# endif()
 
 
 
@@ -154,30 +183,34 @@ target_include_directories(klfengine
   $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
   )
-target_link_libraries(klfengine
-  INTERFACE
-  nlohmann_json::nlohmann_json
-  )
-if(KLFENGINE_USE_MPARK_VARIANT)
-  target_link_libraries(klfengine
-    INTERFACE
-    mpark_variant
-    )
-  target_compile_options(klfengine
-    INTERFACE
-    -DKLFENGINE_USE_MPARK_VARIANT
-    )
-endif()
-if(KLFENGINE_USE_GULRAK_FILESYSTEM)
-  target_link_libraries(klfengine
-    INTERFACE
-    ghcFilesystem::ghc_filesystem
-    )
-  target_compile_options(klfengine
-    INTERFACE
-    -DKLFENGINE_USE_GULRAK_FILESYSTEM
-    )
-endif()
+# target_link_libraries(klfengine
+#   INTERFACE
+#   nlohmann_json::nlohmann_json
+#   )
+# if(KLFENGINE_USE_MPARK_VARIANT)
+#   target_link_libraries(klfengine
+#     INTERFACE
+#     mpark_variant
+#     )
+#   target_compile_options(klfengine
+#     INTERFACE
+#     -DKLFENGINE_USE_MPARK_VARIANT
+#     )
+# endif()
+# if(KLFENGINE_USE_GULRAK_FILESYSTEM)
+#   target_link_libraries(klfengine
+#     INTERFACE
+#     ghcFilesystem::ghc_filesystem
+#     )
+#   target_compile_options(klfengine
+#     INTERFACE
+#     -DKLFENGINE_USE_GULRAK_FILESYSTEM
+#     )
+# endif()
+
+set(_klfengine_target_name "klfengine")
+include(klfengine_set_deps_interface_tgt_prop)
+
 
 install(
   DIRECTORY     include/
@@ -194,6 +227,10 @@ install(
 
 set(KLFENGINE_CMAKE_CONFIG_DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/klfengine")
 
+file(READ "${CMAKE_SOURCE_DIR}/cmake/klfengine_setup_dependencies.cmake"
+  KLFENGINE_CODE_CMAKE_SETUP_DEPENDENCIES)
+file(READ "${CMAKE_SOURCE_DIR}/cmake/klfengine_set_deps_interface_tgt_prop.cmake"
+  KLFENGINE_CODE_SET_DEPS_INTERFACE_TARGET_PROPERTIES)
 configure_package_config_file(
   ${PROJECT_SOURCE_DIR}/cmake/klfengineConfig.cmake.in
   ${PROJECT_BINARY_DIR}/klfengineConfig.cmake

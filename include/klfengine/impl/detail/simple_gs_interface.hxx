@@ -35,9 +35,26 @@
 #include <klfengine/h/detail/simple_gs_interface.h>
 
 
+#if defined(KLFENGINE_USE_LINKED_GHOSTSCRIPT) || defined(KLFENGINE_USE_LOAD_GHOSTSCRIPT)
+#include <ghostscript/iapi.h>
+#include <ghostscript/ierrors.h>
+#endif
+
+
 namespace klfengine {
 
 namespace detail {
+
+
+_KLFENGINE_INLINE
+ghostscript_error::ghostscript_error(std::string msg)
+  : exception(msg)
+{}
+
+_KLFENGINE_INLINE
+ghostscript_error::~ghostscript_error()
+{}
+
 
 
 struct simple_gs_interface_private
@@ -45,9 +62,20 @@ struct simple_gs_interface_private
   simple_gs_interface::method method;
   std::string gs_path;
 
-  void init();
+  std::vector<std::string> construct_gs_argv(
+    std::string argv0,
+    std::vector<std::string> gs_args,
+    bool add_standard_batch_flags
+  );
 
   void impl_run_gs_process(
+    std::vector<std::string> gs_argv,
+    const binary_data * stdin_data,
+    bool add_standard_batch_flags,
+    binary_data * capture_stdout,
+    binary_data * capture_stderr
+  );
+  void impl_run_gs_linkedlibgs(
     std::vector<std::string> gs_argv,
     const binary_data * stdin_data,
     bool add_standard_batch_flags,
@@ -68,14 +96,12 @@ _KLFENGINE_INLINE
 simple_gs_interface::simple_gs_interface(method method_, std::string gs_path)
 {
   d = new simple_gs_interface_private{method_, std::move(gs_path)};
-  d->init();
 }
 
 _KLFENGINE_INLINE
 simple_gs_interface::simple_gs_interface(std::string method_s, std::string gs_path)
 {
   d = new simple_gs_interface_private{parse_method(method_s), std::move(gs_path)};
-  d->init();
 }
 
 _KLFENGINE_INLINE
@@ -87,11 +113,6 @@ simple_gs_interface::~simple_gs_interface()
   d = nullptr;
 }
 
-
-inline
-void simple_gs_interface_private::init()
-{
-}
 
 
 _KLFENGINE_INLINE
@@ -252,7 +273,8 @@ void simple_gs_interface::impl_run_gs(
     return;
   }
   case method::LinkedLibgs: {
-    throw std::runtime_error("Can't run ghostscript, method LinkedLibgs not yet implemented.");
+    d->impl_run_gs_linkedlibgs(std::move(gs_args), stdin_data, add_standard_batch_flags,
+                               capture_stdout, capture_stderr);
     return;
   }
   case method::LoadLibgs: {
@@ -268,14 +290,40 @@ void simple_gs_interface::impl_run_gs(
 }
 
 
+// -------------------------------------
+// tool to add standard batch flags, etc.
+// -------------------------------------
+inline
+std::vector<std::string>
+simple_gs_interface_private::construct_gs_argv(
+  std::string argv0,
+  std::vector<std::string> gs_args,
+  bool add_standard_batch_flags
+)
+{
+  if (add_standard_batch_flags) {
+    std::vector<std::string> init_args{
+      argv0,
+      "-dNOPAUSE",
+      "-dBATCH",
+      "-dSAFER",
+      "-q"
+    };
+    gs_args.insert(gs_args.begin(), init_args.begin(), init_args.end());
+  } else {
+    gs_args.insert(gs_args.begin(), argv0);
+  }
+
+  return gs_args;
+}
 
 // -------------------------------------
 // run_gs - "process" method
 // -------------------------------------
 
-_KLFENGINE_INLINE
+inline
 void simple_gs_interface_private::impl_run_gs_process(
-  std::vector<std::string> gs_argv,
+  std::vector<std::string> gs_args,
   const binary_data * stdin_data,
   bool add_standard_batch_flags,
   binary_data * capture_stdout,
@@ -286,33 +334,218 @@ void simple_gs_interface_private::impl_run_gs_process(
     throw std::runtime_error("Invalid gs path: " + gs_path) ;
   }
 
-  if (add_standard_batch_flags) {
-    std::vector<std::string> init_args{
-      gs_path,
-      "-dNOPAUSE",
-      "-dBATCH",
-      "-dSAFER",
-      "-q"
-    };
-    gs_argv.insert(gs_argv.begin(), init_args.begin(), init_args.end());
-  } else {
-    gs_argv.insert(gs_argv.begin(), gs_path);
-  }
-
-  process::run_and_wait(
-    gs_argv,
-    process::send_stdin_data{stdin_data},
-    process::capture_stdout_data{capture_stdout},
-    process::capture_stderr_data{capture_stderr}
+  std::vector<std::string> gs_argv = construct_gs_argv(
+    gs_path,
+    std::move(gs_args),
+    add_standard_batch_flags
   );
+
+  try {
+    process::run_and_wait(
+      gs_argv,
+      process::send_stdin_data{stdin_data},
+      process::capture_stdout_data{capture_stdout},
+      process::capture_stderr_data{capture_stderr}
+    );
+  } catch (process_exit_error & e) {
+    throw ghostscript_error(e.what());
+  }
 }
 
 
 // -------------------------------------
-// run_gs - "loadlibgs" method
+
+
+#if defined(KLFENGINE_USE_LINKED_GHOSTSCRIPT) || defined(KLFENGINE_USE_LOAD_GHOSTSCRIPT)
+
+
+// NOTE: WE NEED gs >= 9.54 for its API features.
+//
+// TODO: see if we can use some template trickery to store an internal static
+// map from gs_minst's to gs-callback-objects, with the template being there
+// only so that we can define the static member in the header file which could
+// in principle be included multiple times.
+
+
+// callbacks for gs' input and output
+struct GhostscriptCallbacks {
+  GhostscriptCallbacks(
+    const binary_data * stdin_data_ptr,
+    binary_data * stdout_data_ptr,
+    binary_data * stderr_data_ptr
+  )
+    : _stdin_data_ptr(stdin_data_ptr),
+      _stdout_data_ptr(stdout_data_ptr),
+      _stderr_data_ptr(stderr_data_ptr),
+      in_pos(0), out_pos(0), err_pos(0)
+  {}
+  const binary_data * _stdin_data_ptr;
+  binary_data * _stdout_data_ptr;
+  binary_data * _stderr_data_ptr;
+
+  std::size_t in_pos, out_pos, err_pos;
+
+  int handle_stdin(char * buf, int len)
+  {
+    if (_stdin_data_ptr == nullptr) {
+      return 0; // no data to read
+    }
+    if (len < 0) {
+      return -1;
+    }
+    std::size_t slen{ static_cast<size_t>(len) };
+    if (in_pos >= _stdin_data_ptr->size()) {
+      // past end of stream
+      return 0;
+    }
+    if (in_pos + slen < _stdin_data_ptr->size()) {
+      // there are at least len bytes available to read
+      std::copy( _stdin_data_ptr->begin()+in_pos, _stdin_data_ptr->begin()+(in_pos+slen),
+                 buf );
+      in_pos += slen;
+      return len;
+    }
+    // there are fewer than len bytes left to be read.  Read them all.
+    int numread = _stdin_data_ptr->size() - in_pos;
+    std::copy( _stdin_data_ptr->begin()+in_pos, _stdin_data_ptr->end(), buf );
+    in_pos = _stdin_data_ptr->size();
+    return numread;
+  }
+
+  int handle_stdout(const char * buf, int len)
+  {
+    if (len < 0) {
+      return 0;
+    }
+    if (_stdout_data_ptr == nullptr) {
+      return len; // ignore data
+    }
+    _stdout_data_ptr->insert(_stdout_data_ptr->end(), buf, buf+len);
+    return len;
+  }
+  int handle_stderr(const char * buf, int len)
+  {
+    if (len < 0) {
+      return 0;
+    }
+    if (_stderr_data_ptr == nullptr) {
+      return len; // ignore data
+    }
+    _stderr_data_ptr->insert(_stderr_data_ptr->end(), buf, buf+len);
+    return len;
+  }
+};
+
+static int _klfengine_gs_callback_stdin_fn(void * caller_handle, char * buf, int len)
+{
+  //fprintf(stderr, "STDIN CALLBACK!!! len=%d\n", len);
+  return reinterpret_cast<GhostscriptCallbacks*>(caller_handle)->handle_stdin(buf, len);
+  // (void)caller_handle; (void)buf; return 0;
+}
+static int _klfengine_gs_callback_stdout_fn(void * caller_handle, const char * buf, int len)
+{
+  fprintf(stderr, "STDOUT CALLBACK!!! len=%d\n", len);
+  return reinterpret_cast<GhostscriptCallbacks*>(caller_handle)->handle_stdout(buf, len);
+  //(void)caller_handle; (void)buf; return 0;
+}
+static int _klfengine_gs_callback_stderr_fn(void * caller_handle, const char * buf, int len)
+{
+  fprintf(stderr, "STDERR CALLBACK!!! len=%d\n", len);
+  return reinterpret_cast<GhostscriptCallbacks*>(caller_handle)->handle_stderr(buf, len);
+  //(void)caller_handle; (void)buf; return 0;
+}
+
+#endif
+
+// -------------------------------------
+// run_gs - "linked-libgs" method
 // -------------------------------------
 
-_KLFENGINE_INLINE
+inline
+void simple_gs_interface_private::impl_run_gs_linkedlibgs(
+  std::vector<std::string> gs_args,
+  const binary_data * stdin_data,
+  bool add_standard_batch_flags,
+  binary_data * capture_stdout,
+  binary_data * capture_stderr
+)
+{
+#if defined(KLFENGINE_USE_LINKED_GHOSTSCRIPT)
+  // prepare the terrain
+
+  //  - prepare argc & argv
+
+  std::vector<std::string> gs_argv = construct_gs_argv(
+    "gs", // dummy
+    std::move(gs_args),
+    add_standard_batch_flags
+  );
+
+  std::vector<char*> gs_cstrings;
+  gs_cstrings.reserve(gs_argv.size());
+  for (const auto & s : gs_argv) {
+    gs_cstrings.push_back( const_cast<char*>(s.c_str()) );
+  }
+
+  //  - prepare stdio callbacks
+  GhostscriptCallbacks gs_cb{stdin_data, capture_stdout, capture_stderr};
+
+  // see Example 1 at https://ghostscript.com/doc/current/API.htm#Example_usage
+
+  void *gs_minst = NULL;
+  int gs_ret_code = 0;
+  int gs_ret_code_2 = 0;
+  
+  // second argument is our "custom callback handle"
+  gs_ret_code = gsapi_new_instance(&gs_minst, reinterpret_cast<void*>(&gs_cb));
+  if (gs_ret_code < 0) {
+    throw std::runtime_error{"Failed to create ghostscript instance, code = "
+                             + std::to_string(gs_ret_code)};
+  }
+
+  // gs stdio callbacks
+  gsapi_set_stdio(
+    gs_minst,
+    _klfengine_gs_callback_stdin_fn,
+    _klfengine_gs_callback_stdout_fn,
+    _klfengine_gs_callback_stderr_fn
+  );
+
+  fprintf(stderr, "CALLBACKS HAVE BEEN SET!\n");
+
+  gs_ret_code = gsapi_set_arg_encoding(gs_minst, GS_ARG_ENCODING_UTF8);
+  if (gs_ret_code == 0) {
+    gs_ret_code = gsapi_init_with_args(gs_minst, gs_cstrings.size(), gs_cstrings.data());
+  }
+  gs_ret_code_2 = gsapi_exit(gs_minst);
+  if ((gs_ret_code == 0) || (gs_ret_code == gs_error_Quit) || (gs_ret_code == gs_error_Info)) {
+    gs_ret_code = gs_ret_code_2;
+  }
+
+  gsapi_delete_instance(gs_minst);
+
+  if ((gs_ret_code == 0) || (gs_ret_code == gs_error_Quit) || (gs_ret_code == gs_error_Info)) {
+    // all ok
+    return;
+  }
+
+  // error
+  throw ghostscript_error{"Ghostscript error! code = " + std::to_string(gs_ret_code)};
+
+#else
+
+  throw std::runtime_error("GS method 'LinkedLibgs' is not available because it "
+                           "was not enabled during compilation.");
+
+#endif
+}
+
+
+// -------------------------------------
+// run_gs - "load-libgs" method
+// -------------------------------------
+
+inline
 void simple_gs_interface_private::impl_run_gs_loadlibgs(
   std::vector<std::string> ,//gs_argv,
   const binary_data * ,//stdin_data,
@@ -327,6 +560,7 @@ void simple_gs_interface_private::impl_run_gs_loadlibgs(
   // WRITE ME !
 
 }
+
 
 
 // -----------------------------------------------------------------------------

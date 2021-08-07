@@ -71,12 +71,10 @@ inline std::string get_gs_path()
 }
 
 
-TEST_CASE( "check gs version", "[detail-simple_gs_interface]" )
+
+
+inline void do_test_check_gs_version(klfengine::detail::simple_gs_interface & gs)
 {
-  klfengine::detail::simple_gs_interface gs{
-    klfengine::detail::simple_gs_interface::method::Process,
-    get_gs_path()
-  };
   auto ver = gs.get_gs_version();
 
   std::cout << "[test] You are running ghostscript version "
@@ -85,6 +83,39 @@ TEST_CASE( "check gs version", "[detail-simple_gs_interface]" )
   REQUIRE( ver.major >= 8 );
   REQUIRE( ver.minor >= 0 );
 }
+
+TEST_CASE( "check gs version via Process", "[detail-simple_gs_interface]" )
+{
+  klfengine::detail::simple_gs_interface gs{
+    klfengine::detail::simple_gs_interface::method::Process,
+    get_gs_path()
+  };
+
+  do_test_check_gs_version(gs);
+}
+
+TEST_CASE( "check gs version via LinkedLibgs", "[detail-simple_gs_interface]" )
+{
+  klfengine::detail::simple_gs_interface gs{
+    klfengine::detail::simple_gs_interface::method::LinkedLibgs,
+    get_gs_path()
+  };
+
+  do_test_check_gs_version(gs);
+}
+
+TEST_CASE( "check gs version via LoadLibgs", "[detail-simple_gs_interface]" )
+{
+  klfengine::detail::simple_gs_interface gs{
+    klfengine::detail::simple_gs_interface::method::LoadLibgs,
+    get_gs_path()
+  };
+
+  do_test_check_gs_version(gs);
+}
+
+
+
 
 template<typename T>
 inline std::ostream & operator<<(std::ostream& s, const std::vector<T> & v)
@@ -99,12 +130,10 @@ inline std::ostream & operator<<(std::ostream& s, const std::vector<T> & v)
 }
 
 
-TEST_CASE( "check gs information", "[detail-simple_gs_interface]" )
+
+
+inline void do_check_gs_information(klfengine::detail::simple_gs_interface & gs)
 {
-  klfengine::detail::simple_gs_interface gs{
-    klfengine::detail::simple_gs_interface::method::Process,
-    get_gs_path()
-  };
   auto info = gs.get_gs_info();
 
   std::cout << "[test] Ghostscript info:\n"
@@ -117,15 +146,40 @@ TEST_CASE( "check gs information", "[detail-simple_gs_interface]" )
            != info.devices.end() );
 }
 
-TEST_CASE( "handle gs errors", "[detail-simple_gs_interface]" )
+TEST_CASE( "check gs information via Process", "[detail-simple_gs_interface]" )
 {
   klfengine::detail::simple_gs_interface gs{
     klfengine::detail::simple_gs_interface::method::Process,
     get_gs_path()
   };
 
-  klfengine::binary_data stderr_data;
+  do_check_gs_information(gs);
+}
 
+TEST_CASE( "check gs information via LinkedLibgs", "[detail-simple_gs_interface]" )
+{
+  klfengine::detail::simple_gs_interface gs{
+    klfengine::detail::simple_gs_interface::method::LinkedLibgs,
+    get_gs_path()
+  };
+
+  do_check_gs_information(gs);
+}
+
+TEST_CASE( "check gs information via LoadLibgs", "[detail-simple_gs_interface]" )
+{
+  klfengine::detail::simple_gs_interface gs{
+    klfengine::detail::simple_gs_interface::method::LoadLibgs,
+    get_gs_path()
+  };
+
+  do_check_gs_information(gs);
+}
+
+
+inline void do_handle_gs_errors(klfengine::detail::simple_gs_interface & gs)
+{
+  klfengine::binary_data stderr_data;
   klfengine::binary_data output_data;
 
   CHECK_THROWS_AS(
@@ -136,7 +190,7 @@ TEST_CASE( "handle gs errors", "[detail-simple_gs_interface]" )
           klfengine::detail::simple_gs_interface::capture_stderr_data{&stderr_data},
           klfengine::detail::simple_gs_interface::capture_stdout_data{&output_data}
           ),
-      klfengine::process_exit_error
+      klfengine::detail::ghostscript_error
       );
 
   std::string stderr_s{stderr_data.begin(), stderr_data.end()};
@@ -146,15 +200,39 @@ TEST_CASE( "handle gs errors", "[detail-simple_gs_interface]" )
            != std::string::npos ) ;
 }
 
-
-
-TEST_CASE( "can run gs", "[detail-simple_gs_interface]" )
+TEST_CASE( "handle gs errors via Process", "[detail-simple_gs_interface]" )
 {
   klfengine::detail::simple_gs_interface gs{
     klfengine::detail::simple_gs_interface::method::Process,
     get_gs_path()
   };
 
+  do_handle_gs_errors( gs );
+}
+
+TEST_CASE( "handle gs errors via LinkedLibgs", "[detail-simple_gs_interface]" )
+{
+  klfengine::detail::simple_gs_interface gs{
+    klfengine::detail::simple_gs_interface::method::LinkedLibgs,
+    get_gs_path()
+  };
+
+  do_handle_gs_errors( gs );
+}
+
+TEST_CASE( "handle gs errors via LoadLibgs", "[detail-simple_gs_interface]" )
+{
+  klfengine::detail::simple_gs_interface gs{
+    klfengine::detail::simple_gs_interface::method::LoadLibgs,
+    get_gs_path()
+  };
+
+  do_handle_gs_errors( gs );
+}
+
+
+inline void do_can_run_gs(klfengine::detail::simple_gs_interface & gs)
+{
   std::string ps_code{
     "%!PS\n"
     "<< /PageSize [36 36] >> setpagedevice 0.4 setlinewidth 2 2 newpath moveto 5 5 lineto 10 0 lineto 10 10 lineto closepath 0.4 0 0 setrgbcolor stroke showpage"
@@ -164,7 +242,7 @@ TEST_CASE( "can run gs", "[detail-simple_gs_interface]" )
   klfengine::binary_data stderr_data;
 
   gs.run_gs(
-      {"-sDEVICE=pdfwrite","-dBATCH", "-q", "-dNOPAUSE", "-sOutputFile=-"},
+      {"-sDEVICE=pdfwrite","-dBATCH", "-q", "-dNOPAUSE", "-sOutputFile=-", "-"},
       // send some dummy PS input to stdin
       klfengine::detail::simple_gs_interface::send_stdin_data{
         klfengine::binary_data{ps_code.begin(), ps_code.end()}
@@ -176,9 +254,10 @@ TEST_CASE( "can run gs", "[detail-simple_gs_interface]" )
       klfengine::detail::simple_gs_interface::capture_stderr_data{&stderr_data}
       );
 
+  std::string stderr_s{stderr_data.begin(), stderr_data.end()};
   std::string output_s{stdout_data.begin(), stdout_data.end()};
 
-  CAPTURE( std::string{stderr_data.begin(), stderr_data.end()} );
+  CAPTURE( stderr_s );
   CAPTURE( output_s );
 
   REQUIRE( stderr_data == klfengine::binary_data{} ) ;
@@ -186,3 +265,35 @@ TEST_CASE( "can run gs", "[detail-simple_gs_interface]" )
   REQUIRE( output_s.rfind("%PDF-",0) == 0 ) ;
 }
 
+TEST_CASE( "can run gs via Process", "[detail-simple_gs_interface]" )
+{
+  klfengine::detail::simple_gs_interface gs{
+    klfengine::detail::simple_gs_interface::method::Process,
+    get_gs_path()
+  };
+
+  do_can_run_gs( gs );
+}
+
+TEST_CASE( "can run gs via LinkedLibgs", "[detail-simple_gs_interface]" )
+{
+  klfengine::detail::simple_gs_interface gs{
+    klfengine::detail::simple_gs_interface::method::LinkedLibgs,
+    get_gs_path()
+  };
+
+  // FIXME: It looks like device output is *always* sent to stdout regardless of
+  // callbacks! Help! how can we get this fixed?
+
+  do_can_run_gs( gs );
+}
+
+TEST_CASE( "can run gs via LoadLibgs", "[detail-simple_gs_interface]" )
+{
+  klfengine::detail::simple_gs_interface gs{
+    klfengine::detail::simple_gs_interface::method::LoadLibgs,
+    get_gs_path()
+  };
+
+  do_can_run_gs( gs );
+}

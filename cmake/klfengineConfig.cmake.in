@@ -1,5 +1,11 @@
 @PACKAGE_INIT@
 
+
+if(CMAKE_VERSION VERSION_LESS 3.8.0)
+  message(FATAL_ERROR "This file relies on consumers using CMake 3.8.0 or greater.")
+endif()
+
+
 # Avoid repeatedly including the targets
 if(NOT TARGET klfengine::klfengine)
 
@@ -7,33 +13,60 @@ if(NOT TARGET klfengine::klfengine)
 
   include(CMakeFindDependencyMacro)
 
-  message(STATUS "Using nlohmann_json from @nlohmann_json_DIR@ configured by klfengine")
-  find_dependency(nlohmann_json REQUIRED
-    CONFIG
-    PATHS "@nlohmann_json_DIR@"
-    NO_DEFAULT_PATH
-    )
+  set(KLFENGINE_USE_MPARK_VARIANT "@KLFENGINE_USE_MPARK_VARIANT@" CACHE BOOL
+    "klfengine: Whether or not to use mpark/variant instead of C++17 std::variant")
 
-  if(@KLFENGINE_USE_MPARK_VARIANT@)
-    message(STATUS "Using mpark_variant from @mpark_variant_DIR@ configured by klfengine")
-    find_dependency(mpark_variant REQUIRED
-      CONFIG
-      PATHS "@mpark_variant_DIR@"
-      NO_DEFAULT_PATH
-      )
-  endif()
-  if(@KLFENGINE_USE_GULRAK_FILESYSTEM@)
-    message(STATUS "Using gulrak/filesystem from @ghcFilesystem_DIR@ configured by klfengine")
-    find_dependency(ghcFilesystem REQUIRED
-      CONFIG
-      PATHS "@ghcFilesystem_DIR@"
-      NO_DEFAULT_PATH
-      )
-  endif()
+  set(KLFENGINE_USE_GULRAK_FILESYSTEM "@KLFENGINE_USE_GULRAK_FILESYSTEM@"
+    CACHE BOOL "klfengine: Use gulrak/filesystem instead of C++17 std::filesystem")
+
+  set(KLFENGINE_USE_LINKED_GHOSTSCRIPT "@KLFENGINE_USE_LINKED_GHOSTSCRIPT@" CACHE BOOL
+    "klfengine: Whether to compile against ghostscript's C API library")
+
+  set(KLFENGINE_USE_LOAD_GHOSTSCRIPT "@KLFENGINE_USE_LOAD_GHOSTSCRIPT@" CACHE BOOL
+    "klfengine: Whether to enable loading ghostscript's libgs at runtime (need ghostscript headers at compile-time)")
+
+  set(_klfengine_cmake_default_nlohmann_json_DIR "@nlohmann_json_DIR@")
+  set(_klfengine_cmake_default_mpark_variant_DIR "@mpark_variant_DIR@")
+  set(_klfengine_cmake_default_ghcFilesystem_DIR "@ghcFilesystem_DIR@")
+  set(_klfengine_cmake_default_GHOSTSCRIPT_LIB "@GHOSTSCRIPT_LIB@")
+  set(_klfengine_cmake_default_GHOSTSCRIPT_INCLUDE "@GHOSTSCRIPT_INCLUDE@")
+
+  # --- klfengine_setup_dependencies.cmake BEGIN ---
+  @KLFENGINE_CODE_CMAKE_SETUP_DEPENDENCIES@
+  # --- klfengine_setup_dependencies.cmake END ---
 
   # Do CMake stuff
+  #include("${CMAKE_CURRENT_LIST_DIR}/klfengineTargets.cmake")
+  #check_required_components("@PROJECT_NAME@")
 
-  include("${CMAKE_CURRENT_LIST_DIR}/klfengineTargets.cmake")
+  # *** provide our own imported targets, with dependencies depending on the
+  #     user variables in the current scope ***
+  #
+  # some bits are copied from CMake's own auto-generated klfengineConfigTargets.cmake
+  #
+
+  # Create imported target klfengine::klfengine
+  add_library(klfengine::klfengine INTERFACE IMPORTED)
+
+  # Compute the installation prefix relative to this file.
+  get_filename_component(_IMPORT_PREFIX "${CMAKE_CURRENT_LIST_FILE}" PATH)
+  get_filename_component(_IMPORT_PREFIX "${_IMPORT_PREFIX}" PATH)
+  get_filename_component(_IMPORT_PREFIX "${_IMPORT_PREFIX}" PATH)
+  get_filename_component(_IMPORT_PREFIX "${_IMPORT_PREFIX}" PATH)
+  if(_IMPORT_PREFIX STREQUAL "/")
+    set(_IMPORT_PREFIX "")
+  endif()
+
+  set_target_properties(klfengine::klfengine
+    INTERFACE_INCLUDE_DIRECTORIES "${_IMPORT_PREFIX}/include"
+  )
+
+  set(_klfengine_target_name klfengine::klfengine)
+  # --- klfengine_set_deps_interface_tgt_prop.cmake BEGIN ---
+  @KLFENGINE_CODE_SET_DEPS_INTERFACE_TARGET_PROPERTIES@
+  # --- klfengine_set_deps_interface_tgt_prop.cmake END ---
+  
   check_required_components("@PROJECT_NAME@")
+  # ***
 
 endif()
