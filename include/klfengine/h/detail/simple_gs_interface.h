@@ -30,10 +30,13 @@
 
 #include <klfengine/basedefs>
 #include <klfengine/settings>
+#include <klfengine/process>
 
 namespace klfengine {
 
 namespace detail {
+
+struct simple_gs_interface_private;
 
 /**
  * \internal
@@ -53,11 +56,18 @@ public:
   static method parse_method(const std::string & method_s);
 
   // constructors
+  /**
+   * The meaning of \a gs_path depends on the method.  If the method is \ref
+   * method::Process, then the path should be the path to the \c gs executable.
+   * If the method is \ref method::Loadlibgs, then \a gs_path is the path to the
+   * \c "libgs.so" library.
+   */
   explicit simple_gs_interface(method method_, std::string gs_path = std::string());
   explicit simple_gs_interface(std::string method_s, std::string gs_path = std::string());
+  ~simple_gs_interface();
 
-  inline method gs_method() const { return _method; }
-  inline const std::string & gs_executable_path() const { return _gs_path; }
+  method gs_method() const;
+  const std::string & gs_path() const;
 
   // gs information
 
@@ -76,16 +86,71 @@ public:
 
   gs_version_and_info_t get_gs_version_and_info();
 
-  binary_data run_gs(const std::vector<std::string> & gs_args,
-                     const binary_data & stdin_data,
-                     bool add_standard_batch_flags = true,
-                     std::string * set_stderr = nullptr);
+  //
+
+  struct add_standard_batch_flags {
+    bool _add_flags;
+  };
+
+  using send_stdin_data = klfengine::process::send_stdin_data;
+  using capture_stderr_data = klfengine::process::capture_stderr_data;
+  using capture_stdout_data = klfengine::process::capture_stdout_data;
+  
+  template<typename... Args>
+  void run_gs(std::vector<std::string> gs_args, Args && ... args)
+  {
+    using namespace detail::utils;
+
+    bool add_standard_batch_flags_yn = true;
+    if (kwargs<Args...>::template has_arg<add_standard_batch_flags>::value) {
+      add_standard_batch_flags d{
+        kwargs<Args...>::template take_arg<add_standard_batch_flags>(args...)
+      };
+      add_standard_batch_flags_yn = d._add_flags;
+    }
+
+    binary_data * capture_stderr_bufptr = nullptr;
+    if (kwargs<Args...>::template has_arg<capture_stderr_data>::value) {
+      capture_stderr_data d{
+        kwargs<Args...>::template take_arg<capture_stderr_data>(args...)
+      };
+      capture_stderr_bufptr = d._data_ptr;
+    }
+
+    binary_data * capture_stdout_bufptr = nullptr;
+    if (kwargs<Args...>::template has_arg<capture_stdout_data>::value) {
+      capture_stdout_data d{
+        kwargs<Args...>::template take_arg<capture_stdout_data>(args...)
+      };
+      capture_stdout_bufptr = d._data_ptr;
+    }
+
+    binary_data _default_stdin_data{};
+    const binary_data * stdin_data_bufptr = &_default_stdin_data;
+    if (kwargs<Args...>::template has_arg<send_stdin_data>::value) {
+      send_stdin_data d{
+        kwargs<Args...>::template take_arg<send_stdin_data>(args...)
+      };
+      stdin_data_bufptr = d._data_ptr;
+    }
+
+    impl_run_gs(std::move(gs_args),
+                stdin_data_bufptr,
+                add_standard_batch_flags_yn,
+                capture_stdout_bufptr,
+                capture_stderr_bufptr);
+  }
 
 private:
-  method _method;
-  std::string _gs_path;
+  simple_gs_interface_private *d;
 
-  void _init();
+  void impl_run_gs(
+    std::vector<std::string> gs_args,
+    const binary_data * stdin_data,
+    bool add_standard_batch_flags,
+    binary_data * capture_stdout,
+    binary_data * capture_stderr
+  );
 };
 
 

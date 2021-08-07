@@ -56,6 +56,7 @@ TEST_CASE( "engine saves and returns settings",
     "/usr/local/texlive/20xx/somewhere/bin/",
     "process",
     "/usr/local/bin/gs",
+    "/usr/lib/libgs.so",
     {
      {"TEXINPUTS", "/some/path/for/latex/to/look/for/files"},
      {"BIBINPUTS", "/some/path/for/bibtex/to/look/for/files"}
@@ -71,6 +72,7 @@ TEST_CASE( "engine saves and returns settings",
     "/opt/texlive/20xx/bin/",
     "none",
     "",
+    "/opt/MyCustomPath/lib/libgs9.99.so",
     {}
   };
 

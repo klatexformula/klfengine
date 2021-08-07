@@ -250,10 +250,10 @@ public:
    * not searched in the system \a $PATH)
    */
   struct executable {
-    const std::string & _data_ref;
+    std::string _data;
   };
   struct run_in_directory {
-    const std::string & _data_ref;
+    std::string _data;
   };
 
   /** \brief Instruction to send data to process' standard input
@@ -268,9 +268,22 @@ public:
    *       ...
    *   );
    * \endcode
+   *
+   * You can also use <code>std::move(in_data)</code> to avoid a copy, if you
+   * don't need <code>in_data</code> any longer.
+   *
+   * Alternatively, you can specify a pointer to a (const) binary_data
+   * containing the data to send.  If the pointer is null, no data is sent.
    */
   struct send_stdin_data {
-    const binary_data & _data_ref;
+    send_stdin_data(const binary_data * data_ptr_)
+      : _maybe_tmp_data{}, _data_ptr(data_ptr_)
+    { }
+    explicit send_stdin_data(binary_data data)
+      : _maybe_tmp_data{std::move(data)}, _data_ptr(&_maybe_tmp_data)
+    { }
+    const binary_data _maybe_tmp_data;
+    const binary_data * _data_ptr;
   };
 
   /** \brief Instruct to capture stdout data to the given buffer
@@ -287,14 +300,14 @@ public:
    * \endcode
    */
   struct capture_stdout_data {
-    binary_data & _data_ref;
+    binary_data * _data_ptr;
   };
   /** \brief Instruct to capture stderr data to the given buffer 
    *
    * Same as \ref capture_stdout_data, but for standard error output.
    */
   struct capture_stderr_data {
-    binary_data & _data_ref;
+    binary_data * _data_ptr;
   };
   /** \brief Dynamically control whether stdout capture is to be activated
    *
@@ -369,8 +382,8 @@ public:
     std::string ex;
 
     if (kwargs<Args...>::template has_arg<executable>::value) {
-      executable d{kwargs<Args...>::template pop_arg<executable>(args...)};
-      ex = d._data_ref;
+      executable d{kwargs<Args...>::template take_arg<executable>(args...)};
+      ex = std::move(d._data);
     } else {
       ex = argv.front();
     }
@@ -379,31 +392,31 @@ public:
 
     if (kwargs<Args...>::template has_arg<run_in_directory>::value) {
       run_in_directory d{
-        kwargs<Args...>::template pop_arg<run_in_directory>(args...)
+        kwargs<Args...>::template take_arg<run_in_directory>(args...)
       };
-      run_cwd = d._data_ref;
+      run_cwd = std::move(d._data);
     }
 
     const binary_data * stdin_d = nullptr;
 
     if (kwargs<Args...>::template has_arg<send_stdin_data>::value) {
       send_stdin_data d{
-        kwargs<Args...>::template pop_arg<send_stdin_data>(args...)
+        kwargs<Args...>::template take_arg<send_stdin_data>(args...)
       };
-      stdin_d = & d._data_ref;
+      stdin_d = d._data_ptr;
     }
 
     binary_data * capture_stdout = nullptr;
 
     if (kwargs<Args...>::template has_arg<capture_stdout_data>::value) {
       capture_stdout_data d{
-        kwargs<Args...>::template pop_arg<capture_stdout_data>(args...)
+        kwargs<Args...>::template take_arg<capture_stdout_data>(args...)
       };
-      capture_stdout = & d._data_ref;
+      capture_stdout = d._data_ptr;
     }
     if (kwargs<Args...>::template has_arg<capture_stdout_if>::value) {
       capture_stdout_if d{
-        kwargs<Args...>::template pop_arg<capture_stdout_if>(args...)
+        kwargs<Args...>::template take_arg<capture_stdout_if>(args...)
       };
       if (d._capture == false) {
         capture_stdout = nullptr;
@@ -414,13 +427,13 @@ public:
 
     if (kwargs<Args...>::template has_arg<capture_stderr_data>::value) {
       capture_stderr_data d{
-        kwargs<Args...>::template pop_arg<capture_stderr_data>(args...)
+        kwargs<Args...>::template take_arg<capture_stderr_data>(args...)
       };
-      capture_stderr = & d._data_ref;
+      capture_stderr = d._data_ptr;
     }
     if (kwargs<Args...>::template has_arg<capture_stderr_if>::value) {
       capture_stderr_if d{
-        kwargs<Args...>::template pop_arg<capture_stderr_if>(args...)
+        kwargs<Args...>::template take_arg<capture_stderr_if>(args...)
       };
       if (d._capture == false) {
         capture_stderr = nullptr;
@@ -432,7 +445,7 @@ public:
 
     if (kwargs<Args...>::template has_arg<capture_exit_code>::value) {
       capture_exit_code d{
-        kwargs<Args...>::template pop_arg<capture_exit_code>(args...)
+        kwargs<Args...>::template take_arg<capture_exit_code>(args...)
       };
       exit_code_ptr = &d._exit_code_ref;
     }
@@ -441,7 +454,7 @@ public:
 
     if (kwargs<Args...>::template has_arg<check_exit_code>::value) {
       check_exit_code d{
-        kwargs<Args...>::template pop_arg<check_exit_code>(args...)
+        kwargs<Args...>::template take_arg<check_exit_code>(args...)
       };
       flag_check_exit_code = d._check;
     }

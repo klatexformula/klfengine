@@ -58,6 +58,8 @@ private:
       const klfengine::format_spec & format, bool check_only
       );
   virtual klfengine::binary_data impl_produce_data(const klfengine::format_spec & format);
+
+  virtual std::string assemble_latex_template(const klfengine::input & input);
 };
 
 

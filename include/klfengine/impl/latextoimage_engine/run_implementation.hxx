@@ -143,9 +143,6 @@ inline std::string assemble_latex_template(const klfengine::input & in)
   // set up latex document
 
   bool use_latex_template = true;
-  std::string docclass{"article"};
-  std::string docoptions{}; // don't include [] argument wrapper
-  std::string ltxcolorpkg{"xcolor"};
 
   { auto it_use_latex_template = in.parameters.find("use_latex_template");
     if (it_use_latex_template != in.parameters.end()) {
@@ -157,6 +154,10 @@ inline std::string assemble_latex_template(const klfengine::input & in)
     // no need to go further, the user has prepared everything for us already
     return in.latex;
   }
+
+  std::string docclass{"article"};
+  std::string docoptions{}; // don't include [] argument wrapper
+  std::string ltxcolorpkg{"xcolor"};
 
   { auto it_docclass = in.parameters.find("document_class");
     if (it_docclass != in.parameters.end()) {
@@ -239,6 +240,7 @@ inline std::string assemble_latex_template(const klfengine::input & in)
 void run_implementation::impl_compile()
 {
   using namespace klfengine::detail::utils;
+  using namespace klfengine::detail;
 
   const klfengine::input & in = input();
   const klfengine::settings & sett = settings();
@@ -264,8 +266,8 @@ void run_implementation::impl_compile()
         d->fn.tex
       },
       process::run_in_directory{ d->temp_dir.path().native() },
-      process::capture_stdout_data{latex_out},
-      process::capture_stderr_data{latex_err}
+      process::capture_stdout_data{&latex_out},
+      process::capture_stderr_data{&latex_err}
       );
 
 
@@ -287,8 +289,8 @@ void run_implementation::impl_compile()
         d->fn.dvi
       },
       process::run_in_directory{ d->temp_dir.path().native() },
-      process::capture_stdout_data{dvips_out},
-      process::capture_stderr_data{dvips_err}
+      process::capture_stdout_data{&dvips_out},
+      process::capture_stderr_data{&dvips_err}
       );
 
     binary_data ps_data_obj;
@@ -308,19 +310,20 @@ void run_implementation::impl_compile()
 
   // in either case, we read out the (hi res) bounding box using ghostscript
   
-  std::string gsbbox_err;
+  binary_data gsbbox_err_data;
 
   auto gs_iface = d->gs_iface_tool->gs_interface();
 
-  (void) gs_iface->run_gs(
+  gs_iface->run_gs(
     {
       "-sDEVICE=bbox",
       d->fn.gs_input.native()
     },
-    {},
-    true,
-    &gsbbox_err
+    simple_gs_interface::add_standard_batch_flags{true},
+    simple_gs_interface::capture_stderr_data{&gsbbox_err_data}
   );
+
+  std::string gsbbox_err{gsbbox_err_data.begin(), gsbbox_err_data.end()};
 
   std::regex rxgsbbox{
     "(?:^|\n)\\%\\%\\s*HiResBoundingBox\\s*:\\s*"
@@ -422,6 +425,7 @@ klfengine::format_spec run_implementation::impl_make_canonical(
 klfengine::binary_data run_implementation::impl_produce_data(const klfengine::format_spec & format)
 {
   using namespace klfengine::detail::utils;
+  using namespace klfengine::detail;
 
   const klfengine::input & in = input();
   //const klfengine::settings & sett = settings();
@@ -496,8 +500,10 @@ klfengine::binary_data run_implementation::impl_produce_data(const klfengine::fo
   gs_process_args.push_back("-dFIXEDMEDIA");
 
   // anti-aliasing
-  gs_process_args.push_back("-dGraphicsAlphaBits=4");
-  gs_process_args.push_back("-dTextAlphaBits=4");
+  if (!is_vector_format) {
+    gs_process_args.push_back("-dGraphicsAlphaBits=4");
+    gs_process_args.push_back("-dTextAlphaBits=4");
+  }
 
   // PostScript page initialization code -- draw background color rectangle, then apply
   // translation & scaling
@@ -532,23 +538,23 @@ klfengine::binary_data run_implementation::impl_produce_data(const klfengine::fo
   gs_process_args.push_back("-c");
   gs_process_args.push_back(gs_ps_cmds);
 
-  fprintf(stderr, "DEBUG: gs_ps_cmds = %s", gs_ps_cmds.c_str());
+  //fprintf(stderr, "DEBUG: gs_ps_cmds = %s\n", gs_ps_cmds.c_str());
 
   // finally, the input file
   gs_process_args.push_back("-f");
   gs_process_args.push_back(d->fn.gs_input.native());
 
   // now, run the full ghostscript command.
-  std::string gs_stderr;
-
-  binary_data gs_output = gs_iface->run_gs(
+  binary_data gs_stderr;
+  binary_data gs_stdout;
+  gs_iface->run_gs(
     gs_process_args,
-    {},
-    true,
-    &gs_stderr
+    simple_gs_interface::add_standard_batch_flags{true},
+    simple_gs_interface::capture_stdout_data{&gs_stdout},
+    simple_gs_interface::capture_stderr_data{&gs_stderr}
   );
 
-  return gs_output;
+  return gs_stdout;
 }
 
 

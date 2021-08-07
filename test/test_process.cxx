@@ -172,7 +172,7 @@ TEST_CASE( "can capture process out/err", "[process]" )
     klfengine::process::run_and_wait(
         {"bash", "-c", "echo 'out' && echo >&2 'err'"},
         klfengine::process::executable{"/bin/bash"},
-        klfengine::process::capture_stdout_data{out}
+        klfengine::process::capture_stdout_data{&out}
         );
 
     REQUIRE( out == klfengine::binary_data{'o', 'u', 't', '\n'} );
@@ -182,7 +182,7 @@ TEST_CASE( "can capture process out/err", "[process]" )
     klfengine::process::run_and_wait(
         {"bash", "-c", "echo 'out' && echo >&2 'err'"},
         klfengine::process::executable{"/bin/bash"},
-        klfengine::process::capture_stderr_data{err}
+        klfengine::process::capture_stderr_data{&err}
         );
 
     REQUIRE( err == klfengine::binary_data{'e', 'r', 'r', '\n'} );
@@ -193,8 +193,8 @@ TEST_CASE( "can capture process out/err", "[process]" )
     klfengine::process::run_and_wait(
         {"bash", "-c", "echo 'out' && echo >&2 'err'"},
         klfengine::process::executable{"/bin/bash"},
-        klfengine::process::capture_stdout_data{out},
-        klfengine::process::capture_stderr_data{err}
+        klfengine::process::capture_stdout_data{&out},
+        klfengine::process::capture_stderr_data{&err}
         );
 
     REQUIRE( out == klfengine::binary_data{'o', 'u', 't', '\n'} );
@@ -214,8 +214,8 @@ TEST_CASE( "can send process stdin", "[process]" )
   klfengine::process::run_and_wait(
       {"bash"},
       klfengine::process::executable{"/bin/bash"},
-      klfengine::process::capture_stdout_data{out},
-      klfengine::process::capture_stderr_data{err},
+      klfengine::process::capture_stdout_data{&out},
+      klfengine::process::capture_stderr_data{&err},
       klfengine::process::send_stdin_data{stdin_d}
       );
 
@@ -232,7 +232,7 @@ TEST_CASE( "can launch process with modified environment", "[process]" )
   klfengine::process::run_and_wait(
       {"bash", "-c", "echo \"|$MY_VARIABLE|\""},
       klfengine::process::executable{"/bin/bash"},
-      klfengine::process::capture_stdout_data{out},
+      klfengine::process::capture_stdout_data{&out},
       klfengine::set_environment_variables{ {
         {"MY_VARIABLE", "ZZZ"}
       } }

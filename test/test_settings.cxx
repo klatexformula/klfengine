@@ -41,6 +41,7 @@ TEST_CASE( "struct settings has the right fields of the right type", "[settings]
   s.texbin_directory = "/usr/local/texlive/20xx/somewhere/bin/";
   s.gs_method = "process";
   s.gs_executable_path = "/usr/local/bin/gs";
+  s.gs_libgs_path = "/usr/lib/libgs.so";
   s.subprocess_add_environment = std::map<std::string,std::string>{
     {"TEXINPUTS", "/some/path/for/latex/to/look/for/files"},
     {"BIBINPUTS", "/some/path/for/bibtex/to/look/for/files"}
@@ -50,6 +51,7 @@ TEST_CASE( "struct settings has the right fields of the right type", "[settings]
   REQUIRE( s.texbin_directory == "/usr/local/texlive/20xx/somewhere/bin/" );
   REQUIRE( s.gs_method == "process" );
   REQUIRE( s.gs_executable_path == "/usr/local/bin/gs" );
+  REQUIRE( s.gs_libgs_path == "/usr/lib/libgs.so" );
   REQUIRE( s.subprocess_add_environment == std::map<std::string,std::string>{
     {"TEXINPUTS", "/some/path/for/latex/to/look/for/files"},
     {"BIBINPUTS", "/some/path/for/bibtex/to/look/for/files"}
@@ -65,6 +67,7 @@ TEST_CASE( "struct settings compares for (in)equality", "[settings]" )
     "/usr/local/texlive/20xx/somewhere/bin/",
     "process",
     "/usr/local/bin/gs",
+    "/usr/lib/libgs.so",
     {
      {"TEXINPUTS", "/some/path/for/latex/to/look/for/files"},
      {"BIBINPUTS", "/some/path/for/bibtex/to/look/for/files"}
@@ -76,6 +79,7 @@ TEST_CASE( "struct settings compares for (in)equality", "[settings]" )
     "/usr/local/texlive/20xx/somewhere/bin/",
     "process",
     "/usr/local/bin/gs",
+    "/usr/lib/libgs.so",
     {
      {"TEXINPUTS", "/some/path/for/latex/to/look/for/files"},
      {"BIBINPUTS", "/some/path/for/bibtex/to/look/for/files"}
@@ -87,6 +91,7 @@ TEST_CASE( "struct settings compares for (in)equality", "[settings]" )
     "/usr/local/texlive/20xy/somewhere/bin/", // single typo here
     "process",
     "/usr/local/bin/gs",
+    "/usr/lib/libgs.so",
     {
      {"TEXINPUTS", "/some/path/for/latex/to/look/for/files"},
      {"BIBINPUTS", "/some/path/for/bibtex/to/look/for/files"}
@@ -98,6 +103,7 @@ TEST_CASE( "struct settings compares for (in)equality", "[settings]" )
     "/usr/local/texlive/20xx/somewhere/bin/",
     "process",
     "/usr/local/bin/gs",
+    "/usr/lib/libgs.so",
     {
      {"TEXINPUTS", "/some/path/for/latex/to/look/for/files"},
      {"BIBINPUTS", "/some/path/for/bibtex/to/look/for/filex"} // single typo here
@@ -123,6 +129,7 @@ TEST_CASE( "struct settings converts to/from JSON", "[settings]" )
     "/usr/local/texlive/20xx/somewhere/bin/",
     "process",
     "/usr/local/bin/gs",
+    "/usr/lib/libgs.so",
     {
      {"TEXINPUTS", "/some/path/for/latex/to/look/for/files"},
      {"BIBINPUTS", "/some/path/for/bibtex/to/look/for/files"}
@@ -183,6 +190,7 @@ TEST_CASE( "settings::detect_settings() does its job", "[settings]" )
 {
   klfengine::settings s = klfengine::settings::detect_settings(
       { KLFENGINE_TEST_ROOT_SRC_DIR "/some_path/*/bin",
+        KLFENGINE_TEST_ROOT_SRC_DIR "/some_path/*/lib",
         KLFENGINE_TEST_ROOT_SRC_DIR "/some_path/dummy_texlive/<texlive-year>/bin" }
       );
 
@@ -196,4 +204,9 @@ TEST_CASE( "settings::detect_settings() does its job", "[settings]" )
   REQUIRE( klfengine::fs::canonical(s.gs_executable_path)
            == klfengine::fs::canonical(KLFENGINE_TEST_ROOT_SRC_DIR
                                        "/some_path/dummy_gs/bin/gs") );
+
+  REQUIRE( klfengine::fs::canonical(s.gs_libgs_path)
+           == klfengine::fs::canonical(KLFENGINE_TEST_ROOT_SRC_DIR
+                                       "/some_path/dummy_gs/lib/libgs.so") );
+
 }

@@ -106,11 +106,13 @@ std::vector<std::string> settings::get_wildcard_search_paths(
     "C:\\texlive\\<texlive-year>\\tlpkg\\tlgs\\bin",
 //    "C:\\texlive\\*\\tlpkg\\tlgs\\bin" // TODO -- add this but also associated
 //                                       //         GS_LIB value (klf/klf issue #15)
+    "C:\\Program Files*\\gs\\gs*\\bin", // ??
 #elif defined(_KLFENGINE_OS_MACOSX)
     "/usr/texbin",
     "/Library/TeX/texbin",
     "/usr/local/bin",
     "/opt/local/bin",
+    "/usr/local/opt/ghostscript*/bin",
     "/sw/bin",
     "/sw/usr/bin"
 #else
@@ -123,13 +125,84 @@ std::vector<std::string> settings::get_wildcard_search_paths(
   return search_paths;
 }
 
+
+// -------------------------------------
+
+namespace detail {
+inline std::string detect_libgs(const std::vector<std::string> & extra_paths)
+{
+  //
+  // look for ghostscript libgs.{dll|so|dylib}
+  //
+
+  // set up search paths first.  Initialize with all the given extra_paths first.
+  std::vector<std::string> search_paths{extra_paths};
+
+  // then add any hard-coded paths provided via a preprocessor define
+#ifdef KLFENGINE_EXTRA_SEARCH_PATHS
+  std::vector<std::string> extra_compiled_paths{
+    KLFENGINE_EXTRA_SEARCH_PATHS
+  };
+  search_paths.insert(search_paths.end(),
+                      extra_compiled_paths.begin(), extra_compiled_paths.end());
+#endif
+  
+  std::vector<std::string> libgs_search_paths = {
+#if defined(_KLFENGINE_OS_WIN)
+    "C:\\Program Files*\\gs\\gs*\\bin", // ?? "lib?"
+    "C:\\Windows\\System",
+    // Note: gsdll64.dll can be in System32 ? according to
+    // https://docs.manim.community/en/v0.1.1/installation/troubleshooting.html
+    "C:\\Windows\\System32",
+    "C:\\Windows\\System64"
+#else
+#  if defined(_KLFENGINE_OS_MACOSX)
+    "/usr/local/opt/ghostscript*/lib",
+#  else
+#  endif
+    "/usr/lib",
+    "/opt/lib",
+    "/usr/local/lib"
+#endif
+  };
+    
+  std::vector<std::string> libgs_fnames{
+#if defined(_KLFENGINE_OS_MACOSX)
+    "libgs.dylib",
+    "libgs.so"
+#elif defined(_KLFENGINE_OS_WIN)
+    "gsdll64.dll", // todo, pick correct one according to current process
+    "gsdll32.dll", // todo, pick correct one according to current process
+    "gs.dll",
+    "libgs-*.dll"
+#elif defined(_KLFENGINE_OS_LINUX)
+    "libgs.so"
+#else
+#endif
+  };
+
+  fs::path libgs_path;
+  std::vector<fs::path> libgs_results = detail::find_wildcard_path(
+    search_paths,
+    libgs_fnames,
+    1 // limit - a single match is good
+  );
+  if (!libgs_results.empty()) {
+    libgs_path = libgs_results.front();
+  }
+
+  return libgs_path.generic_string();
+}
+
+} // namespace detail
+
 // static
 _KLFENGINE_INLINE
 settings settings::detect_settings(
     const std::vector<std::string> & extra_paths
     )
 {
-  std::vector<std::string> search_paths = get_wildcard_search_paths(extra_paths);
+  std::vector<std::string> exe_search_paths = get_wildcard_search_paths(extra_paths);
 
   settings s;
 
@@ -141,10 +214,14 @@ settings settings::detect_settings(
   std::vector<std::string> gs_exe_names{"gs"};
 #endif
 
-  // look for "latex" in $PATH + some hard-coded standard paths
+
+  //
+  // look for executable "latex" in $PATH + some hard-coded standard paths
+  //
+
   std::vector<fs::path> latex_results =
     detail::find_wildcard_path(
-        search_paths,
+        exe_search_paths,
         latex_exe_names,
         detail::is_executable,
         1 // limit - a single match is good
@@ -153,36 +230,59 @@ settings settings::detect_settings(
     s.texbin_directory = latex_results.front().parent_path().generic_string();
   }
 
-  // look for ghostscript exe in the given search paths
-  fs::path gs_path;
+
+  //
+  // look for ghostscript executable in the given search paths
+  //
+  fs::path gs_exe_path;
   std::vector<fs::path> gs_results =
     detail::find_wildcard_path(
-        search_paths,
+        exe_search_paths,
         gs_exe_names,
         detail::is_executable,
         1 // limit - a single match is good
         );
   if (!gs_results.empty()) {
-    s.gs_method = "process";
-    gs_path = gs_results.front();
-    s.gs_executable_path = gs_path.generic_string();
-  } else {
-    s.gs_method = "none";
+    gs_exe_path = gs_results.front();
+    s.gs_executable_path = gs_exe_path.generic_string();
   }
 
-  if (gs_path.filename() == "mgs.exe") {
+  // see if subprocess environment needs to be adjusted according to gs executable
+
+  if (gs_exe_path.filename() == "mgs.exe") {
     // detect MikTeX mgs.exe as ghostscript and setup its environment properly
-    fs::path gs_parent_path = gs_path.parent_path();
+    fs::path gs_parent_path = gs_exe_path.parent_path();
     s.subprocess_add_environment["MIKTEX_GS_LIB"] =
       (gs_parent_path / ".." / ".." / "ghostscript" / "base").native() +
       detail::path_separator +
-      (gs_parent_path / ".." / ".." /" fonts").native() ;
+      (gs_parent_path / ".." / ".." / "fonts").native() ;
   }
+
+
+  //
+  // look for ghostscript libgs.{dll|so|dylib}
+  //
+  s.gs_libgs_path = detail::detect_libgs(extra_paths);
+
+
+  // 
+  // pick a method for ghostscript
+  //
+  if (s.gs_executable_path.size() != 0) {
+    s.gs_method = "process";
+  } else {
+    s.gs_method = "none";
+  }
+  // TODO: set loadlibgs as default method if applicable
 
   return s;
 }
 
 
+
+
+
+// -------------------------------------
 
 
 _KLFENGINE_INLINE

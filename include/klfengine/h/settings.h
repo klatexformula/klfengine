@@ -93,6 +93,8 @@ struct settings
 
   std::string gs_executable_path;
 
+  std::string gs_libgs_path;
+
   std::map<std::string, std::string> subprocess_add_environment;
 
   /** \brief Get the path to a latex executable in texbin_directory

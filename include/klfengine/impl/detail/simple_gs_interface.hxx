@@ -31,43 +31,81 @@
 #include <regex>
 #include <string>
 
-#include <iostream> // DEBUG
-
+#include <klfengine/process>
 #include <klfengine/h/detail/simple_gs_interface.h>
 
-#include <klfengine/process>
-
-//#include <subprocess/subprocess.hpp>
 
 namespace klfengine {
 
 namespace detail {
 
 
+struct simple_gs_interface_private
+{
+  simple_gs_interface::method method;
+  std::string gs_path;
+
+  void init();
+
+  void impl_run_gs_process(
+    std::vector<std::string> gs_argv,
+    const binary_data * stdin_data,
+    bool add_standard_batch_flags,
+    binary_data * capture_stdout,
+    binary_data * capture_stderr
+  );
+  void impl_run_gs_loadlibgs(
+    std::vector<std::string> gs_argv,
+    const binary_data * stdin_data,
+    bool add_standard_batch_flags,
+    binary_data * capture_stdout,
+    binary_data * capture_stderr
+  );
+};
+
+
 _KLFENGINE_INLINE
 simple_gs_interface::simple_gs_interface(method method_, std::string gs_path)
-  : _method(method_), _gs_path(std::move(gs_path))
 {
-  _init();
+  d = new simple_gs_interface_private{method_, std::move(gs_path)};
+  d->init();
 }
 
 _KLFENGINE_INLINE
 simple_gs_interface::simple_gs_interface(std::string method_s, std::string gs_path)
-  : _method(parse_method(method_s)), _gs_path(std::move(gs_path))
 {
-  _init();
+  d = new simple_gs_interface_private{parse_method(method_s), std::move(gs_path)};
+  d->init();
 }
 
-void simple_gs_interface::_init()
+_KLFENGINE_INLINE
+simple_gs_interface::~simple_gs_interface()
 {
-  if (_method != method::Process) {
-    throw std::runtime_error("Only 'method::Process' method is supported for now.") ;
+  if (d != nullptr) {
+    delete d;
   }
-
-  if ( ! fs::exists(_gs_path) ) {
-    throw std::runtime_error("Invalid gs path: " + _gs_path) ;
-  }
+  d = nullptr;
 }
+
+
+inline
+void simple_gs_interface_private::init()
+{
+}
+
+
+_KLFENGINE_INLINE
+simple_gs_interface::method simple_gs_interface::gs_method() const
+{
+  return d->method;
+}
+_KLFENGINE_INLINE
+const std::string & simple_gs_interface::gs_path() const
+{
+  return d->gs_path;
+}
+
+
 
 
 // static
@@ -91,8 +129,9 @@ _KLFENGINE_INLINE
 simple_gs_interface::gs_version_t simple_gs_interface::get_gs_version()
 {
   binary_data out_buf;
-  process::run_and_wait( {_gs_path, "--version"},
-                         process::capture_stdout_data{out_buf} );
+
+  run_gs( {"--version"}, capture_stdout_data{&out_buf} );
+
   std::string out{out_buf.begin(), out_buf.end()};
 
   std::regex rx_ver("^(\\d+)[.](\\d+)");
@@ -141,8 +180,9 @@ _KLFENGINE_INLINE
 simple_gs_interface::gs_info_t simple_gs_interface::get_gs_info()
 {
   binary_data out_buf;
-  process::run_and_wait( {_gs_path, "--help"},
-                         process::capture_stdout_data{out_buf} );
+
+  run_gs( {"--help"}, capture_stdout_data{&out_buf} );
+
   std::string out{out_buf.begin(), out_buf.end()};
 
   constexpr auto rxflg = std::regex::ECMAScript | std::regex::icase;
@@ -190,52 +230,106 @@ simple_gs_interface::gs_version_and_info_t simple_gs_interface::get_gs_version_a
 }
 
 
+
+
 _KLFENGINE_INLINE
-binary_data simple_gs_interface::run_gs(
-    const std::vector<std::string> & gs_args,
-    const binary_data & stdin_data,
-    bool add_standard_batch_flags,
-    std::string * set_stderr)
+void simple_gs_interface::impl_run_gs(
+  std::vector<std::string> gs_args,
+  const binary_data * stdin_data,
+  bool add_standard_batch_flags,
+  binary_data * capture_stdout,
+  binary_data * capture_stderr
+)
 {
-  std::vector<std::string> argv;
-  argv.push_back(_gs_path);
-  if (add_standard_batch_flags) {
-    argv.push_back("-dNOPAUSE");
-    argv.push_back("-dBATCH");
-    argv.push_back("-dSAFER");
-    argv.push_back("-q");
+  switch (d->method) {
+  case method::None: {
+     throw std::runtime_error("Can't run ghostscript, method was set to ‘None’");
+     return;
   }
-  argv.insert(argv.end(), gs_args.begin(), gs_args.end());
-
-  binary_data out;
-  binary_data err;
-
-  struct CopyStderrOnExit {
-    binary_data * err;
-    std::string * set_stderr;
-    CopyStderrOnExit(binary_data * e, std::string * x)
-      : err(e), set_stderr(x) { }
-    ~CopyStderrOnExit() {
-      if (set_stderr != nullptr) {
-        *set_stderr = std::string{err->begin(), err->end()};
-      }
-    }
-  };
-  CopyStderrOnExit scoped_exit_obj{&err, set_stderr};
-
-  process::run_and_wait(
-      argv,
-      process::send_stdin_data{stdin_data},
-      process::capture_stdout_data{out},
-      process::capture_stderr_data{err},
-      process::capture_stderr_if{set_stderr != nullptr}
-      );
-
-  return out;
+  case method::Process: {
+    d->impl_run_gs_process(std::move(gs_args), stdin_data, add_standard_batch_flags,
+                           capture_stdout, capture_stderr);
+    return;
+  }
+  case method::LinkedLibgs: {
+    throw std::runtime_error("Can't run ghostscript, method LinkedLibgs not yet implemented.");
+    return;
+  }
+  case method::LoadLibgs: {
+    d->impl_run_gs_loadlibgs(std::move(gs_args), stdin_data, add_standard_batch_flags,
+                             capture_stdout, capture_stderr);
+    return;
+  }
+  default: {
+    throw std::runtime_error("Can't run ghostscript, invalid method ‘"
+                             + std::to_string(int(d->method)) + "’");
+  }
+  } // switch
 }
 
 
 
+// -------------------------------------
+// run_gs - "process" method
+// -------------------------------------
+
+_KLFENGINE_INLINE
+void simple_gs_interface_private::impl_run_gs_process(
+  std::vector<std::string> gs_argv,
+  const binary_data * stdin_data,
+  bool add_standard_batch_flags,
+  binary_data * capture_stdout,
+  binary_data * capture_stderr
+)
+{
+  if ( ! fs::exists(gs_path) ) {
+    throw std::runtime_error("Invalid gs path: " + gs_path) ;
+  }
+
+  if (add_standard_batch_flags) {
+    std::vector<std::string> init_args{
+      gs_path,
+      "-dNOPAUSE",
+      "-dBATCH",
+      "-dSAFER",
+      "-q"
+    };
+    gs_argv.insert(gs_argv.begin(), init_args.begin(), init_args.end());
+  } else {
+    gs_argv.insert(gs_argv.begin(), gs_path);
+  }
+
+  process::run_and_wait(
+    gs_argv,
+    process::send_stdin_data{stdin_data},
+    process::capture_stdout_data{capture_stdout},
+    process::capture_stderr_data{capture_stderr}
+  );
+}
+
+
+// -------------------------------------
+// run_gs - "loadlibgs" method
+// -------------------------------------
+
+_KLFENGINE_INLINE
+void simple_gs_interface_private::impl_run_gs_loadlibgs(
+  std::vector<std::string> ,//gs_argv,
+  const binary_data * ,//stdin_data,
+  bool ,//add_standard_batch_flags,
+  binary_data * ,//capture_stdout,
+  binary_data * //capture_stderr
+)
+{
+
+  throw std::runtime_error("Can't run ghostscript, method LoadLibgs not yet implemented.");
+
+  // WRITE ME !
+
+}
+
+
+// -----------------------------------------------------------------------------
 
 
 _KLFENGINE_INLINE
@@ -246,17 +340,45 @@ simple_gs_interface_engine_tool::simple_gs_interface_engine_tool()
 _KLFENGINE_INLINE
 void simple_gs_interface_engine_tool::set_settings(const settings & settings)
 {
+  struct gs_sett_pair_t {
+    simple_gs_interface::method method;
+    const std::string * gs_path_ptr;
+  };
+
+  gs_sett_pair_t cursett;
   if (_gs_interface) {
-    if (simple_gs_interface::parse_method(settings.gs_method)
-        == _gs_interface->gs_method() &&
-        settings.gs_executable_path == _gs_interface->gs_executable_path()) {
-      return; // no changes to gs method / path
+    cursett = gs_sett_pair_t{_gs_interface->gs_method(), & _gs_interface->gs_path()};
+  }
+
+  const std::string emptystr;
+  gs_sett_pair_t newsett{simple_gs_interface::parse_method(settings.gs_method), &emptystr};
+  if (newsett.method == simple_gs_interface::method::Process) {
+    newsett.gs_path_ptr = & settings.gs_executable_path;
+  } else if (newsett.method == simple_gs_interface::method::LoadLibgs) {
+    newsett.gs_path_ptr = & settings.gs_libgs_path;
+  }
+
+  if (_gs_interface) {
+    if (cursett.method == newsett.method) {
+      if (cursett.method == simple_gs_interface::method::Process) {
+        if (settings.gs_executable_path == *cursett.gs_path_ptr) {
+          return; // no changes to gs method / path
+        }
+      } else if (cursett.method == simple_gs_interface::method::LoadLibgs) {
+        if (settings.gs_libgs_path == *cursett.gs_path_ptr) {
+          return; // no changes to gs method / path
+        }
+      } else {
+        // current method is neither Process nor LoadLibgs, and it isn't to be changed
+        return;
+      }
     }
   }
+
   // changes, need to create new simple_gs_interface object.  Being a
   // std::unique_ptr, this will delete any old instance, if any.
   _gs_interface = std::unique_ptr<simple_gs_interface>{
-    new simple_gs_interface{settings.gs_method, settings.gs_executable_path}
+    new simple_gs_interface{newsett.method, *newsett.gs_path_ptr}
   };
 
   _gs_version_and_info = _gs_interface->get_gs_version_and_info();

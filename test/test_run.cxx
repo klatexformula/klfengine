@@ -209,6 +209,13 @@ inline dummy_engine::dummy_run_impl * make_dummy_run_impl_ptr(
   in.latex = tex_input;
   return new dummy_engine::dummy_run_impl{
     in,
-    klfengine::settings{"/tmp", "/Library/TeX/texbin/", "none", "", {}}
+    klfengine::settings{
+      "/tmp",
+      "/Library/TeX/texbin/",
+      "none",
+      "",
+      "",
+      {}
+    }
   };
 }

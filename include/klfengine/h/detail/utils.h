@@ -28,6 +28,8 @@
 
 #pragma once
 
+#include <cstdio> // FILE, fopen, fwrite
+#include <cerrno>
 #include <cstdio>
 #include <cctype>
 #include <string>
@@ -69,29 +71,29 @@ struct kwargs {
   template<typename T>
   using has_arg = contains<T, A...>;
 
-  /** \warning pop_arg() can only be called ONCE for each type, because its
+  /** \warning take_arg() can only be called ONCE for each type, because its
    *           return value *has been std::move'ed
    */
   template<typename T, typename... Rest>
-  static T && pop_arg(T && t, Rest&&... ) {
+  static T && take_arg(T && t, Rest&&... ) {
     return t;
   }
   template<typename T, typename... Rest>
-  static T && pop_arg(T & t, Rest&&... ) {
+  static T && take_arg(T & t, Rest&&... ) {
     static_assert( ! kwargs<Rest...>::template has_arg<T>::value,
                    "You cannot specify the same keyword argument multiple times" );
     return std::move(t);
   }
   template<typename T, typename O, typename... Rest>
-  static auto pop_arg(O && , Rest&&... a) -> 
+  static auto take_arg(O && , Rest&&... a) -> 
     typename std::enable_if<
       !std::is_same<T,typename std::remove_reference<O>::type>::value,
       T &&>::type
   {
-    return pop_arg<T>(std::forward<Rest>(a)...);
+    return take_arg<T>(std::forward<Rest>(a)...);
   }
   template<typename T>
-  static T && pop_arg()
+  static T && take_arg()
   {
     throw std::invalid_argument(
         std::string("Expected argument ") + get_type_name<T>() + "{}"

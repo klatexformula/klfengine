@@ -28,10 +28,6 @@
 
 #pragma once
 
-#include <cstdio> // FILE, fopen, fwrite
-#include <system_error>
-#include <cerrno>
-
 #include <klfengine/klfimplpkg_engine>
 #include <klfengine/temporary_directory>
 #include <klfengine/h/detail/utils.h>
@@ -74,7 +70,7 @@ run_implementation::run_implementation(
     // temp_dir
     temporary_directory{
       settings().temporary_directory,
-      std::string{"klfeimplstytmp"} +
+      std::string{"klfeimplpkgtmp"} +
       _KLFENGINE_CONCAT_VER_3_j(
           KLFENGINE_VERSION_MAJOR,
           KLFENGINE_VERSION_MINOR,
@@ -95,22 +91,24 @@ run_implementation::~run_implementation()
 }
 
 _KLFENGINE_INLINE
-void run_implementation::impl_compile()
+std::string run_implementation::assemble_latex_template(
+    const klfengine::input & in
+)
 {
   using namespace klfengine::detail::utils;
 
-  const klfengine::input & in = input();
-  const klfengine::settings & sett = settings();
+  bool use_latex_template = true;
 
-  // write our style file into the temp dir (TODO: maybe we could have a fixed
-  // temp dir per engine instance, so we only do this once?) (OR TODO: maybe we
-  // could have another different engine-wide temp dir to store the klfimpl.sty
-  // file and use a TEXINPUTS=... when invoking latex)
-  std::string klfimplsty_fname = (d->temp_dir.path() / "klfimpl.sty").native();
-  dump_cstr_to_file(klfimplsty_fname, detail::klfimpl_sty_data);
+  { auto it_use_latex_template = in.parameters.find("use_latex_template");
+    if (it_use_latex_template != in.parameters.end()) {
+      use_latex_template = it_use_latex_template->second.get<bool>();
+    }
+  }
 
-  // prepare latex template
-  std::string tempfname = d->temp_dir.path() / "klfetmp";
+  if ( ! use_latex_template ) {
+    // no need to go further, the user has prepared everything for us already
+    return in.latex;
+  }
 
   bool need_latex_color_package = false;
 
@@ -131,7 +129,6 @@ void run_implementation::impl_compile()
       docoptions = it_docoptions->second.get<std::string>();
     }
   }
-
 
   std::string font_cmds;
 
@@ -214,7 +211,6 @@ void run_implementation::impl_compile()
   pre_preamble += "\\klfSetBottomMargin{" + dbl_to_string(in.margins.bottom) + "pt}\n";
   pre_preamble += "\\klfSetLeftMargin{" + dbl_to_string(in.margins.left) + "pt}\n";
 
-
   // ---
 
   std::string latex_str;
@@ -235,7 +231,7 @@ void run_implementation::impl_compile()
     latex_str +=
       "\\makeatletter"
       "\\newcommand\\klfEnsureColorPackageLoaded{%\n"
-      "  \\@ifpackageloaded{color}{}{\\@ifpackageloaded{xcolor}{}{\\RequirePackage{xcolor}}}}"
+      "  \\@ifpackageloaded{color}{}{\\@ifpackageloaded{xcolor}{}{\\RequirePackage{xcolor}}}}%"
       "\\makeatother\n"
       ;
   }
@@ -266,7 +262,32 @@ void run_implementation::impl_compile()
   latex_str += "%\n";
   latex_str += "%%% --- end user math_mode and latex ---\n";
 
-  latex_str += "\\end{klfcontent}\n\\end{document}\n";
+  latex_str += "\\end{klfcontent}%\n\\end{document}\n";
+
+  return latex_str;
+}
+
+_KLFENGINE_INLINE
+void run_implementation::impl_compile()
+{
+  using namespace klfengine::detail::utils;
+
+  const klfengine::input & in = input();
+  const klfengine::settings & sett = settings();
+
+  // write our style file into the temp dir (TODO: maybe we could have a fixed
+  // temp dir per engine instance, so we only do this once?) (OR TODO: maybe we
+  // could have another different engine-wide temp dir to store the klfimpl.sty
+  // file and use a TEXINPUTS=... when invoking latex) (OR TODO: We could inject
+  // the code into the LaTeX template with some minimal boilerplate top/bottom
+  // code as I do in my side project styexpress)
+  std::string klfimplsty_fname{ (d->temp_dir.path() / "klfimpl.sty").native() };
+  dump_cstr_to_file(klfimplsty_fname, detail::klfimpl_sty_data);
+
+  // prepare latex template
+  std::string tempfname{ d->temp_dir.path() / "klfetmp" };
+
+  std::string latex_str{ assemble_latex_template(in) };
 
   dump_cstr_to_file(tempfname + ".tex", latex_str.c_str());
 
@@ -290,8 +311,8 @@ void run_implementation::impl_compile()
         tempfname
       },
       process::run_in_directory{ d->temp_dir.path().native() },
-      process::capture_stdout_data{out},
-      process::capture_stderr_data{err}
+      process::capture_stdout_data{&out},
+      process::capture_stderr_data{&err}
       );
 
   binary_data pdf_data_obj;

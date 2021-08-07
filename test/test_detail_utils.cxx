@@ -52,7 +52,7 @@ static std::string test_run_args(Args && ... args)
 
   if (kwargs<Args...>::template has_arg<string_arg_test>::value) {
     string_arg_test d{
-      kwargs<Args...>::template pop_arg<string_arg_test>(args...)
+      kwargs<Args...>::template take_arg<string_arg_test>(args...)
     };
     return "yes! string_arg_test._data is: " + d._data;
   }

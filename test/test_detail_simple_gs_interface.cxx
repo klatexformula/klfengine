@@ -124,20 +124,22 @@ TEST_CASE( "handle gs errors", "[detail-simple_gs_interface]" )
     get_gs_path()
   };
 
-  std::string stderr_s;
+  klfengine::binary_data stderr_data;
 
-  klfengine::binary_data output;
+  klfengine::binary_data output_data;
 
   CHECK_THROWS_AS(
-      output = gs.run_gs(
+      gs.run_gs(
           {"-sDEVICE=pdfwrite","-dBATCH", "-q", "-dNOPAUSE"}, // missing -sOutputFile=
-          klfengine::binary_data{}, // gs stdin
-          false, // already have all necessary flags above
-          //
-          &stderr_s
+          klfengine::detail::simple_gs_interface::send_stdin_data{klfengine::binary_data{}},
+          klfengine::detail::simple_gs_interface::add_standard_batch_flags{false},
+          klfengine::detail::simple_gs_interface::capture_stderr_data{&stderr_data},
+          klfengine::detail::simple_gs_interface::capture_stdout_data{&output_data}
           ),
       klfengine::process_exit_error
       );
+
+  std::string stderr_s{stderr_data.begin(), stderr_data.end()};
 
   // and reports an error on stderr
   REQUIRE( stderr_s.find("Device 'pdfwrite' requires an output file")
@@ -153,24 +155,34 @@ TEST_CASE( "can run gs", "[detail-simple_gs_interface]" )
     get_gs_path()
   };
 
-  std::string stderr_s;
-
   std::string ps_code{
     "%!PS\n"
     "<< /PageSize [36 36] >> setpagedevice 0.4 setlinewidth 2 2 newpath moveto 5 5 lineto 10 0 lineto 10 10 lineto closepath 0.4 0 0 setrgbcolor stroke showpage"
   };
 
-  auto output = gs.run_gs(
+  klfengine::binary_data stdout_data;
+  klfengine::binary_data stderr_data;
+
+  gs.run_gs(
       {"-sDEVICE=pdfwrite","-dBATCH", "-q", "-dNOPAUSE", "-sOutputFile=-"},
-      // some dummy PS input
-      klfengine::binary_data{ps_code.begin(), ps_code.end()},
-      false, // already have all necessary flags above
-      //
-      &stderr_s
+      // send some dummy PS input to stdin
+      klfengine::detail::simple_gs_interface::send_stdin_data{
+        klfengine::binary_data{ps_code.begin(), ps_code.end()}
+      },
+      // already have all necessary flags above
+      klfengine::detail::simple_gs_interface::add_standard_batch_flags{false},
+      // output & error streams
+      klfengine::detail::simple_gs_interface::capture_stdout_data{&stdout_data},
+      klfengine::detail::simple_gs_interface::capture_stderr_data{&stderr_data}
       );
 
-  REQUIRE( stderr_s == std::string() ) ;
+  std::string output_s{stdout_data.begin(), stdout_data.end()};
 
-  REQUIRE( std::string{output.begin(),output.end()}.rfind("%PDF-",0) == 0 ) ;
+  CAPTURE( std::string{stderr_data.begin(), stderr_data.end()} );
+  CAPTURE( output_s );
+
+  REQUIRE( stderr_data == klfengine::binary_data{} ) ;
+
+  REQUIRE( output_s.rfind("%PDF-",0) == 0 ) ;
 }
 

@@ -12,4 +12,4 @@
 
 // engines
 #include <klfengine/klfimplpkg_engine>
-#include <klfengine/latex_dvips_gs_engine>
+#include <klfengine/latextoimage_engine>

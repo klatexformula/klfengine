@@ -95,7 +95,7 @@ inline void require_images_similar(std::string fnimg1, std::string fnimg2)
       fnimg2,
       devnull
     },
-    klfengine::process::capture_stderr_data{magick_err},
+    klfengine::process::capture_stderr_data{&magick_err},
     klfengine::process::capture_exit_code{magick_compare_exit_code},
     klfengine::process::check_exit_code{false}
     );
@@ -147,7 +147,8 @@ inline void pdfdata_to_pngfile(
   int dpi
 )
 {
-  std::string gs_pdftopng_stderr;
+  klfengine::binary_data gs_pdftopng_stderr;
+  klfengine::binary_data gs_pdftopng_stdout;
   std::string gs_exec = find_test_helper_tool("gs");
   CAPTURE( gs_exec );
 
@@ -164,13 +165,17 @@ inline void pdfdata_to_pngfile(
   CAPTURE( gs_pdftopng_args );
 
   klfengine::detail::simple_gs_interface gsiface("process", gs_exec);
-  auto gs_pdftopng_stdout = gsiface.run_gs(
+  gsiface.run_gs(
     gs_pdftopng_args,
-    pdfdata,
-    true,
-    &gs_pdftopng_stderr
+    klfengine::detail::simple_gs_interface::send_stdin_data{pdfdata},
+    klfengine::detail::simple_gs_interface::add_standard_batch_flags{true},
+    klfengine::detail::simple_gs_interface::capture_stdout_data{&gs_pdftopng_stdout},
+    klfengine::detail::simple_gs_interface::capture_stderr_data{&gs_pdftopng_stderr}
   );
 
-  CAPTURE(gs_pdftopng_stdout) ;
-  CAPTURE(gs_pdftopng_stderr) ;
+  std::string gs_pdftopng_stdout_s{gs_pdftopng_stdout.begin(), gs_pdftopng_stdout.end()};
+  std::string gs_pdftopng_stderr_s{gs_pdftopng_stderr.begin(), gs_pdftopng_stderr.end()};
+
+  CAPTURE(gs_pdftopng_stdout_s) ;
+  CAPTURE(gs_pdftopng_stderr_s) ;
 }
