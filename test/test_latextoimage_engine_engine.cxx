@@ -34,7 +34,7 @@
 
 
 
-TEST_CASE( "something happens when this and that f8yr93guibdsnjk", "[keyword]" )
+TEST_CASE( "something happens when this and that f8yr93guibdsnjk", "[keyword][!mayfail]" )
 {
   // write tests here
   REQUIRE( false ) ;

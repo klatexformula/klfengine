@@ -149,6 +149,24 @@ simple_gs_interface::parse_method(const std::string & method_s)
 _KLFENGINE_INLINE
 simple_gs_interface::gs_version_t simple_gs_interface::get_gs_version()
 {
+#if defined(KLFENGINE_USE_LINKED_GHOSTSCRIPT)
+  if (d->method == method::LinkedLibgs) {
+
+    gsapi_revision_t r;
+    if (gsapi_revision(&r, sizeof(r)) == 0) {
+      fprintf(stderr, "DEBUG: Got gsapi_revision: revision = %ld\n", r.revision);
+      int rev = int(r.revision);
+      if (rev < 1000) {
+        // revision is e.g. 9.19 -> 919
+        return { int(r.revision)/100, int(r.revision)%100 };
+      } else {
+        // revision is e.g. 9540 -> 9.54.0
+        return { int(r.revision)/1000, (int(r.revision)%1000)/10 };
+      }
+    }
+    // if this failed, continue alternative way below -->
+  }
+#endif
   binary_data out_buf;
 
   run_gs( {"--version"}, capture_stdout_data{&out_buf} );

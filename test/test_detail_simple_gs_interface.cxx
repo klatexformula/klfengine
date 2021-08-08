@@ -80,6 +80,9 @@ inline void do_test_check_gs_version(klfengine::detail::simple_gs_interface & gs
   std::cout << "[test] You are running ghostscript version "
             << ver.major << "." << ver.minor << "\n";
 
+  CAPTURE( ver.major );
+  CAPTURE( ver.minor );
+
   REQUIRE( ver.major >= 8 );
   REQUIRE( ver.minor >= 0 );
 }

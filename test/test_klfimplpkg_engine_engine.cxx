@@ -31,7 +31,7 @@
 
 #include <catch2/catch.hpp>
 
-TEST_CASE( "something happens when this and that 2uewhifdnfudohas", "[keyword]" )
+TEST_CASE( "something happens when this and that 2uewhifdnfudohas", "[keyword][!mayfail]" )
 {
   // write tests here
   REQUIRE( false ) ;
