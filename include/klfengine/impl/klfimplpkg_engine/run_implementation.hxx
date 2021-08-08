@@ -315,6 +315,11 @@ void run_implementation::impl_compile()
       process::capture_stderr_data{&err}
       );
 
+
+  // TODO: SUPPORT FOR "latex" (->DVI) ENGINE !! (or skip it? if the user wants
+  // a latex->dvi workflow they can use latextoimage_engine)
+
+
   binary_data pdf_data_obj;
   pdf_data_obj = load_file_data( tempfname + ".pdf" );
 

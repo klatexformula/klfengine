@@ -275,18 +275,17 @@ TEST_CASE( "can run gs via Process", "[detail-simple_gs_interface]" )
   do_can_run_gs( gs );
 }
 
-TEST_CASE( "can run gs via LinkedLibgs", "[detail-simple_gs_interface]" )
-{
-  klfengine::detail::simple_gs_interface gs{
-    klfengine::detail::simple_gs_interface::method::LinkedLibgs,
-    get_gs_path()
-  };
-
-  // FIXME: It looks like device output is *always* sent to stdout regardless of
-  // callbacks! Help! how can we get this fixed?
-
-  do_can_run_gs( gs );
-}
+// *** It looks like device output is *always* sent to stdout regardless of
+//     callbacks!  We can't use libgs if we want gs to write to stdout!
+//
+// TEST_CASE( "can run gs via LinkedLibgs", "[detail-simple_gs_interface]" )
+// {
+//   klfengine::detail::simple_gs_interface gs{
+//     klfengine::detail::simple_gs_interface::method::LinkedLibgs,
+//     get_gs_path()
+//   };
+//   do_can_run_gs( gs );
+// }
 
 TEST_CASE( "can run gs via LoadLibgs", "[detail-simple_gs_interface]" )
 {

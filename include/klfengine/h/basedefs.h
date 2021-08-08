@@ -28,6 +28,7 @@
 
 #pragma once
 
+#include <cstdio> // fprintf()
 #include <string>
 #include <vector>
 #include <exception>
@@ -69,7 +70,29 @@
 
 
 
+
 namespace klfengine {
+
+
+// simple WARNING / ERROR output handles with printf-like formatting
+inline void warn(std::string what, std::string msg) {
+#ifdef KLFENGINE_HANDLE_WARNING
+  KLFENGINE_HANDLE_WARNING(what, msg) ;
+#else
+  fprintf(stderr, "WARNING: %s: %s\n", what.c_str(), msg.c_str());
+#endif
+}
+inline void error(std::string what, std::string msg) {
+#ifdef KLFENGINE_HANDLE_ERROR
+  KLFENGINE_HANDLE_ERROR(what, msg) ;
+#else
+  fprintf(stderr, "ERROR: %s: %s\n", what.c_str(), msg.c_str());
+#endif
+}
+
+
+
+
 
 /** \brief Storage type for (binary) data resulting from a compilation
  *

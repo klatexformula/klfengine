@@ -66,7 +66,8 @@ inline std::string find_test_helper_tool(std::string toolname)
     }
   }
 
-  throw std::runtime_error("Can't find tool " + toolname + ".  Try setting $" + varname
+  throw std::runtime_error("testutils.hxx: Can't find tool " + toolname
+                           + ".  Try setting $" + varname
                            + " to the full path to the executable");
 }
 

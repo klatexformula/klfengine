@@ -144,7 +144,7 @@
 % to tell us via a package option what |latex| engine is being run (|latex| with
 % DVI output, |pdflatex|, |xelatex|, or |lualatex|).
 %    \begin{macrocode}
-\newif\ifklf@ltxengine@latexdvi \klf@ltxengine@latexdvifalse
+\newif\ifklf@ltxengine@latex \klf@ltxengine@latexfalse
 \newif\ifklf@ltxengine@pdflatex \klf@ltxengine@pdflatexfalse
 \newif\ifklf@ltxengine@xelatex \klf@ltxengine@xelatexfalse
 \newif\ifklf@ltxengine@lualatex \klf@ltxengine@lualatexfalse
@@ -211,7 +211,7 @@
 %
 % Set the \LaTeX\space engine.
 %    \begin{macrocode}
-\DeclareOption{latexdvi}{\klf@ltxengine@latexdvitrue}
+\DeclareOption{latex}{\klf@ltxengine@latextrue}
 \DeclareOption{pdflatex}{\klf@ltxengine@pdflatextrue}
 \DeclareOption{xelatex}{\klf@ltxengine@xelatextrue}
 \DeclareOption{lualatex}{\klf@ltxengine@lualatextrue}
@@ -532,7 +532,7 @@
 %
 %    \begin{macrocode}
 \def\klf@RenderContentBox{%
-  \ifklf@ltxengine@latexdvi% tough luck
+  \ifklf@ltxengine@latex% tough luck
   \else
     \@tempdima=\klf@ppw
     \@tempdima=\klf@set@xscale\@tempdima\relax

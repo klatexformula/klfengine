@@ -58,7 +58,8 @@ if(NOT TARGET klfengine::klfengine)
   endif()
 
   set_target_properties(klfengine::klfengine
-    INTERFACE_INCLUDE_DIRECTORIES "${_IMPORT_PREFIX}/include"
+    PROPERTIES
+      INTERFACE_INCLUDE_DIRECTORIES "${_IMPORT_PREFIX}/include"
   )
 
   set(_klfengine_target_name klfengine::klfengine)

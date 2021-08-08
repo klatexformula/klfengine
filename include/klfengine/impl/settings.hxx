@@ -268,12 +268,15 @@ settings settings::detect_settings(
   // 
   // pick a method for ghostscript
   //
+#if defined(KLFENGINE_USE_LINKED_GHOSTSCRIPT)
+  s.gs_method = "linked-libgs"; // we were linked against libgs at compile-time, use it!
+#else
   if (s.gs_executable_path.size() != 0) {
     s.gs_method = "process";
   } else {
     s.gs_method = "none";
   }
-  // TODO: set loadlibgs as default method if applicable
+#endif
 
   return s;
 }
@@ -313,6 +316,7 @@ void to_json(nlohmann::json & j, const settings & v)
     {"texbin_directory", v.texbin_directory},
     {"gs_method", v.gs_method},
     {"gs_executable_path", v.gs_executable_path},
+    {"gs_libgs_path", v.gs_libgs_path},
     {"subprocess_add_environment", v.subprocess_add_environment}
   };
 }
@@ -323,6 +327,7 @@ void from_json(const nlohmann::json & j, settings & v)
   j.at("texbin_directory").get_to(v.texbin_directory);
   j.at("gs_method").get_to(v.gs_method);
   j.at("gs_executable_path").get_to(v.gs_executable_path);
+  j.at("gs_libgs_path").get_to(v.gs_libgs_path);
   j.at("subprocess_add_environment").get_to(v.subprocess_add_environment);
 }
 

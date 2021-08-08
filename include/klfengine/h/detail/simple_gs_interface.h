@@ -115,7 +115,11 @@ public:
       add_standard_batch_flags_yn = d._add_flags;
     }
 
-    binary_data * capture_stderr_bufptr = nullptr;
+    // always capture stdout and stderr for error messages
+    binary_data _default_stderr_buf;
+    binary_data _default_stdout_buf;
+
+    binary_data * capture_stderr_bufptr = & _default_stderr_buf;
     if (kwargs<Args...>::template has_arg<capture_stderr_data>::value) {
       capture_stderr_data d{
         kwargs<Args...>::template take_arg<capture_stderr_data>(args...)
@@ -123,7 +127,7 @@ public:
       capture_stderr_bufptr = d._data_ptr;
     }
 
-    binary_data * capture_stdout_bufptr = nullptr;
+    binary_data * capture_stdout_bufptr = & _default_stdout_buf;
     if (kwargs<Args...>::template has_arg<capture_stdout_data>::value) {
       capture_stdout_data d{
         kwargs<Args...>::template take_arg<capture_stdout_data>(args...)
@@ -132,7 +136,7 @@ public:
     }
 
     binary_data _default_stdin_data{};
-    const binary_data * stdin_data_bufptr = &_default_stdin_data;
+    const binary_data * stdin_data_bufptr = & _default_stdin_data;
     if (kwargs<Args...>::template has_arg<send_stdin_data>::value) {
       send_stdin_data d{
         kwargs<Args...>::template take_arg<send_stdin_data>(args...)

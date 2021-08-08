@@ -450,9 +450,11 @@ klfengine::binary_data run_implementation::impl_produce_data(const klfengine::fo
 
   std::vector<std::string> gs_process_args;
 
-  // we'll request output to STDOUT
-  // fs::path outf = d->fn.base;
-  // outf.replace_filename(d->fn.base.filename() + "-gs." + to_lowercase(format.format));
+  // don't use ghostscript STDOUT so that we can also use libgs-based methods in
+  // simple_gs_interface
+  fs::path outf = d->fn.base;
+  outf.replace_filename(d->fn.base.filename().generic_string() + "-gs."
+                        + to_lowercase(format.format));
 
   bool is_vector_format = true;
 
@@ -474,7 +476,7 @@ klfengine::binary_data run_implementation::impl_produce_data(const klfengine::fo
     gs_process_args.push_back("-sDEVICE=eps2write");
   }
 
-  gs_process_args.push_back("-sOutputFile=-"); // + outf.native());
+  gs_process_args.push_back("-sOutputFile="+outf.native());
 
   const double widthpt  = d->bbox.x2 - d->bbox.x1;
   const double heightpt = d->bbox.y2 - d->bbox.y1;
@@ -545,16 +547,18 @@ klfengine::binary_data run_implementation::impl_produce_data(const klfengine::fo
   gs_process_args.push_back(d->fn.gs_input.native());
 
   // now, run the full ghostscript command.
-  binary_data gs_stderr;
-  binary_data gs_stdout;
+  //binary_data gs_stderr;
+  //binary_data gs_stdout;
   gs_iface->run_gs(
     gs_process_args,
-    simple_gs_interface::add_standard_batch_flags{true},
-    simple_gs_interface::capture_stdout_data{&gs_stdout},
-    simple_gs_interface::capture_stderr_data{&gs_stderr}
+    simple_gs_interface::add_standard_batch_flags{true}
+    //simple_gs_interface::capture_stdout_data{&gs_stdout},
+    //simple_gs_interface::capture_stderr_data{&gs_stderr}
   );
 
-  return gs_stdout;
+  binary_data gs_result_data{ load_file_data(outf.native()) };
+
+  return gs_result_data;
 }
 
 

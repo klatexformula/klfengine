@@ -9,7 +9,7 @@ const char * klfimpl_sty_data =
   R"%%%###%%%###%%%(%% This is klfimpl.sty exported as C++ source code
 \NeedsTeXFormat{LaTeX2e}[2005/12/01]
 \ProvidesPackage{klfimpl}
-    [2020/08/08 v0.2 klfimpl package]
+    [2020/08/20 v0.2 klfimpl package]
 \newbox\klf@eqnbox
 \newdimen\klf@w
 \newdimen\klf@h
@@ -28,7 +28,7 @@ const char * klfimpl_sty_data =
 \newdimen\klf@dim@rightmargin
 \newdimen\klf@dim@bottommargin
 \newdimen\klf@dim@leftmargin
-\newif\ifklf@ltxengine@latexdvi \klf@ltxengine@latexdvifalse
+\newif\ifklf@ltxengine@latex \klf@ltxengine@latexfalse
 \newif\ifklf@ltxengine@pdflatex \klf@ltxengine@pdflatexfalse
 \newif\ifklf@ltxengine@xelatex \klf@ltxengine@xelatexfalse
 \newif\ifklf@ltxengine@lualatex \klf@ltxengine@lualatexfalse
@@ -47,7 +47,7 @@ const char * klfimpl_sty_data =
 \def\klf@set@topalignment{bbox}
 \def\klf@set@bottomalignment{bbox}
 \def\klf@set@baselineruletype{none}
-\DeclareOption{latexdvi}{\klf@ltxengine@latexdvitrue}
+\DeclareOption{latex}{\klf@ltxengine@latextrue}
 \DeclareOption{pdflatex}{\klf@ltxengine@pdflatextrue}
 \DeclareOption{xelatex}{\klf@ltxengine@xelatextrue}
 \DeclareOption{lualatex}{\klf@ltxengine@lualatextrue}
@@ -179,8 +179,6 @@ const char * klfimpl_sty_data =
   \klf@d=\dp\klf@eqnbox\relax
   \csname klf@correctboxheight@@\klf@set@topalignment\endcsname
   \csname klf@correctboxdepth@@\klf@set@bottomalignment\endcsname
-  %\advance \klf@w 0.00001pt \relax
-  %\advance \klf@h 0.00001pt \relax
   \klf@th=\klf@h\relax
   \advance \klf@th \klf@d \relax
   \ifx\klf@set@fixedwidth\@empty%
@@ -214,7 +212,7 @@ const char * klfimpl_sty_data =
   \ignorespaces
 }
 \def\klf@RenderContentBox{%
-  \ifklf@ltxengine@latexdvi% tough luck
+  \ifklf@ltxengine@latex% tough luck
   \else
     \@tempdima=\klf@ppw
     \@tempdima=\klf@set@xscale\@tempdima\relax

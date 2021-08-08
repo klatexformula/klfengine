@@ -359,14 +359,6 @@ void simple_gs_interface_private::impl_run_gs_process(
 #if defined(KLFENGINE_USE_LINKED_GHOSTSCRIPT) || defined(KLFENGINE_USE_LOAD_GHOSTSCRIPT)
 
 
-// NOTE: WE NEED gs >= 9.54 for its API features.
-//
-// TODO: see if we can use some template trickery to store an internal static
-// map from gs_minst's to gs-callback-objects, with the template being there
-// only so that we can define the static member in the header file which could
-// in principle be included multiple times.
-
-
 // callbacks for gs' input and output
 struct GhostscriptCallbacks {
   GhostscriptCallbacks(
@@ -444,13 +436,13 @@ static int _klfengine_gs_callback_stdin_fn(void * caller_handle, char * buf, int
 }
 static int _klfengine_gs_callback_stdout_fn(void * caller_handle, const char * buf, int len)
 {
-  fprintf(stderr, "STDOUT CALLBACK!!! len=%d\n", len);
+  //fprintf(stderr, "STDOUT CALLBACK!!! len=%d\n", len);
   return reinterpret_cast<GhostscriptCallbacks*>(caller_handle)->handle_stdout(buf, len);
   //(void)caller_handle; (void)buf; return 0;
 }
 static int _klfengine_gs_callback_stderr_fn(void * caller_handle, const char * buf, int len)
 {
-  fprintf(stderr, "STDERR CALLBACK!!! len=%d\n", len);
+  //fprintf(stderr, "STDERR CALLBACK!!! len=%d\n", len);
   return reinterpret_cast<GhostscriptCallbacks*>(caller_handle)->handle_stderr(buf, len);
   //(void)caller_handle; (void)buf; return 0;
 }
@@ -473,8 +465,24 @@ void simple_gs_interface_private::impl_run_gs_linkedlibgs(
 #if defined(KLFENGINE_USE_LINKED_GHOSTSCRIPT)
   // prepare the terrain
 
-  //  - prepare argc & argv
+  //  - first, warn the user if we happen to notice that they are using
+  //    ghostscript's stdout for device output.  It looks like there is no way
+  //    for us to capture it and that ghostscript always sends it to the process
+  //    stdout.
+  if (
+      std::find_if( gs_args.begin(), gs_args.end(), [](const std::string & s) {
+        return (s == "-sOutputFile=-") || (s == "-sOUTPUTFILE=-") || (s == "-o-");
+      } )
+      != gs_args.end() ) {
+    warn("klfengine::detail::simple_gs_interface",
+         "It looks ghostscript device output is stdout. There is no way for "
+         "us to capture this output with a libgs-based method. Please switch "
+         "to the 'process' method or change your ghostscript to write to a "
+         "temporary file.");
+  }
 
+
+  //  - prepare argc & argv
   std::vector<std::string> gs_argv = construct_gs_argv(
     "gs", // dummy
     std::move(gs_args),
@@ -511,7 +519,7 @@ void simple_gs_interface_private::impl_run_gs_linkedlibgs(
     _klfengine_gs_callback_stderr_fn
   );
 
-  fprintf(stderr, "CALLBACKS HAVE BEEN SET!\n");
+  //fprintf(stderr, "CALLBACKS HAVE BEEN SET!\n");
 
   gs_ret_code = gsapi_set_arg_encoding(gs_minst, GS_ARG_ENCODING_UTF8);
   if (gs_ret_code == 0) {

@@ -55,7 +55,7 @@ endif()
 
 if(KLFENGINE_USE_LINKED_GHOSTSCRIPT)
   message(STATUS
-    "${_klfengine_msg}Will link against Ghostscript (KLFENGINE_USE_LINKED_GHOSTSCRIPT)")
+    "${_klfengine_msg}Will link against Ghostscript (KLFENGINE_USE_LINKED_GHOSTSCRIPT, GHOSTSCRIPT_ROOT_DIR)")
 else()
   message(STATUS
     "${_klfengine_msg}Will NOT link against Ghostscript (KLFENGINE_USE_LINKED_GHOSTSCRIPT)")
@@ -63,7 +63,7 @@ endif()
 
 if(KLFENGINE_USE_LOAD_GHOSTSCRIPT)
   message(STATUS
-    "${_klfengine_msg}Will prepare to load libgs at runtime (KLFENGINE_USE_LINKED_GHOSTSCRIPT)")
+    "${_klfengine_msg}Will prepare to load libgs at runtime (KLFENGINE_USE_LINKED_GHOSTSCRIPT, GHOSTSCRIPT_ROOT_DIR)")
 else()
   message(STATUS
     "${_klfengine_msg}Will NOT prepare to load libgs at runtime (KLFENGINE_USE_LINKED_GHOSTSCRIPT)")
