@@ -54,6 +54,34 @@ struct run_implementation_private
   temporary_directory temp_dir;
 
   std::shared_ptr<klfengine::detail::simple_gs_interface_engine_tool> gs_iface_tool;
+
+  fs::path fn_base;
+  fs::path fn_tex;
+  fs::path fn_pdfout;
+
+  inline run_implementation_private(
+      const klfengine::input & /*in*/, const klfengine::settings & sett,
+      std::shared_ptr<klfengine::detail::simple_gs_interface_engine_tool> gs_iface_tool_
+  )
+    :
+    temp_dir{
+      sett.temporary_directory,
+      std::string{"klfeimplpkgtmp"} +
+          _KLFENGINE_CONCAT_VER_3_j(
+            KLFENGINE_VERSION_MAJOR,
+            KLFENGINE_VERSION_MINOR,
+            KLFENGINE_VERSION_RELEASE,
+            "x"
+          )
+    },
+    gs_iface_tool{ std::move(gs_iface_tool_) }
+  {
+    fn_base = temp_dir.path() / "klfetmp";
+    fn_tex = fn_base;
+    fn_tex.replace_extension(".tex");
+    fn_pdfout = fn_base;
+    fn_pdfout.replace_extension(".pdf");
+  }
 };
 
 
@@ -66,22 +94,7 @@ run_implementation::run_implementation(
   : klfengine::engine_run_implementation(std::move(input_), std::move(settings_))
 {
 
-  d = new run_implementation_private{
-    // temp_dir
-    temporary_directory{
-      settings().temporary_directory,
-      std::string{"klfeimplpkgtmp"} +
-      _KLFENGINE_CONCAT_VER_3_j(
-          KLFENGINE_VERSION_MAJOR,
-          KLFENGINE_VERSION_MINOR,
-          KLFENGINE_VERSION_RELEASE,
-          "x"
-          )
-    },
-    // gs_iface_tool
-    std::move(gs_iface_tool_) // move the shared pointer, not the actual object (!)
-  };
-
+  d = new run_implementation_private{input(), settings(), std::move(gs_iface_tool_)};
 }
 _KLFENGINE_INLINE
 run_implementation::~run_implementation()
@@ -97,13 +110,7 @@ std::string run_implementation::assemble_latex_template(
 {
   using namespace klfengine::detail::utils;
 
-  bool use_latex_template = true;
-
-  { auto it_use_latex_template = in.parameters.find("use_latex_template");
-    if (it_use_latex_template != in.parameters.end()) {
-      use_latex_template = it_use_latex_template->second.get<bool>();
-    }
-  }
+  bool use_latex_template = dict_get<bool>(in.parameters, "use_latex_template", true);
 
   if ( ! use_latex_template ) {
     // no need to go further, the user has prepared everything for us already
@@ -115,20 +122,9 @@ std::string run_implementation::assemble_latex_template(
   std::string pre_preamble;
   std::string klf_preamble;
 
-  std::string docclass{"article"};
-  std::string docoptions{}; // don't include [] argument wrapper
-
-  { auto it_docclass = in.parameters.find("document_class");
-    if (it_docclass != in.parameters.end()) {
-      docclass = it_docclass->second.get<std::string>();
-    }
-  }
-
-  { auto it_docoptions = in.parameters.find("document_class_options");
-    if (it_docoptions != in.parameters.end()) {
-      docoptions = it_docoptions->second.get<std::string>();
-    }
-  }
+  std::string docclass{ dict_get<std::string>(in.parameters, "document_class", "article") };
+  // note, docoptions don't include [] argument wrapper
+  std::string docoptions{ dict_get<std::string>(in.parameters, "document_class_options", "") };
 
   std::string font_cmds;
 
@@ -152,27 +148,24 @@ std::string run_implementation::assemble_latex_template(
   std::string baseline_rule_type{"line"};
   std::string baseline_rule_setup{"\\color{blue}"};
   std::string baseline_rule_thickness{"0.2pt"};
-  { auto br_it = in.parameters.find("baseline_rule");
-    if (br_it != in.parameters.end()) {
-      // specify baseline rule.
-      if (br_it->second.has_type<bool>()) {
-        baseline_rule = br_it->second.get<bool>();
-        if (baseline_rule) {
-          need_latex_color_package = true; // the default baseline_rule_setup uses \color{...}
-        }
-      } else {
-        // it's a dict with values
-        baseline_rule = true;
-        auto d = br_it->second.get<value::dict>();
-        { auto it = d.find("type");
-          if (it != d.end()) { baseline_rule_type = it->second.get<std::string>(); } }
-        { auto it = d.find("setup");
-          if (it != d.end()) { baseline_rule_setup = it->second.get<std::string>(); } }
-        { auto it = d.find("thickness");
-          if (it != d.end()) { baseline_rule_thickness = it->second.get<std::string>(); } }
+  dict_do_if<value>(in.parameters, "baseline_rule",
+                    [&need_latex_color_package,&baseline_rule,&baseline_rule_type,
+                     &baseline_rule_setup,&baseline_rule_thickness](const value& br) {
+    // specify baseline rule.
+    if (br.has_type<bool>()) {
+      baseline_rule = br.get<bool>();
+      if (baseline_rule) {
+        need_latex_color_package = true; // the default baseline_rule_setup uses \color{...}
       }
+    } else {
+      // it's a dict with values
+      baseline_rule = true;
+      auto d = br.get<value::dict>();
+      baseline_rule_type = dict_get<std::string>(d, "type", baseline_rule_type);
+      baseline_rule_setup = dict_get<std::string>(d, "setup", baseline_rule_setup);
+      baseline_rule_thickness = dict_get<std::string>(d, "thickness", baseline_rule_thickness);
     }
-  }
+  });
 
   if (baseline_rule) {
     pre_preamble += 
@@ -187,24 +180,67 @@ std::string run_implementation::assemble_latex_template(
   //\klfSetFixedWidth{10pt}
   //\klfSetFixedHeight{8pt}
 
+  //\klfSetXAlignCoeff{0.1}
+  //\klfSetYAlignCoeff{0.8}
+
+  dict_do_if<std::string>(in.parameters, "fixed_width", [&pre_preamble](const std::string & x) {
+    pre_preamble += "\\klfSetFixedWidth{" + x + "}%\n";
+  });
+  dict_do_if<std::string>(in.parameters, "fixed_height", [&pre_preamble](const std::string & x) {
+    pre_preamble += "\\klfSetFixedHeight{" + x + "}%\n";
+  });
+  dict_do_if<double>(in.parameters, "x_align_coefficient",
+                     [&pre_preamble](double x) {
+    pre_preamble += "\\klfSetXalignCoeff{" + dbl_to_string(x) + "}%\n";
+  });
+  dict_do_if<double>(in.parameters, "y_align_coefficient",
+                     [&pre_preamble](double x) {
+    pre_preamble += "\\klfSetYalignCoeff{" + dbl_to_string(x) + "}%\n";
+  });
+
   if (in.scale <= 0) {
     // invalid scale
     throw std::invalid_argument("input.scale has invalid value " + dbl_to_string(in.scale));
   }
 
+  //\klfSetXScale{5}, \klfSetYScale{5}, \klfSetScale{5}
+  bool set_xy_scale = false;
+  dict_do_if<double>(in.parameters, "x_scale",
+                     [&pre_preamble,&set_xy_scale](double x) {
+    pre_preamble += "\\klfSetXScale{" + dbl_to_string(x) + "}%\n";
+    set_xy_scale = true;
+  });
+  dict_do_if<double>(in.parameters, "y_scale",
+                     [&pre_preamble,&set_xy_scale](double x) {
+    pre_preamble += "\\klfSetYScale{" + dbl_to_string(x) + "}%\n";
+    set_xy_scale = true;
+  });
   if (in.scale != 1) {
-    pre_preamble += "\\klfSetScale{" + dbl_to_string(in.scale) + "}\n";
-    //\klfSetXScale{5}
-    //\klfSetYScale{5}
+    if (set_xy_scale) {
+      warn("klfengine::klfimplpkg_engine::run_implementation",
+           "Scaling must be set either with the 'input.scale' property or using the "
+           "'input.parameters[\"x_scale\"]'/'input.parameters[\"y_scale\"]' parameters, "
+           "you can't mix.");
+    } else {
+      pre_preamble += "\\klfSetScale{" + dbl_to_string(in.scale) + "}\n";
+    }
   }
-
-  //\klfSetXAlignCoeff{0.1}
-  //\klfSetYAlignCoeff{0.8}
 
   //\klfSetBottomAlignment{bbox} % default
   //\klfSetBottomAlignment{baseline}
   //\klfSetTopAlignment{bbox} % default
   //\klfSetTopAlignment{Xheight}
+
+  dict_do_if<std::string>(in.parameters, "top_alignment",
+                          [&pre_preamble](const std::string & x) {
+    pre_preamble += "\\klfSetTopAlignment{" + x + "}%\n"; // one of 'bbox' or 'Xheight'
+  });
+  dict_do_if<std::string>(in.parameters, "bottom_alignment",
+                          [&pre_preamble](const std::string & x) {
+    pre_preamble += "\\klfSetBottomAlignment{" + x + "}%\n"; // one of 'bbox' or 'baseline'
+  });
+
+  // margins
 
   pre_preamble += "\\klfSetTopMargin{" + dbl_to_string(in.margins.top) + "pt}\n";
   pre_preamble += "\\klfSetRightMargin{" + dbl_to_string(in.margins.right) + "pt}\n";
@@ -227,14 +263,6 @@ std::string run_implementation::assemble_latex_template(
   // our main klfimpl class
   latex_str += "\\usepackage[" + in.latex_engine + "]{klfimpl}\n";
 
-  if (need_latex_color_package) {
-    latex_str +=
-      "\\makeatletter"
-      "\\newcommand\\klfEnsureColorPackageLoaded{%\n"
-      "  \\@ifpackageloaded{color}{}{\\@ifpackageloaded{xcolor}{}{\\RequirePackage{xcolor}}}}%"
-      "\\makeatother\n"
-      ;
-  }
   latex_str += pre_preamble;
 
   latex_str += "%%% --- begin user preamble ---\n";
@@ -285,11 +313,10 @@ void run_implementation::impl_compile()
   dump_cstr_to_file(klfimplsty_fname, detail::klfimpl_sty_data);
 
   // prepare latex template
-  std::string tempfname{ d->temp_dir.path() / "klfetmp" };
 
   std::string latex_str{ assemble_latex_template(in) };
 
-  dump_cstr_to_file(tempfname + ".tex", latex_str.c_str());
+  dump_cstr_to_file( d->fn_tex.native(), latex_str.c_str() );
 
 
   //fprintf(stderr, "LATEX DOCUMENT IS =\n%s\n", latex_str.c_str());
@@ -308,7 +335,7 @@ void run_implementation::impl_compile()
         sett.get_tex_executable_path(in.latex_engine),
         "-file-line-error",
         "-interaction=nonstopmode",
-        tempfname
+        d->fn_tex.native()
       },
       process::run_in_directory{ d->temp_dir.path().native() },
       process::capture_stdout_data{&out},
@@ -321,7 +348,7 @@ void run_implementation::impl_compile()
 
 
   binary_data pdf_data_obj;
-  pdf_data_obj = load_file_data( tempfname + ".pdf" );
+  pdf_data_obj = load_file_data( d->fn_pdfout );
 
   (void) store_to_cache(format_spec{"PDF", value::dict{{"raw", value{true}}}},
                         std::move(pdf_data_obj));
@@ -343,19 +370,108 @@ klfengine::format_spec run_implementation::impl_make_canonical(
     return {"LATEX", value::dict{{"raw", value{true}}}};
   }
   if (format.format == "PDF") {
-    return {"PDF", value::dict{{"raw", value{true}}}};
+    bool want_raw = dict_get<bool>(format.parameters, "raw", false);
+    return {"PDF", value::dict{{"raw", value{want_raw}}}};
+  }
+  if (format.format == "PNG") {
+    int dpi = dict_get<int>(format.parameters, "dpi", input().dpi);
+    return {"PNG", value::dict{{"dpi", value{dpi}}}};
+  }
+  if (format.format == "PS") {
+    return {"PS", {}};
+  }
+  if (format.format == "EPS") {
+    return {"EPS", {}};
   }
   return {};
 }
 
 _KLFENGINE_INLINE
 klfengine::binary_data run_implementation::impl_produce_data(
-    const klfengine::format_spec &
+    const klfengine::format_spec & format
     )
 {
-  // todo ...
-  return {};
+  using namespace klfengine::detail::utils;
+  using namespace klfengine::detail;
+
+  const klfengine::input & in = input();
+  //const klfengine::settings & sett = settings();
+
+  if ( format.format == "PDF" && ! in.outline_fonts ) {
+    // no further processing is needed.  We can use the raw PDF directly.
+    auto raw_pdf_data = get_data_cref(format_spec{"PDF", value::dict{{"raw", value{true}}}});
+    return raw_pdf_data;
+  }
+
+  auto gs_iface = d->gs_iface_tool->gs_interface();
+  auto gs_ver = d->gs_iface_tool->gs_version();
+
+
+  std::vector<std::string> gs_process_args;
+
+  // don't use ghostscript STDOUT so that we can also use libgs-based methods in
+  // simple_gs_interface
+  fs::path outf = d->fn_base;
+  outf.replace_filename(d->fn_base.filename().generic_string() + "-gs."
+                        + to_lowercase(format.format));
+
+  bool is_vector_format = true;
+
+  // choose correct device
+  if (format.format == "PNG") {
+    is_vector_format = false;
+    int dpi = dict_get<int>(format.parameters, "dpi");
+    gs_process_args.push_back("-sDEVICE=pngalpha");
+    gs_process_args.push_back("-r" + std::to_string(dpi));
+    // gs starts rendering transparency poorly in larger images without the
+    // following option -- https://stackoverflow.com/a/4907328/1694896
+    gs_process_args.push_back("-dMaxBitmap=2147483647");
+  } else if (format.format == "PDF") {
+    gs_process_args.push_back("-sDEVICE=pdfwrite");
+  } else if (format.format == "PS") {
+    gs_process_args.push_back("-sDEVICE=ps2write");
+  } else if (format.format == "EPS") {
+    gs_process_args.push_back("-sDEVICE=eps2write");
+  }
+
+  gs_process_args.push_back("-sOutputFile="+outf.native());
+
+  // outline fonts, if applicable
+  if (is_vector_format && in.outline_fonts) {
+    if (gs_ver.major < 9 || (gs_ver.major == 9 && gs_ver.minor < 15)) {
+      fprintf(stderr,
+              "*** klfengine::latextoimage_engine warning: input requested outline_fonts=true, but "
+              "you have ghostscript v%d.%d.  Please upgrade to gs>=9.15 for font outlines.\n",
+              gs_ver.major, gs_ver.minor);
+    } else {
+      gs_process_args.push_back("-dNoOutputFonts");
+    }
+  }
+  
+  // anti-aliasing
+  if (!is_vector_format) {
+    gs_process_args.push_back("-dGraphicsAlphaBits=4");
+    gs_process_args.push_back("-dTextAlphaBits=4");
+  }
+
+  // finally, the input file
+  gs_process_args.push_back(d->fn_pdfout.native());
+
+  // now, run the full ghostscript command.
+  //binary_data gs_stderr;
+  //binary_data gs_stdout;
+  gs_iface->run_gs(
+    gs_process_args,
+    simple_gs_interface::add_standard_batch_flags{true}
+    //simple_gs_interface::capture_stdout_data{&gs_stdout},
+    //simple_gs_interface::capture_stderr_data{&gs_stderr}
+  );
+
+  binary_data gs_result_data{ load_file_data(outf.native()) };
+
+  return gs_result_data;
 }
+
 
 
 

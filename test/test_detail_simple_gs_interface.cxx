@@ -104,7 +104,7 @@ TEST_CASE( "check gs version via LinkedLibgs", "[detail-simple_gs_interface]" )
   do_test_check_gs_version(gs);
 }
 
-TEST_CASE( "check gs version via LoadLibgs", "[detail-simple_gs_interface]" )
+TEST_CASE( "check gs version via LoadLibgs", "[detail-simple_gs_interface][!mayfail]" )
 {
   klfengine::detail::simple_gs_interface gs{
     klfengine::detail::simple_gs_interface::method::LoadLibgs,
@@ -166,7 +166,7 @@ TEST_CASE( "check gs information via LinkedLibgs", "[detail-simple_gs_interface]
   do_check_gs_information(gs);
 }
 
-TEST_CASE( "check gs information via LoadLibgs", "[detail-simple_gs_interface]" )
+TEST_CASE( "check gs information via LoadLibgs", "[detail-simple_gs_interface][!mayfail]" )
 {
   klfengine::detail::simple_gs_interface gs{
     klfengine::detail::simple_gs_interface::method::LoadLibgs,
@@ -220,7 +220,7 @@ TEST_CASE( "handle gs errors via LinkedLibgs", "[detail-simple_gs_interface]" )
   do_handle_gs_errors( gs );
 }
 
-TEST_CASE( "handle gs errors via LoadLibgs", "[detail-simple_gs_interface]" )
+TEST_CASE( "handle gs errors via LoadLibgs", "[detail-simple_gs_interface][!mayfail]" )
 {
   klfengine::detail::simple_gs_interface gs{
     klfengine::detail::simple_gs_interface::method::LoadLibgs,
@@ -287,7 +287,7 @@ TEST_CASE( "can run gs via Process", "[detail-simple_gs_interface]" )
 //   do_can_run_gs( gs );
 // }
 
-TEST_CASE( "can run gs via LoadLibgs", "[detail-simple_gs_interface]" )
+TEST_CASE( "can run gs via LoadLibgs", "[detail-simple_gs_interface][!mayfail]" )
 {
   klfengine::detail::simple_gs_interface gs{
     klfengine::detail::simple_gs_interface::method::LoadLibgs,

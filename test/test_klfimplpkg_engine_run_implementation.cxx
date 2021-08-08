@@ -62,7 +62,7 @@ TEST_CASE( "simple compilation with klfimplpkg_engine produces correct equation 
 
   r->compile();
 
-  auto pdfdata = r->get_data(klfengine::format_spec{"PDF"});
+  auto pdfdata = r->get_data(klfengine::format_spec{"PDF", {{"raw", klfengine::value{true}}}});
 
   //std::string data_str{reinterpret_cast<const char*>(&pdfdata[0]), pdfdata.size()};
   std::string data_str{pdfdata.begin(), pdfdata.end()};
@@ -82,5 +82,44 @@ TEST_CASE( "simple compilation with klfimplpkg_engine produces correct equation 
   require_images_similar("testoutf_xyz123.png",
                          //KLFENGINE_TEST_DATA_DIR "testoutf_xyz123.png");
                          KLFENGINE_TEST_DATA_DIR "klfimplpkg_engine_run_implementation_1.png");
+
+}
+
+TEST_CASE( "can get correct PNG image with klfimplpkg_engine",
+           "[klfimplpkg_engine-run_implementation]" )
+{
+  klfengine::klfimplpkg_engine::engine e;
+
+  e.set_settings(klfengine::settings::detect_settings());
+
+  klfengine::input in;
+  in.latex = std::string("T = \\frac{\\hbar a}{2\\pi c k_B}");
+  in.math_mode = std::make_pair("$\\begin{aligned}", "\\end{aligned}$");
+  in.preamble = std::string("\\usepackage{amsmath}\n\\usepackage{amssymb}");
+  in.latex_engine = std::string("pdflatex");
+  in.font_size = -1.0;
+  in.margins = klfengine::margins{1, 1, 1, 1};
+  in.dpi = 1200;
+  in.scale = 1.0;
+  in.outline_fonts = true;
+  in.bg_color = klfengine::color{220,220,220,255};
+  in.parameters = klfengine::value::dict{{
+    {"document_class", klfengine::value{std::string{"article"}}},
+    {"document_class_options", klfengine::value{std::string{"11pt"}}},
+    {"fixed_width", klfengine::value{std::string{"3cm"}}},
+    {"fixed_height", klfengine::value{std::string{"2cm"}}}
+  }};
+
+  auto r = e.run(in);
+
+  r->compile();
+
+  klfengine::binary_data pngdata =
+    r->get_data(klfengine::format_spec{"PNG", {{"dpi", klfengine::value{120}}}});
+
+  klfengine::detail::utils::dump_binary_data_to_file("test39ioebjfdkslslaksd.png", pngdata);
+
+  require_images_similar("test39ioebjfdkslslaksd.png",
+                         KLFENGINE_TEST_DATA_DIR "klfimplpkg_engine_run_implementation_2.png");
 
 }

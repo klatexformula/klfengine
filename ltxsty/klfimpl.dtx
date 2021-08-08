@@ -340,9 +340,10 @@
 \def\klfSetBaselineRuleType#1{%
   \xdef\klf@set@baselineruletype{#1}}
 %    \end{macrocode}
-% 
+% \end{macro}
+%
 % \subsection{Basic/common implementation macros}
-% 
+%
 % First of all, a simple macro to reset all LaTeX layout dimensions.
 %    \begin{macrocode}
 \def\klf@ZeroLayoutSizes{%
@@ -531,6 +532,7 @@
 %   meta-data dumped by |\klfDumpMetaInfo|).
 %
 %    \begin{macrocode}
+\newbox\klf@final@box
 \def\klf@RenderContentBox{%
   \ifklf@ltxengine@latex% tough luck
   \else
@@ -552,8 +554,22 @@
   \ifx\klf@set@yscale\klf@macro@one\else
     \let\klf@next\klf@do@scale\fi
   \nobreak
-  \klf@next{%
-    \hbox to \z@{\vbox to \z@{%
+  \hsize=\klf@ppw
+  \setbox\klf@final@box=\vbox{\hbox to \z@{%
+    \klf@next{%
+%    \end{macrocode}
+% Here, we actually render the box contents.  There are three items to draw: (1)
+% the background, (2) the baseline rule, if any, and (3) the actual equation
+% box.
+%
+% Begin with the background.  The code in |\klf@DrawBackground| is designed so
+% that it takes no horizontal or vertical space.
+%    \begin{macrocode}
+      \klf@DrawBackground
+%    \end{macrocode}
+% Draw the baseline rule and contents.
+%    \begin{macrocode}
+      \vbox to \z@{%
         \hrule \@height\z@\nobreak
         \vskip \klf@vshift\relax\nobreak
         \hbox{\vrule \@width\z@ \relax
@@ -561,9 +577,13 @@
             \csname klf@baseline@rule@@\klf@set@baselineruletype\endcsname
           }%
           \hskip \klf@hshift\relax
-          \raise \klf@d \box\klf@eqnbox}%
-      }}%
-  }%
+          \raise \klf@d \box\klf@eqnbox
+        }%
+      }%
+    }%
+  }}%
+  \c@page=\z@
+  \shipout\box\klf@final@box
 }
 \def\klf@do@scale#1{%
   \scalebox{\klf@set@xscale}[\klf@set@yscale]{#1}%
@@ -571,7 +591,215 @@
 %    \end{macrocode}
 % \end{macro}
 % \end{environment}
+%
+% \subsection{Background: color, frame, and/or custom elements}
+%
+% Enable the user to specify a custom background, and even draw stuff on it if
+% they like.  I'm not sure what the best API is to let the user draw what they
+% like.
+%
+% \begin{macro}{\klfSetBackgroundColor}
+% \begin{macro}{\klfSetBackgroundColorOpacity}
+%   Let the user set a simple color, with a custom opacity (semitransparency is
+%   provided by the \pkgname{pgf} package, so included it if necessary).
+%    \begin{macrocode}
+\newcommand\klfSetBackgroundColor[1]{%
+  \klfEnsureColorPackageLoaded
+  \definecolor{klfbgcolor}{RGB}{#1}%
+  \def\klf@set@bgcoloropacity{1}%
+}
+\def\klf@set@bgcoloropacity{0}
+\newcommand\klfSetBackgroundColorOpacity[1]{%
+  \edef\klf@set@bgcoloropacity{#1}%
+  \ifdim#1\p@=\z@\relax
+  \else
+    \ifdim#1\p@=\p@\relax
+    \else
+      \RequirePackage{pgf}%
+    \fi
+  \fi
+}
+\def\klfEnsureColorPackageLoaded{%
+  \@ifpackageloaded{color}{}{%
+    \@ifpackageloaded{xcolor}{}{%
+      \RequirePackage{color}%
+    }%
+  }%
+}
+%    \end{macrocode}
+% \end{macro}
+% \end{macro}
+%
+% Some temporary registers.
+%    \begin{macrocode}
+\newdimen\klf@set@bgtmp@rectw
+\newdimen\klf@set@bgtmp@recth
+%    \end{macrocode}
+%
+% \begin{macro}{\klf@DrawBackground@Color}
+%   The code to draw the background color.  Draw the background color as a
+%   rectangle, with the required opacity.  Of course, don't do this if the
+%   background rectangle is fully transparent.
+%    \begin{macrocode}
+\def\klf@DrawBackground@Color{%
+  \ifdim\klf@set@bgcoloropacity pt=\z@\relax
+  \else
+    \klf@set@bgtmp@rectw=\klf@ppw
+    \advance\klf@set@bgtmp@rectw 2\klf@set@bgcolor@bleed
+    \klf@set@bgtmp@recth=\klf@pph
+    \advance\klf@set@bgtmp@recth 2\klf@set@bgcolor@bleed
+    \if\klf@set@bgcoloropacity pt=\p@\relax
+      \let\klf@tmp@pgfsetfillopacity\@gobble
+    \else
+      \let\klf@tmp@pgfsetfillopacity\pgfsetfillopacity
+    \fi
+    \begingroup
+      \color{klfbgcolor}%
+      \klf@tmp@pgfsetfillopacity{\klf@set@bgcoloropacity}%
+      \hbox to \z@{%
+        \hskip -\klf@set@bgcolor@bleed\relax
+        \vbox to \z@{%
+          \vskip-\klf@set@bgcolor@bleed\relax
+          \rule{\klf@set@bgtmp@rectw}{\klf@set@bgtmp@recth}%
+        }%
+      }%
+      \klf@tmp@pgfsetfillopacity{1}%
+    \endgroup
+  \fi
+}
+%    \end{macrocode}
+% \end{macro}
 % 
+% \begin{macro}{\klfSetBackgroundFrameXOffset}
+% \begin{macro}{\klfSetBackgroundFrameYOffset}
+% \begin{macro}{\klfSetBackgroundFrameOffset}
+% \begin{macro}{\klfSetBackgroundFrameThickness}
+% \begin{macro}{\klfSetBackgroundFrameColor}
+%   Optionally draw a frame around the contents as a background decoration.
+%    \begin{macrocode}
+\newdimen\klf@set@bgframe@xoffset
+\klf@set@bgframe@xoffset=\z@\relax
+\newdimen\klf@set@bgframe@yoffset
+\klf@set@bgframe@yoffset=\z@\relax
+\def\klfSetBackgroundFrameXOffset#1{%
+  \klf@set@bgframe@xoffset=#1\relax
+}
+\def\klfSetBackgroundFrameYOffset#1{%
+  \klf@set@bgframe@yoffset=#1\relax
+}
+\def\klfSetBackgroundFrameOffset#1{%
+  \klf@set@bgframe@xoffset=#1\relax
+  \klf@set@bgframe@yoffset=\klf@set@bgframe@xoffset\relax
+}
+\newdimen\klf@set@bgframe@thickness
+\klf@set@bgframe@thickness=\z@\relax
+\def\klfSetBackgroundFrameThickness#1{%
+  \klf@set@bgframe@thickness=#1\relax
+}
+\def\klf@set@bgframe@setcolor{}
+\def\klfSetBackgroundFrameColor#1{%
+  \klfEnsureColorPackageLoaded
+  \definecolor{klffrmcolor}{RGB}{#1}%
+  \def\klf@set@bgframe@setcolor{\color{klffrmcolor}}
+}
+%    \end{macrocode}
+% \end{macro}
+% \end{macro}
+% \end{macro}
+% \end{macro}
+% \end{macro}
+% 
+% Code to draw the background frame:
+% \begin{macro}{\klf@DrawBackground@Frame}
+%    \begin{macrocode}
+\def\klf@DrawBackground@Frame{%
+  \ifdim\klf@set@bgframe@thickness=\z@\relax
+  \else
+    \klf@set@bgtmp@rectw=\klf@ppw
+    \advance\klf@set@bgtmp@rectw -2\klf@set@bgframe@xoffset
+    \klf@set@bgtmp@recth=\klf@pph
+    \advance\klf@set@bgtmp@recth -2\klf@set@bgframe@yoffset
+    \hbox to \z@{%
+      \hskip \klf@set@bgframe@xoffset\relax
+      \vbox to \z@{%
+        \vskip \klf@set@bgframe@yoffset\relax
+        \begingroup
+          \fboxsep=-\klf@set@bgframe@thickness\relax
+          \fboxrule=\klf@set@bgframe@thickness\relax
+          \klf@set@bgframe@setcolor
+          \fbox{\phantom{\rule{\klf@set@bgtmp@rectw}{\klf@set@bgtmp@recth}}}%
+        \endgroup
+      }%
+    }%
+  \fi
+}
+%    \end{macrocode}
+% \end{macro}
+% 
+% \begin{macro}{\klfAddBackgroundCommands}
+% \begin{macro}{\klfAddBackgroundGraphics}
+%   We also provide a generic hook, in case the user wants to draw more fancy
+%   stuff.  The user can call |\klfAddBackgroundCommands| to append drawing
+%   commands to the background.  The origin is the top left corner of the image.
+%   The user can get dimensions, etc., via the |\klf@ppw|/|\klf@pph|,
+%   etc. lengths (for now).  The user code for each call to
+%   |\klfAddBackgroundCommands| is wrapped in a zero-sized box located at
+%   the top left point of the image.
+%
+%   The command |\klfAddBackgroundGraphics| is a shorthand for inserting a
+%   background graphic using the \pkgname{graphicx} package's
+%   |\includegraphics[...]{...}|.
+%    \begin{macrocode}
+\newtoks\klf@set@bgextradrawcommands
+\newcommand\klfAddBackgroundCommands[1]{%
+  \klf@set@bgextradrawcommands=\expandafter{\the\klf@set@bgextradrawcommands
+    \hbox to \z@{\vbox to \z@{%
+      #1%
+    }}%
+  }%
+}
+\newcommand\klfAddBackgroundGraphics[2][]{%
+  \RequirePackage{graphicx}%
+  \klfAddBackgroundCommands{%
+    \includegraphics[#1]{#2}%
+  }%
+}
+%    \end{macrocode}
+% \end{macro}
+% \end{macro}
+% 
+% \begin{macro}{\klf@DrawBackground@CustomCommands}
+%   Code to render the custom commands.  Remember to enclose code in a
+%   zero-sized box.
+%    \begin{macrocode}
+\def\klf@DrawBackground@CustomCommands{%
+  \if\relax\detokenize\expandafter{\the\klf@set@bgextradrawcommands}\relax
+  \else
+    \the\klf@set@bgextradrawcommands
+  \fi
+}
+%    \end{macrocode}
+% \end{macro}
+%
+% \begin{macro}{\klf@DrawBackground}
+%   Here's our internal code that renders the background.  The background color
+%   will be drawn as a filled rectangle, extending on all sides with a bleed
+%   length stored in |\klf@set@bgcolor@bleed|.
+%    \begin{macrocode}
+\newdimen\klf@set@bgcolor@bleed
+\klf@set@bgcolor@bleed=\p@
+\def\klf@DrawBackground{%
+%    \end{macrocode}
+%    \begin{macrocode}
+  \klf@DrawBackground@Color
+  \klf@DrawBackground@Frame
+  \klf@DrawBackground@CustomCommands
+}
+%    \end{macrocode}
+%
+% \subsection{Vertical bounding box adjustments (\texttt{bbox},
+%   \texttt{Xheight}, \texttt{baseline})}
+%
 % Now we define the top/bottom alignment correction routines.  These ``fix'' the
 % height and the depth of the box (rather, their values recorded in |\klf@h| and
 % |\klf@d|) according to the given options.
@@ -597,6 +825,8 @@
   \klf@d=\z@
 }
 %    \end{macrocode}
+%
+% \subsection{Baseline rule}
 %
 % Now we define the baseline rule types.  These simply draw whatever they want,
 % typically a simple |\vrule| of a given width (because we're in horizontal

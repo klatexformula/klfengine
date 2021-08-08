@@ -225,6 +225,13 @@ private:
    * any two equivalent \a format_spec s but different for any two nonequivalent
    * ones.
    *
+   * By convention, it's preferable to choose a 'canonical format' in which all
+   * relevant parameter keys are present (e.g. select as canonical choices
+   * <code>('PDF', {"raw": false}), ('PDF', {"raw": true})</code> instead of
+   * <code>('PDF', {}), ('PDF', {"raw": true})</code>)  It's easer that way to
+   * access the underlying value of these parameters and can allow the defaults
+   * to change.
+   *
    * If the format is invalid, or cannot be delivered, this implementation may
    * choose to:
    *

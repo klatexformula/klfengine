@@ -2,8 +2,6 @@
 #
 # latex auto-generated files
 #
-klfimpl.pdf
-example.pdf
 *.aux
 *.log
 *.out
@@ -11,6 +9,7 @@ example.pdf
 *.idx
 *.toc
 *.hd
+*.synctex.gz
 
 #
 # Compiled C++ example
@@ -18,10 +17,21 @@ example.pdf
 example_use_klfimpl_sty
 
 #
+# Compiled PDFs
+#
+# ### Keep in VCS for users who don't want to run LaTeX to compile these and
+#     might want a direct download from github.
+#
+#klfimpl.pdf
+#example.pdf
+#example_2_bg.pdf
+
+
+#
 # auto-generated style files
 #
-# TODO -- might keep in vcs for convenience?
-klfimpl.sty
-klfimpl_sty_data.h
+# TODO -- might keep in vcs for convenience?  ### yes, let's do that
+#klfimpl.sty
+#klfimpl_sty_data.h
 
 

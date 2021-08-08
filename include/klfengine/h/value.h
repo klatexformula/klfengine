@@ -31,6 +31,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <functional>
 
 
 #include <klfengine/basedefs>
@@ -176,6 +177,64 @@ using value = detail::value;
 
 
 
+/** \brief Family of utilities to fetch a value in a map by key, possibly with a
+ *         default if the key does not exist.
+ *
+ */
+template<typename X = value>
+inline X dict_get(const value::dict & dict, const std::string & key)
+{
+  return dict_get<value>(dict, key).get<X>();
+}
+template<>
+inline value dict_get<value>(const value::dict & dict, const std::string & key)
+{
+  auto it = dict.find(key);
+  if (it == dict.end()) {
+    throw std::out_of_range("No such key in dictionary: " + key);
+  }
+  return it->second;
+}
+template<typename X>
+inline X dict_get(const value::dict & dict, const std::string & key, X dflt)
+{
+  return dict_get<value>(dict, key, value{std::move(dflt)}).get<X>();
+}
+template<>
+inline value dict_get<value>(const value::dict & dict, const std::string & key, value dflt)
+{
+  auto it = dict.find(key);
+  if (it == dict.end()) {
+    return dflt; // std::move redundant
+  }
+  return it->second;
+}
+
+/** \brief If the given key exists in the dictionary, then execute the given
+ *         callback with the associated value.
+ */
+template<typename X>
+inline bool dict_do_if(const value::dict & dict, const std::string & key,
+                       std::function<void(const X&)> fn)
+{
+  auto it = dict.find(key);
+  if (it == dict.end()) {
+    return false;
+  }
+  fn(it->second.get<X>());
+  return true;
+}
+template<>
+inline bool dict_do_if<value>(const value::dict & dict, const std::string & key,
+                              std::function<void(const value&)> fn)
+{
+  auto it = dict.find(key);
+  if (it == dict.end()) {
+    return false;
+  }
+  fn(it->second);
+  return true;
+}
 
 
 } // namespace klfengine

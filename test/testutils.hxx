@@ -103,6 +103,8 @@ inline void require_images_similar(std::string fnimg1, std::string fnimg2)
       
   std::string magick_s_err{magick_err.begin(), magick_err.end()};
 
+  CAPTURE( fnimg1 );
+  CAPTURE( fnimg2 );
   CAPTURE( magick_s_err );
   CAPTURE( magick_compare_exit_code );
 

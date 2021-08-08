@@ -142,40 +142,18 @@ inline std::string assemble_latex_template(const klfengine::input & in)
 
   // set up latex document
 
-  bool use_latex_template = true;
-
-  { auto it_use_latex_template = in.parameters.find("use_latex_template");
-    if (it_use_latex_template != in.parameters.end()) {
-      use_latex_template = it_use_latex_template->second.get<bool>();
-    }
-  }
+  bool use_latex_template = dict_get<bool>(in.parameters, "use_latex_template", true);
 
   if ( ! use_latex_template ) {
     // no need to go further, the user has prepared everything for us already
     return in.latex;
   }
 
-  std::string docclass{"article"};
-  std::string docoptions{}; // don't include [] argument wrapper
-  std::string ltxcolorpkg{"xcolor"};
+  std::string docclass{ dict_get<std::string>(in.parameters, "document_class", "article") };
+  // note, docoptions don't include [] argument wrapper
+  std::string docoptions{ dict_get<std::string>(in.parameters, "document_class_options", "") };
 
-  { auto it_docclass = in.parameters.find("document_class");
-    if (it_docclass != in.parameters.end()) {
-      docclass = it_docclass->second.get<std::string>();
-    }
-  }
-
-  { auto it_docoptions = in.parameters.find("document_class_options");
-    if (it_docoptions != in.parameters.end()) {
-      docoptions = it_docoptions->second.get<std::string>();
-    }
-  }
-
-  { auto it_ltxcolor = in.parameters.find("latex_color_package");
-    if (it_ltxcolor != in.parameters.end()) {
-      ltxcolorpkg = it_ltxcolor->second.get<std::string>();
-    }
-  }
+  std::string ltxcolorpkg{ dict_get<std::string>(in.parameters, "latex_color_package", "color") };
 
   // tape together latex document
   std::string latex_str;
@@ -385,37 +363,21 @@ klfengine::format_spec run_implementation::impl_make_canonical(
     bool want_raw = false;
     if (d->via_dvi) {
       // could request either raw or non-raw PS
-      auto rawkey = format.parameters.find("raw");
-      if (rawkey != format.parameters.end()) {
-        want_raw = rawkey->second.get<bool>();
-      }
+      want_raw = dict_get<bool>(format.parameters, "raw", want_raw);
     }
-    if (want_raw) {
-      return {"PS", value::dict{{"raw", value{true}}}};
-    }
-    return {"PS", {}};
+    return {"PS", value::dict{{"raw", value{want_raw}}}};
   }
   if (format.format == "PDF") {
     bool want_raw = false;
     if (!d->via_dvi) {
       // could request either raw or non-raw PDF
-      auto rawkey = format.parameters.find("raw");
-      if (rawkey != format.parameters.end()) {
-        want_raw = rawkey->second.get<bool>();
-      }
+      want_raw = dict_get<bool>(format.parameters, "raw", want_raw);
     }
-    if (want_raw) {
-      return {"PDF", value::dict{{"raw", value{true}}}};
-    }
-    return {"PDF", {}};
+    return {"PDF", value::dict{{"raw", value{want_raw}}}};
   }
 
   if (format.format == "PNG") {
-    int dpi = input().dpi;
-    auto dpikey = format.parameters.find("dpi");
-    if (dpikey != format.parameters.end()) {
-      dpi = dpikey->second.get<int>();
-    }
+    int dpi = dict_get<int>(format.parameters, "dpi", input().dpi);
     return {"PNG", value::dict{{"dpi", value{dpi}}}};
   }
 
@@ -462,6 +424,9 @@ klfengine::binary_data run_implementation::impl_produce_data(const klfengine::fo
   if (format.format == "PNG") {
     if (bg_is_transparent) {
       gs_process_args.push_back("-sDEVICE=pngalpha");
+      // gs starts rendering transparency poorly in larger images without the
+      // following option -- https://stackoverflow.com/a/4907328/1694896
+      gs_process_args.push_back("-dMaxBitmap=2147483647");
     } else {
       gs_process_args.push_back("-sDEVICE=png16m");
     }

@@ -16,6 +16,8 @@ find_package(nlohmann_json REQUIRED
   CONFIG
   PATHS "${_klfengine_cmake_default_nlohmann_json_DIR}"
   )
+message(STATUS "${_klfengine_msg}Using nlohmann_json at ${nlohmann_json_DIR} (nlohmann_json_DIR)")
+
 
 #
 # mpark/variant
@@ -23,11 +25,12 @@ find_package(nlohmann_json REQUIRED
 
 if(KLFENGINE_USE_MPARK_VARIANT)
   message(STATUS
-    "${_klfengine_msg}Will use mpark/variant instead of C++17 std::variant (KLFENGINE_USE_MPARK_VARIANT)")
+    "${_klfengine_msg}Will use mpark/variant and not std::variant (KLFENGINE_USE_MPARK_VARIANT)")
   find_package(mpark_variant REQUIRED
     CONFIG
     PATHS "${_klfengine_cmake_default_mpark_variant_DIR}"
     )
+  message(STATUS "${_klfengine_msg}Using mpark_variant at ${mpark_variant_DIR} (mpark_variant_DIR)")
 else()
   message(STATUS
     "${_klfengine_msg}Will use C++17's std::variant (KLFENGINE_USE_MPARK_VARIANT)")
@@ -44,6 +47,8 @@ if(KLFENGINE_USE_GULRAK_FILESYSTEM)
     CONFIG
     PATHS "${_klfengine_cmake_default_ghcFilesystem_DIR}"
     )
+  message(STATUS
+    "${_klfengine_msg}Using gulrak/filesystem at ${ghcFilesystem_DIR} (ghcFilesystem_DIR)")
 else()
   message(STATUS
     "${_klfengine_msg}Will use C++17's std::filesystem (KLFENGINE_USE_GULRAK_FILESYSTEM)")
@@ -55,19 +60,17 @@ endif()
 
 if(KLFENGINE_USE_LINKED_GHOSTSCRIPT)
   message(STATUS
-    "${_klfengine_msg}Will link against Ghostscript (KLFENGINE_USE_LINKED_GHOSTSCRIPT, GHOSTSCRIPT_ROOT_DIR)")
-else()
-  message(STATUS
-    "${_klfengine_msg}Will NOT link against Ghostscript (KLFENGINE_USE_LINKED_GHOSTSCRIPT)")
+    "${_klfengine_msg}Will link against Ghostscript's C API library (KLFENGINE_USE_LINKED_GHOSTSCRIPT)")
 endif()
-
 if(KLFENGINE_USE_LOAD_GHOSTSCRIPT)
   message(STATUS
-    "${_klfengine_msg}Will prepare to load libgs at runtime (KLFENGINE_USE_LINKED_GHOSTSCRIPT, GHOSTSCRIPT_ROOT_DIR)")
-else()
-  message(STATUS
-    "${_klfengine_msg}Will NOT prepare to load libgs at runtime (KLFENGINE_USE_LINKED_GHOSTSCRIPT)")
+    "${_klfengine_msg}Will prepare to load Ghostscript's libgs at runtime (KLFENGINE_USE_LOAD_GHOSTSCRIPT)")
 endif()
+if(NOT KLFENGINE_USE_LINKED_GHOSTSCRIPT AND NOT KLFENGINE_USE_LOAD_GHOSTSCRIPT)
+  message(STATUS
+    "${_klfengine_msg}Will NOT use Ghostscript's C API library (KLFENGINE_USE_LINKED_GHOSTSCRIPT,KLFENGINE_USE_LOAD_GHOSTSCRIPT)")
+endif()
+
 
 
 if(KLFENGINE_USE_LINKED_GHOSTSCRIPT OR KLFENGINE_USE_LOAD_GHOSTSCRIPT)
@@ -82,6 +85,8 @@ if(KLFENGINE_USE_LINKED_GHOSTSCRIPT OR KLFENGINE_USE_LOAD_GHOSTSCRIPT)
       "${CMAKE_SOURCE_DIR}"
       "${CMAKE_SOURCE_DIR}/include"
     )
+  message(STATUS
+    "${_klfengine_msg}Ghostscript headers located at ${GHOSTSCRIPT_INCLUDE} (GHOSTSCRIPT_ROOT_DIR,GHOSTSCRIPT_INCLUDE)")
 endif()
 
 #
@@ -97,4 +102,6 @@ if(KLFENGINE_USE_LINKED_GHOSTSCRIPT)
       "${GHOSTSCRIPT_ROOT_DIR}/lib"
       "/usr/local/opt/ghostscript/lib"
   )
+  message(STATUS
+    "${_klfengine_msg}Ghostscript library located at ${GHOSTSCRIPT_LIB} (GHOSTSCRIPT_ROOT_DIR,GHOSTSCRIPT_LIB)")
 endif()
