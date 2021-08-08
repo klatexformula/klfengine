@@ -154,7 +154,7 @@ simple_gs_interface::gs_version_t simple_gs_interface::get_gs_version()
 
     gsapi_revision_t r;
     if (gsapi_revision(&r, sizeof(r)) == 0) {
-      fprintf(stderr, "DEBUG: Got gsapi_revision: revision = %ld\n", r.revision);
+      //fprintf(stderr, "DEBUG: Got gsapi_revision: revision = %ld\n", r.revision);
       int rev = int(r.revision);
       if (rev < 1000) {
         // revision is e.g. 9.19 -> 919
