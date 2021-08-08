@@ -247,6 +247,54 @@ std::string run_implementation::assemble_latex_template(
   pre_preamble += "\\klfSetBottomMargin{" + dbl_to_string(in.margins.bottom) + "pt}\n";
   pre_preamble += "\\klfSetLeftMargin{" + dbl_to_string(in.margins.left) + "pt}\n";
 
+  // background: solid color, frame
+
+  if (in.bg_color.alpha > 0) {
+    // have solid bg color
+    pre_preamble += "\\klfSetBackgroundColor{" +
+      std::to_string(in.bg_color.red) + "," +
+      std::to_string(in.bg_color.green) + "," +
+      std::to_string(in.bg_color.blue) + "}%\n";
+    pre_preamble += "\\klfSetBackgroundColorOpacity{" +
+      dbl_to_string(in.bg_color.alpha/255.0) + "}%\n";
+  }
+
+  dict_do_if<value>(in.parameters, "bg_frame",
+                    [&pre_preamble](const value& bgf_v) {
+    if (bgf_v.has_type<bool>()) {
+      pre_preamble += "\\klfSetBackgroundFrameThickness{0.4pt}%\n";
+      pre_preamble += "\\klfSetBackgroundFrameOffset{1pt}%\n";
+    } else {
+      value::dict bgfd = bgf_v.get<value::dict>();
+      bool bg_frame_on = false;
+      bool need_set_default_thickness = true;
+      dict_do_if<std::string>(bgfd, "thickness", [&](const std::string & t) {
+        pre_preamble += "\\klfSetBackgroundFrameThickness{" + t + "}%\n";
+        bg_frame_on = true;
+        need_set_default_thickness = false;
+      });
+      dict_do_if<std::string>(bgfd, "color", [&](const std::string & t) {
+        pre_preamble += "\\klfSetBackgroundFrameColor{" + t + "}%\n";
+        bg_frame_on = true;
+      });
+      dict_do_if<std::string>(bgfd, "x_offset", [&](const std::string & t) {
+        pre_preamble += "\\klfSetBackgroundFrameXOffset{" + t + "}%\n";
+        bg_frame_on = true;
+      });
+      dict_do_if<std::string>(bgfd, "y_offset", [&](const std::string & t) {
+        pre_preamble += "\\klfSetBackgroundFrameYOffset{" + t + "}%\n";
+        bg_frame_on = true;
+      });
+      dict_do_if<std::string>(bgfd, "offset", [&](const std::string & t) {
+        pre_preamble += "\\klfSetBackgroundFrameOffset{" + t + "}%\n";
+        bg_frame_on = true;
+      });
+      if (bg_frame_on && need_set_default_thickness) {
+        pre_preamble += "\\klfSetBackgroundFrameThickness{0.4pt}%\n";
+      }
+    }
+  });
+
   // ---
 
   std::string latex_str;
@@ -291,6 +339,8 @@ std::string run_implementation::assemble_latex_template(
   latex_str += "%%% --- end user math_mode and latex ---\n";
 
   latex_str += "\\end{klfcontent}%\n\\end{document}\n";
+
+  //fprintf(stderr, "DEBUG: latex_str = '%s'\n", latex_str.c_str());
 
   return latex_str;
 }

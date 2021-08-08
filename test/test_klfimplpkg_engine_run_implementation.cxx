@@ -102,12 +102,15 @@ TEST_CASE( "can get correct PNG image with klfimplpkg_engine",
   in.dpi = 1200;
   in.scale = 1.0;
   in.outline_fonts = true;
-  in.bg_color = klfengine::color{220,220,220,255};
+  in.bg_color = klfengine::color{255,255,100,80};
   in.parameters = klfengine::value::dict{{
     {"document_class", klfengine::value{std::string{"article"}}},
     {"document_class_options", klfengine::value{std::string{"11pt"}}},
     {"fixed_width", klfengine::value{std::string{"3cm"}}},
-    {"fixed_height", klfengine::value{std::string{"2cm"}}}
+    {"fixed_height", klfengine::value{std::string{"2cm"}}},
+    {"bg_frame", klfengine::value{klfengine::value::dict{{
+          "color", klfengine::value{std::string{"128,0,0"}}
+          }}}}
   }};
 
   auto r = e.run(in);
