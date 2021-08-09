@@ -419,20 +419,33 @@ klfengine::format_spec run_implementation::impl_make_canonical(
   if (format.format == "LATEX") {
     return {"LATEX", value::dict{{"raw", value{true}}}};
   }
+
   if (format.format == "PDF") {
     bool want_raw = dict_get<bool>(format.parameters, "raw", false);
     return {"PDF", value::dict{{"raw", value{want_raw}}}};
   }
-  if (format.format == "PNG") {
+  
+  if (format.format == "PNG" || format.format == "JPEG" ||
+      format.format == "TIFF" || format.format == "BMP") {
     int dpi = dict_get<int>(format.parameters, "dpi", input().dpi);
-    return {"PNG", value::dict{{"dpi", value{dpi}}}};
+    bool antialiasing = dict_get<bool>(format.parameters, "antialiasing", true);
+    return {
+      format.format,
+      value::dict{
+        {"dpi", value{dpi}},
+        {"antialiasing", value{antialiasing}}
+      }
+    };
   }
+
+
   if (format.format == "PS") {
     return {"PS", {}};
   }
   if (format.format == "EPS") {
     return {"EPS", {}};
   }
+
   return {};
 }
 
@@ -470,18 +483,30 @@ klfengine::binary_data run_implementation::impl_produce_data(
   // choose correct device
   if (format.format == "PNG") {
     is_vector_format = false;
-    int dpi = dict_get<int>(format.parameters, "dpi");
     gs_process_args.push_back("-sDEVICE=pngalpha");
-    gs_process_args.push_back("-r" + std::to_string(dpi));
     // gs starts rendering transparency poorly in larger images without the
     // following option -- https://stackoverflow.com/a/4907328/1694896
     gs_process_args.push_back("-dMaxBitmap=2147483647");
+  } else if (format.format == "JPEG") {
+    is_vector_format = false;
+    gs_process_args.push_back("-sDEVICE=jpeg");
+  } else if (format.format == "TIFF") {
+    is_vector_format = false;
+    gs_process_args.push_back("-sDEVICE=tiff24nc");
+  } else if (format.format == "BMP") {
+    is_vector_format = false;
+    gs_process_args.push_back("-sDEVICE=bmp16m");
   } else if (format.format == "PDF") {
     gs_process_args.push_back("-sDEVICE=pdfwrite");
   } else if (format.format == "PS") {
     gs_process_args.push_back("-sDEVICE=ps2write");
   } else if (format.format == "EPS") {
     gs_process_args.push_back("-sDEVICE=eps2write");
+  }
+
+  if ( ! is_vector_format ) {
+    int dpi = dict_get<int>(format.parameters, "dpi");
+    gs_process_args.push_back("-r" + std::to_string(dpi));
   }
 
   gs_process_args.push_back("-sOutputFile="+outf.native());
@@ -499,9 +524,12 @@ klfengine::binary_data run_implementation::impl_produce_data(
   }
   
   // anti-aliasing
-  if (!is_vector_format) {
-    gs_process_args.push_back("-dGraphicsAlphaBits=4");
-    gs_process_args.push_back("-dTextAlphaBits=4");
+  if ( ! is_vector_format ) {
+    bool antialiasing = dict_get<bool>(format.parameters, "antialiasing");
+    if (antialiasing) {
+      gs_process_args.push_back("-dGraphicsAlphaBits=4");
+      gs_process_args.push_back("-dTextAlphaBits=4");
+    }
   }
 
   // finally, the input file

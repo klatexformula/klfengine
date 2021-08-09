@@ -376,9 +376,17 @@ klfengine::format_spec run_implementation::impl_make_canonical(
     return {"PDF", value::dict{{"raw", value{want_raw}}}};
   }
 
-  if (format.format == "PNG") {
+  if (format.format == "PNG" || format.format == "JPEG" ||
+      format.format == "TIFF" || format.format == "BMP") {
     int dpi = dict_get<int>(format.parameters, "dpi", input().dpi);
-    return {"PNG", value::dict{{"dpi", value{dpi}}}};
+    bool antialiasing = dict_get<bool>(format.parameters, "antialiasing", true);
+    return {
+      format.format,
+      value::dict{
+        {"dpi", value{dpi}},
+        {"antialiasing", value{antialiasing}}
+      }
+    };
   }
 
   return {};
@@ -422,6 +430,7 @@ klfengine::binary_data run_implementation::impl_produce_data(const klfengine::fo
 
   // choose correct device
   if (format.format == "PNG") {
+    is_vector_format = false;
     if (bg_is_transparent) {
       gs_process_args.push_back("-sDEVICE=pngalpha");
       // gs starts rendering transparency poorly in larger images without the
@@ -430,15 +439,26 @@ klfengine::binary_data run_implementation::impl_produce_data(const klfengine::fo
     } else {
       gs_process_args.push_back("-sDEVICE=png16m");
     }
-    int dpi = format.parameters.find("dpi")->second.get<int>();
-    gs_process_args.push_back("-r" + std::to_string(dpi));
+  } else if (format.format == "JPEG") {
     is_vector_format = false;
+    gs_process_args.push_back("-sDEVICE=jpeg");
+  } else if (format.format == "TIFF") {
+    is_vector_format = false;
+    gs_process_args.push_back("-sDEVICE=tiff24nc");
+  } else if (format.format == "BMP") {
+    is_vector_format = false;
+    gs_process_args.push_back("-sDEVICE=bmp16m");
   } else if (format.format == "PDF") {
     gs_process_args.push_back("-sDEVICE=pdfwrite");
   } else if (format.format == "PS") {
     gs_process_args.push_back("-sDEVICE=ps2write");
   } else if (format.format == "EPS") {
     gs_process_args.push_back("-sDEVICE=eps2write");
+  }
+
+  if ( ! is_vector_format ) {
+    int dpi = dict_get<int>(format.parameters, "dpi");
+    gs_process_args.push_back("-r" + std::to_string(dpi));
   }
 
   gs_process_args.push_back("-sOutputFile="+outf.native());
@@ -467,9 +487,12 @@ klfengine::binary_data run_implementation::impl_produce_data(const klfengine::fo
   gs_process_args.push_back("-dFIXEDMEDIA");
 
   // anti-aliasing
-  if (!is_vector_format) {
-    gs_process_args.push_back("-dGraphicsAlphaBits=4");
-    gs_process_args.push_back("-dTextAlphaBits=4");
+  if ( ! is_vector_format ) {
+    bool antialiasing = dict_get<bool>(format.parameters, "antialiasing");
+    if (antialiasing) {
+      gs_process_args.push_back("-dGraphicsAlphaBits=4");
+      gs_process_args.push_back("-dTextAlphaBits=4");
+    }
   }
 
   // PostScript page initialization code -- draw background color rectangle, then apply
