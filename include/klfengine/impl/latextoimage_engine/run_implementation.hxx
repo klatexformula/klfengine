@@ -72,7 +72,7 @@ struct run_implementation_private
   {
     fs::path base, tex, dvi, ps, pdf, gs_input;
 
-    void set(fs::path base_, bool via_dvi)
+    inline void set(fs::path base_, bool via_dvi)
     {
       base = base_;
       tex = base_; tex.replace_extension(".tex");
@@ -94,6 +94,7 @@ struct run_implementation_private
 };
 
 
+_KLFENGINE_INLINE
 run_implementation::run_implementation(
     std::shared_ptr<klfengine::detail::simple_gs_interface_engine_tool> gs_iface_tool_,
     klfengine::input input_,
@@ -129,6 +130,7 @@ run_implementation::run_implementation(
   d->fn.set(d->temp_dir.path() / "klfetemp", d->via_dvi);
   
 }
+_KLFENGINE_INLINE
 run_implementation::~run_implementation()
 {
   delete d;
@@ -136,7 +138,8 @@ run_implementation::~run_implementation()
 }
 
 
-inline std::string assemble_latex_template(const klfengine::input & in)
+inline
+std::string assemble_latex_template(const klfengine::input & in)
 {
   using namespace klfengine::detail::utils;
 
@@ -215,6 +218,7 @@ inline std::string assemble_latex_template(const klfengine::input & in)
 };
 
 
+_KLFENGINE_INLINE
 void run_implementation::impl_compile()
 {
   using namespace klfengine::detail::utils;
@@ -331,6 +335,7 @@ void run_implementation::impl_compile()
   d->bbox = d->bbox.scaled_by(in.scale);
 }
 
+_KLFENGINE_INLINE
 std::vector<klfengine::format_description> run_implementation::impl_available_formats()
 {
   return {}; // FIXME !!!
@@ -341,6 +346,7 @@ std::vector<klfengine::format_description> run_implementation::impl_available_fo
   // }
 }
 
+_KLFENGINE_INLINE
 klfengine::format_spec run_implementation::impl_make_canonical(
     const klfengine::format_spec & format, bool /*check_available_only*/
     )
@@ -392,7 +398,9 @@ klfengine::format_spec run_implementation::impl_make_canonical(
   return {};
 }
 
-klfengine::binary_data run_implementation::impl_produce_data(const klfengine::format_spec & format)
+_KLFENGINE_INLINE
+klfengine::binary_data
+run_implementation::impl_produce_data(const klfengine::format_spec & format)
 {
   using namespace klfengine::detail::utils;
   using namespace klfengine::detail;

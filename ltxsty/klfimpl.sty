@@ -279,13 +279,13 @@
 \newdimen\klf@set@bgtmp@rectw
 \newdimen\klf@set@bgtmp@recth
 \def\klf@DrawBackground@Color{%
-  \ifdim\klf@set@bgcoloropacity pt=\z@\relax
+  \ifdim\klf@set@bgcoloropacity\p@=\z@\relax
   \else
     \klf@set@bgtmp@rectw=\klf@ppw
     \advance\klf@set@bgtmp@rectw 2\klf@set@bgcolor@bleed
     \klf@set@bgtmp@recth=\klf@pph
     \advance\klf@set@bgtmp@recth 2\klf@set@bgcolor@bleed
-    \if\klf@set@bgcoloropacity pt=\p@\relax
+    \ifdim\klf@set@bgcoloropacity\p@=\p@\relax
       \let\klf@tmp@pgfsetfillopacity\@gobble
     \else
       \let\klf@tmp@pgfsetfillopacity\pgfsetfillopacity

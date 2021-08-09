@@ -5,7 +5,7 @@
  *
  * The MIT License (MIT)
  *
- * Copyright 2020 Philippe Faist
+ * Copyright 2021 Philippe Faist
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,15 +27,15 @@
  */
 
 
-#include <klfengine/implementation>
+#include <klfengine/klfengine>
 
 #include <catch2/catch.hpp>
 
 
-TEST_CASE( "KLFENGINE_SEPARATE_IMPLEMENTATION was defined", "[meta]" )
+TEST_CASE( "KLFENGINE_SEPARATE_IMPLEMENTATION was not defined (1)", "[meta]" )
 {
-  // make sure we were compiled with -DKLFENGINE_SEPARATE_IMPLEMENTATION
-#ifndef KLFENGINE_SEPARATE_IMPLEMENTATION
+  // make sure we were compiled without -DKLFENGINE_SEPARATE_IMPLEMENTATION
+#ifdef KLFENGINE_SEPARATE_IMPLEMENTATION
   // write tests here
   REQUIRE( false ) ;
 #endif

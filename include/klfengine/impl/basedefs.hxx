@@ -85,6 +85,7 @@ std::string get_type_name_impl(
 
 
 
+_KLFENGINE_INLINE
 std::vector<std::string> str_split_rx(
     std::string::const_iterator a, std::string::const_iterator b,
     const std::regex & rx_sep, bool skip_empty

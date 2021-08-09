@@ -55,6 +55,7 @@ void engine::adjust_for_new_settings(klfengine::settings & settings_)
 }
 
 // reimplemented from klfengine::engine
+_KLFENGINE_INLINE
 klfengine::engine_run_implementation *
 engine::impl_create_engine_run_implementation( klfengine::input input_,
                                                klfengine::settings settings_ )

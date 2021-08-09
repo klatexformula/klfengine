@@ -105,3 +105,13 @@ if(KLFENGINE_USE_LINKED_GHOSTSCRIPT)
   message(STATUS
     "${_klfengine_msg}Ghostscript library located at ${GHOSTSCRIPT_LIB} (GHOSTSCRIPT_ROOT_DIR,GHOSTSCRIPT_LIB)")
 endif()
+
+
+#
+# Simple status message in case of separate compilation unit
+#
+if(KLFENGINE_SEPARATE_IMPLEMENTATION)
+  message(STATUS "${_klfengine_msg}Implementation in separate compilation unit - don't forget to #include <klfengine/implementation> in one of your source files (KLFENGINE_SEPARATE_IMPLEMENTATION)")
+else()
+  message(STATUS "${_klfengine_msg}Will use inline implementation (KLFENGINE_SEPARATE_IMPLEMENTATION)")
+endif()

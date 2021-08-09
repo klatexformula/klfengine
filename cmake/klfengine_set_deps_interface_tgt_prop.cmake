@@ -98,6 +98,23 @@ if(KLFENGINE_USE_LINKED_GHOSTSCRIPT)
   )
 endif()
 
+
+#
+# Implementation in a separate compilation unit?
+#
+if(KLFENGINE_SEPARATE_IMPLEMENTATION)
+  set(_klfengine_interface_tgt_prop_compile_options
+    ${_klfengine_interface_tgt_prop_compile_options}
+    "-DKLFENGINE_SEPARATE_IMPLEMENTATION"
+  )
+endif()
+
+
+#
+# Set appropriate properties
+# --------------------------
+#
+
 set_target_properties(${_klfengine_target_name}
   PROPERTIES
     INTERFACE_COMPILE_OPTIONS "${_klfengine_interface_tgt_prop_compile_options}"

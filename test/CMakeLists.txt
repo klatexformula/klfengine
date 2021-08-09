@@ -162,6 +162,15 @@ klfengine_create_test(separate_impl
 )
 
 
+
+# help catch functions that we didn't properly prefix with _KLFENGINE_INLINE
+klfengine_create_test(inline_impl
+  SOURCES test_inline_impl_1.cxx
+          test_inline_impl_2.cxx
+)
+
+
+
 # --- usage test, scratch stuff ---
 klfengine_create_test(usage_subprocess
   SOURCES test_usage_subprocess.cxx)
