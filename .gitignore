@@ -22,7 +22,7 @@ build-*
 #
 doc/_build
 doc/doxyoutput
-doc/api
+
 
 
 #

@@ -14,7 +14,7 @@ help:
 .PHONY: help Makefile clean
 
 clean:
-	rm -rf doxyoutput/ api/
+#	rm -rf doxyoutput/ api/
 	@$(SPHINXBUILD) -M clean "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
 # Catch-all target: route all unknown targets to Sphinx using the new

@@ -56,8 +56,7 @@ struct cannot_find_executable : exception
 /** \brief Where to find latex, find ghostscript, create temporary dirs etc.
  *
  * A default-constructed object will have empty fields.  Use \ref
- * detect_settings() (or the other more specific <code>detect_*</code>
- * functions) to auto-detect reasonable settings.
+ * detect_settings() to auto-detect reasonable settings.
  */
 struct settings
 {
@@ -83,18 +82,32 @@ struct settings
    */
   std::string texbin_directory;
 
-  /**
+  /** \brief How to invoke Ghostscript (external process, linked C library, or
+   *         library loaded at run-time)
+   *
    * This is one of "none", "process", "linked-libgs", "load-libgs".
    *
-   * \todo TODO: The libgs variants are not yet implemented in the internal
-   *       detail::simple_gs_interface.
    */
   std::string gs_method;
 
+  /** \brief Path to the Ghostscript \c gs executable
+   *
+   * Used in case \a gs_method is set to \c "process".
+   */
   std::string gs_executable_path;
 
+  /** \brief Path to the Ghostscript \c libgs dynamic library
+   *
+   * Used in case \a gs_method is set to \c "load-libgs".
+   *
+   * \todo TODO: The "load-libgs" variant is not yet implemented in the internal
+   *       detail::simple_gs_interface.
+   */
   std::string gs_libgs_path;
 
+  /** \brief Environment variables to include when launching suprocesses, such
+   *         as Ghostscript
+   */
   std::map<std::string, std::string> subprocess_add_environment;
 
   /** \brief Get the path to a latex executable in texbin_directory

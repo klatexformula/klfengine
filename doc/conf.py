@@ -14,6 +14,7 @@
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
 
+import re
 import textwrap # dedent()
 
 # -- Project information -----------------------------------------------------
@@ -23,7 +24,21 @@ copyright = '2020, Philippe Faist'
 author = 'Philippe Faist'
 
 # The full version, including alpha/beta/rc tags
-release = '0.1'
+#
+# Parse version information from include/klfengine/h/version_number_raw.h
+relase = None
+with open('../include/klfengine/h/version_number_raw.h') as f:
+    v_d = {}
+    for m in re.finditer(
+            r'^\#define\s+KLFENGINE_VERSION_(?P<vpartname>[A-Za-z0-9_]+)\s+(?P<val>.*?)\s*$',
+            f.read(),
+            flags=re.MULTILINE
+    ):
+        v_d[m.group('vpartname')] = eval(m.group('val'))
+    release = "{}.{}.{}{}".format(v_d.get('MAJOR'), v_d.get('MINOR'), v_d.get('RELEASE'),
+                                  v_d.get('SUFFIX'))
+print("Parsed klfengine version from header file = {!r}".format(release))
+#release = '0.1'
 
 
 # -- General configuration ---------------------------------------------------
@@ -33,7 +48,7 @@ release = '0.1'
 # ones.
 extensions = [
     'breathe',
-    'exhale',
+#    'exhale',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -52,30 +67,31 @@ breathe_projects = {
 }
 breathe_default_project = "klfengine"
 
-breathe_default_members = ('members', 'protected-members', 'private-members', 'undoc-members')
+#breathe_default_members = ('members', 'protected-members', 'private-members', 'undoc-members')
+breathe_default_members = ('members', 'protected-members', 'undoc-members')
 
-# Setup the exhale extension
-exhale_args = {
-    # These arguments are required
-    "containmentFolder":     "./api",
-    "rootFileName":          "library_root.rst",
-    "rootFileTitle":         "Library API",
-    "doxygenStripFromPath":  "..",
-    # Suggested optional arguments
-    "createTreeView":        True,
-    # TIP: if using the sphinx-bootstrap-theme, you need
-    # "treeViewIsBootstrap": True,
-    "exhaleExecutesDoxygen": True,
-    "exhaleDoxygenStdin":    textwrap.dedent("""
-
-        # where our documented header files are
-        INPUT = ../include/klfengine/h
-
-        # some predefined macros
-        PREDEFINED += _KLFENGINE_PROCESSED_BY_DOXYGEN
-
-""")
-}
+# # Setup the exhale extension
+# exhale_args = {
+#     # These arguments are required
+#     "containmentFolder":     "./api",
+#     "rootFileName":          "library_root.rst",
+#     "rootFileTitle":         "Library API",
+#     "doxygenStripFromPath":  "..",
+#     # Suggested optional arguments
+#     "createTreeView":        True,
+#     # TIP: if using the sphinx-bootstrap-theme, you need
+#     # "treeViewIsBootstrap": True,
+#     "exhaleExecutesDoxygen": True,
+#     "exhaleDoxygenStdin":    textwrap.dedent("""
+#
+#         # where our documented header files are
+#         INPUT = ../include/klfengine/h
+#
+#         # some predefined macros
+#         PREDEFINED += _KLFENGINE_PROCESSED_BY_DOXYGEN
+#
+# """)
+# }
 
 # Tell sphinx what the primary language being documented is.
 primary_domain = 'cpp'

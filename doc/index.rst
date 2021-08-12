@@ -10,7 +10,9 @@ Welcome to klfengine's documentation!
    :maxdepth: 2
    :caption: Contents:
 
-   api/library_root
+   apidoc
+   apitodo
+
 
 
 Indices and tables
