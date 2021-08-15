@@ -2,10 +2,10 @@ Input-related classes
 =====================
 
 
-``<klfengine/input>``
----------------------
+File ``<klfengine/input>``
+--------------------------
 
-.. doxygentypedef:: klfengine::length
+.. doxygenstruct:: klfengine::length
 
 .. doxygenstruct:: klfengine::color
 
@@ -14,8 +14,8 @@ Input-related classes
 .. doxygenstruct:: klfengine::input
 
 
-``<klfengine/settings>``
-------------------------
+File ``<klfengine/settings>``
+-----------------------------
 
 Store and auto-detect system settings including temporary directory location,
 Ghostscript location, etc.
@@ -23,8 +23,8 @@ Ghostscript location, etc.
 .. doxygenstruct:: klfengine::settings
 
 
-``<klfengine/format_spec>``
----------------------------
+File ``<klfengine/format_spec>``
+--------------------------------
 
 .. doxygenstruct:: klfengine::format_spec
 

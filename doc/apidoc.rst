@@ -6,3 +6,4 @@ API Documentation
    api/base
    api/inputs
    api/engine
+   api/helpers

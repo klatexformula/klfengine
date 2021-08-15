@@ -149,8 +149,12 @@ void from_json(const nlohmann::json & j, value & v);
 
 /** \brief Store standard JSON-like types, including arrays and maps
  *
- * This is a variant type that can store ints, bools, doubles, strings, as well
- * as arrays and maps of such types (maps always have strings as keys).
+ * This is a std::variant type that can store ints, bools, doubles, strings,
+ * as well as arrays and maps of such types (maps always have strings as keys).
+ *
+ * (If KLFENGINE_USE_MPARK_VARIANT is set, the <a
+ * href="https://github.com/mpark/variant" target="_blank">mpark/variant</a>
+ * library is used instead of std::variant.  See "Using the klfengine library".)
  *
  * You can construct arbitrary values with initializer lists:
  * \code
@@ -158,8 +162,8 @@ void from_json(const nlohmann::json & j, value & v);
  *     klfengine::value::array{
  *       klfengine::value{v1},
  *       klfengine::value{klfengine::value::dict{
- *         {std::string("key1"), dictvalue1},
- *         {std::string("key2"), dictvalue2},
+ *         {std::string{"key1"}, dictvalue1},
+ *         {std::string{"key2"}, dictvalue2},
  *         (...)
  *       }},
  *       (...)
@@ -167,19 +171,30 @@ void from_json(const nlohmann::json & j, value & v);
  *  }
  * \endcode
  *
- * \warning Always use explicit std::string's, not const char * constants,
- *    because otherwise <a
- *    href="https://stackoverflow.com/a/60683920/1694896">they get converted to
- *    \a bool</a>.
+ * \warning Always use explicit std::string's when constructing
+ *    klfengine::value's, and not const char * constants, because <a
+ *    href="https://stackoverflow.com/a/60683920/1694896">const char * values
+ *    get converted to bool</a>.
  *
+ * Important members:
+ *
+ * <b>value::array</b>: a typedef of <code>std::vector<klfengine::value></code>
+ *
+ * <b>value::dict</b>: a typedef of <code>std::map<std::string,
+ * klfengine::value></code>
  */
 using value = detail::value;
 
 
 
-/** \brief Family of utilities to fetch a value in a map by key, possibly with a
- *         default if the key does not exist.
+/** \brief Fetch a value in a map by key
  *
+ * This function throws \a std::out_of_range if the key is not in the
+ * dictionary.
+ *
+ * If \a X is a standard klfengine::value type (bool, int, etc.), then the
+ * corresponding value is returned.  If \a X is klfengine::value, the
+ * klfengine::value object is returned.
  */
 template<typename X = value>
 inline X dict_get(const value::dict & dict, const std::string & key)
@@ -195,6 +210,16 @@ inline value dict_get<value>(const value::dict & dict, const std::string & key)
   }
   return it->second;
 }
+/** \brief Fetch a value in a map by key, possibly with a default if the key
+ *         does not exist.
+ *
+ * If the given \a key cannot be found in the dictionary, then \a dflt is
+ * returned instead.
+ *
+ * If \a X is a standard klfengine::value type (bool, int, etc.), then the
+ * corresponding value is returned.  If \a X is klfengine::value, the
+ * klfengine::value object is returned.
+ */
 template<typename X>
 inline X dict_get(const value::dict & dict, const std::string & key, X dflt)
 {
@@ -210,8 +235,14 @@ inline value dict_get<value>(const value::dict & dict, const std::string & key, 
   return it->second;
 }
 
-/** \brief If the given key exists in the dictionary, then execute the given
- *         callback with the associated value.
+/** \brief Execute the given callback if a key exists in the dictionary
+ *
+ * If the given \a key is found in the dictionary \a dict, then \a fn is
+ * executed with the value associated with that key.  If \a key was not found,
+ * then nothing happens.
+ *
+ * Returns \a true if the key was found (and therefore \a fn was executed),
+ * otherwise returns \a false.
  */
 template<typename X>
 inline bool dict_do_if(const value::dict & dict, const std::string & key,

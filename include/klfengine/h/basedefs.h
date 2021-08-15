@@ -72,6 +72,9 @@
 
 
 
+/** \brief Namespace collecting all \a klfengine-related definitions
+ *
+ */
 namespace klfengine {
 
 
@@ -147,7 +150,7 @@ private:
 
 /** \brief Error parsing object from JSON representation
  *
- * This exception is thrown when loading objects (e.g., \ref klfengine::margin,
+ * This exception is thrown when loading objects (e.g., \ref klfengine::margins,
  * klfengine::input, etc.) from JSON, e.g., if the given JSON does not have the
  * expected structure.
  */

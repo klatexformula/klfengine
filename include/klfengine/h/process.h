@@ -42,8 +42,13 @@
 
 namespace klfengine {
 
-struct process_exit_error : exception
+/** \brief Executed subprocess exited abnormally or with an error code set.
+ *
+ * See also \ref klfengine::process::check_exit_code
+ */
+class process_exit_error : public klfengine::exception
 {
+public:
   process_exit_error(std::string msg);
   virtual ~process_exit_error();
 };
@@ -61,27 +66,73 @@ environment current_environment();
  */
 environment parse_environment(char ** env_ptr);
 
-/** \brief Instruct \ref set_environment() to include variables if not already defined
+/** \brief Instruct \ref klfengine::set_environment() to include variables if
+ *         not already defined
+ *
+ * Construct this object inline using member initialization.  Example:
+ * \code
+ *  set_environment(...,
+ *                  provide_environment_variables{
+ *                    {{"A", "value of A"}, ... }
+ *                  }
+ *                  ...);
+ * \endcode
  */
 struct provide_environment_variables {
   environment variables;
 };
 /** \brief Instruct \ref set_environment() to set variables to new values
+ *
+ * Construct this object inline using member initialization.  Example:
+ * \code
+ *  set_environment(...,
+ *                  set_environment_variables{
+ *                    {{"A", "value of A"}, ... }
+ *                  }
+ *                  ...);
+ * \endcode
  */
 struct set_environment_variables {
   environment variables;
 };
 /** \brief Instruct \ref set_environment() to remove some variables
+ *
+ * Construct this object inline using member initialization.  Example:
+ * \code
+ *  set_environment(...,
+ *                  remove_environment_variables{
+ *                    {"A", "B", ... }
+ *                  }
+ *                  ...);
+ * \endcode
  */
 struct remove_environment_variables {
   std::vector<std::string> variable_names;
 };
 /** \brief Instruct \ref set_environment() to prepend paths to some variables
+ *
+ * Construct this object inline using member initialization.  Example:
+ * \code
+ *  set_environment(...,
+ *                  prepend_path_environment_variables{
+ *                    {{"PYTHONPATH", "/path/to/somewhere:/somewhere/else"}, ... }
+ *                  }
+ *                  ...);
+ * \endcode
  */
 struct prepend_path_environment_variables {
   environment variables;
 };
 /** \brief Instruct \ref set_environment() to append paths to some variables
+ *
+ * Construct this object inline using member initialization.  Example:
+ * \code
+ *  set_environment(...,
+ *                  append_path_environment_variables{
+ *                    {{"PYTHONPATH", "/path/to/somewhere:/somewhere/else"}, ... }
+ *                  }
+ *                  ...);
+ * \endcode
  */
 struct append_path_environment_variables {
   environment variables;
@@ -138,7 +189,7 @@ inline void do_set_environment(environment & env, append_path_environment_variab
  *
  * The given \a environment is modified according to the keyword-like arguments
  * \a arg0, \a arg1, ..., which are processed in the given order.  The args must
- * be temporary instances that are of type \ref set_environment_variables, \ref
+ * be inline instances that are of type \ref set_environment_variables, \ref
  * provide_environment_variables, \ref remove_environment_variables, \ref
  * prepend_path_environment_variables, or \ref
  * append_path_environment_variables.  See the documentation of those objects
@@ -294,7 +345,7 @@ public:
    *   binary_data out_buffer;
    *   klfe::process::run_and_wait(
    *       ...,
-   *       klfe::process::capture_stdout_data{out_buffer},
+   *       klfe::process::capture_stdout_data{&out_buffer},
    *       ...
    *   );
    * \endcode
@@ -314,6 +365,9 @@ public:
    * Only works in conjuction with \ref capture_stdout_data.  If
    * <code>capture_stdout_if{false}</code> is provided to \ref run_and_wait(),
    * then the effect of any <code>capture_stderr_data</code> is inhibited.
+   *
+   * Setting <code>capture_stdout_if{false}</code> has the same effect as
+   * <code>capture_stdout_data{nullptr}</code>.
    */
   struct capture_stdout_if{
     bool _capture;
@@ -346,6 +400,7 @@ public:
     bool _check;
   };
 
+#ifdef _KLFENGINE_PROCESSED_BY_DOXYGEN
   /** \brief Execute a process and wait until it terminates
    *
    * The first parameter is the standard \a argv list for the new process, with
@@ -369,6 +424,11 @@ public:
    * thrown.  In case of errors and if you're capturing stdout and/or stderr,
    * the buffers will contain the data that has been received so far.
    */
+  static void run_and_wait(const std::vector<std::string> & argv,
+                           RunProcessManipArg0 arg0, RunProcessManipArg1 arg1, ...)
+  {
+  }
+#else
   template<typename... Args>
   static void run_and_wait(const std::vector<std::string> & argv, Args && ... args)
   {
@@ -500,6 +560,8 @@ public:
 
     // normal exit, ok.
   }
+#endif // processed by doxygen
+
 };
 
 

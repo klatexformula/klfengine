@@ -1,16 +1,18 @@
 Basic `klfengine` definitions
 =============================
 
-``<klfengine/basedefs>``
-------------------------
+File ``<klfengine/basedefs>``
+-----------------------------
 
 .. doxygentypedef:: klfengine::binary_data
 
 .. doxygenclass:: klfengine::exception
 
+.. doxygenclass:: klfengine::invalid_json_value
 
-``<klfengine/value>``
-------------------------
+
+File ``<klfengine/value>``
+--------------------------
 
 Generic value type
 ~~~~~~~~~~~~~~~~~~
@@ -27,23 +29,21 @@ Related helper functions
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. doxygenfunction:: klfengine::dict_get(const value::dict &, const std::string &)
+.. doxygenfunction:: klfengine::dict_get(const value::dict & dict, const std::string & key, X dflt)
+.. doxygenfunction:: klfengine::dict_do_if(const value::dict & dict, const std::string & key, std::function<void(const X&)> fn)
 
 
-``<klfengine/version>``
------------------------
+File ``<klfengine/version>``
+----------------------------
 
-.  ............
+.. doxygendefine:: KLFENGINE_VERSION_MAJOR
+.. doxygendefine:: KLFENGINE_VERSION_MINOR
+.. doxygendefine:: KLFENGINE_VERSION_RELEASE
+.. doxygendefine:: KLFENGINE_VERSION_SUFFIX
 
+.. doxygenstruct:: klfengine::version_info
 
-``<klfengine/process>``
------------------------
-
-.  ..................
-
-
-``<klfengine/temporary_directory>``
------------------------------------
-
-.   ....................
+.. doxygenfunction:: klfengine::version()
+.. doxygenfunction:: klfengine::implementation_version()
 
 

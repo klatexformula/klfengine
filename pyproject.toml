@@ -1,0 +1,10 @@
+[tool.poetry]
+name = "klfengine-doc"
+version = "0.1.0"
+description = ""
+authors = ["Philippe Faist <philippe.faist@bluewin.ch>"]
+
+[tool.poetry.dependencies]
+python = "^3.6"
+Sphinx = "^4.1.2"
+breathe = "^4.30.0"
