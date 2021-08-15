@@ -242,10 +242,10 @@ std::string run_implementation::assemble_latex_template(
 
   // margins
 
-  pre_preamble += "\\klfSetTopMargin{" + dbl_to_string(in.margins.top) + "pt}\n";
-  pre_preamble += "\\klfSetRightMargin{" + dbl_to_string(in.margins.right) + "pt}\n";
-  pre_preamble += "\\klfSetBottomMargin{" + dbl_to_string(in.margins.bottom) + "pt}\n";
-  pre_preamble += "\\klfSetLeftMargin{" + dbl_to_string(in.margins.left) + "pt}\n";
+  pre_preamble += "\\klfSetTopMargin{" + in.margins.top.to_string() + "}\n";
+  pre_preamble += "\\klfSetRightMargin{" + in.margins.right.to_string() + "}\n";
+  pre_preamble += "\\klfSetBottomMargin{" + in.margins.bottom.to_string() + "}\n";
+  pre_preamble += "\\klfSetLeftMargin{" + in.margins.left.to_string() + "}\n";
 
   // background: solid color, frame
 

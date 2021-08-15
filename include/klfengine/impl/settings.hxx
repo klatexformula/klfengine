@@ -323,12 +323,16 @@ void to_json(nlohmann::json & j, const settings & v)
 _KLFENGINE_INLINE
 void from_json(const nlohmann::json & j, settings & v)
 {
-  j.at("temporary_directory").get_to(v.temporary_directory);
-  j.at("texbin_directory").get_to(v.texbin_directory);
-  j.at("gs_method").get_to(v.gs_method);
-  j.at("gs_executable_path").get_to(v.gs_executable_path);
-  j.at("gs_libgs_path").get_to(v.gs_libgs_path);
-  j.at("subprocess_add_environment").get_to(v.subprocess_add_environment);
+  try {
+    j.at("temporary_directory").get_to(v.temporary_directory);
+    j.at("texbin_directory").get_to(v.texbin_directory);
+    j.at("gs_method").get_to(v.gs_method);
+    j.at("gs_executable_path").get_to(v.gs_executable_path);
+    j.at("gs_libgs_path").get_to(v.gs_libgs_path);
+    j.at("subprocess_add_environment").get_to(v.subprocess_add_environment);
+  } catch (nlohmann::json::exception & e) {
+    throw invalid_json_value{"klfengine::settings", j, e.what()};
+  }
 }
 
 

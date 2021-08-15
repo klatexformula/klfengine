@@ -29,13 +29,16 @@
 #pragma once
 
 #include <klfengine/input>
+#include <klfengine/h/detail/utils.h>
 
 #include <nlohmann/json.hpp>
 
 
 namespace klfengine {
 
-
+//
+// color
+//
 
 _KLFENGINE_INLINE
 bool operator==(const color & a, const color & b)
@@ -61,13 +64,20 @@ void to_json(nlohmann::json & j, const color & v)
 _KLFENGINE_INLINE
 void from_json(const nlohmann::json & j, color & v)
 {
-  j.at("red").get_to(v.red);
-  j.at("green").get_to(v.green);
-  j.at("blue").get_to(v.blue);
-  j.at("alpha").get_to(v.alpha);
+  try {
+    j.at("red").get_to(v.red);
+    j.at("green").get_to(v.green);
+    j.at("blue").get_to(v.blue);
+    j.at("alpha").get_to(v.alpha);
+  } catch (nlohmann::json::exception & e) {
+    throw invalid_json_value{"klfengine::color", j, e.what()};
+  }
 }
 
 
+//
+// margins
+//
 
 
 _KLFENGINE_INLINE
@@ -95,10 +105,14 @@ void to_json(nlohmann::json & j, const margins & v)
 _KLFENGINE_INLINE
 void from_json(const nlohmann::json & j, margins & v)
 {
-  j.at("top").get_to(v.top);
-  j.at("right").get_to(v.right);
-  j.at("bottom").get_to(v.bottom);
-  j.at("left").get_to(v.left);
+  try {
+    j.at("top").get_to(v.top);
+    j.at("right").get_to(v.right);
+    j.at("bottom").get_to(v.bottom);
+    j.at("left").get_to(v.left);
+  } catch (nlohmann::json::exception & e) {
+    throw invalid_json_value{"klfengine::margins", j, e.what()};
+  }
 }
 
 
@@ -127,6 +141,13 @@ bool operator!=(const input & a, const input & b)
 {
   return ! (a == b);
 }
+
+
+
+//
+// input
+//
+
 
 
 
@@ -171,18 +192,22 @@ void to_json(nlohmann::json & j, const input & v)
 _KLFENGINE_INLINE
 void from_json(const nlohmann::json & j, input & v)
 {
-  j.at("latex").get_to(v.latex);
-  j.at("math_mode").get_to(v.math_mode);
-  j.at("preamble").get_to(v.preamble);
-  j.at("latex_engine").get_to(v.latex_engine);
-  j.at("font_size").get_to(v.font_size);
-  j.at("fg_color").get_to(v.fg_color);
-  j.at("bg_color").get_to(v.bg_color);
-  j.at("margins").get_to(v.margins);
-  j.at("dpi").get_to(v.dpi);
-  j.at("scale").get_to(v.scale);
-  j.at("outline_fonts").get_to(v.outline_fonts);
-  j.at("parameters").get_to(v.parameters);
+  try {
+    j.at("latex").get_to(v.latex);
+    j.at("math_mode").get_to(v.math_mode);
+    j.at("preamble").get_to(v.preamble);
+    j.at("latex_engine").get_to(v.latex_engine);
+    j.at("font_size").get_to(v.font_size);
+    j.at("fg_color").get_to(v.fg_color);
+    j.at("bg_color").get_to(v.bg_color);
+    j.at("margins").get_to(v.margins);
+    j.at("dpi").get_to(v.dpi);
+    j.at("scale").get_to(v.scale);
+    j.at("outline_fonts").get_to(v.outline_fonts);
+    j.at("parameters").get_to(v.parameters);
+  } catch (nlohmann::json::exception & e) {
+    throw invalid_json_value{"klfengine::input", j, e.what()};
+  }
 }
 
 

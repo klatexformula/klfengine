@@ -151,8 +151,9 @@ inline void from_json(const nlohmann::json & j, value & v)
       return;
     }
   default:
-    throw std::runtime_error(std::string("Unknown JSON type to convert: ")
-                             + j.dump());
+    {
+      throw invalid_json_value{"klfengine::value", j};
+    }
   }
 }
 

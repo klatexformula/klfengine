@@ -41,6 +41,7 @@ TEST_CASE( "fs exposes a std::filesystem interface", "[detail-filesystem]" )
 
 #ifdef _KLFENGINE_DONT_INCLUDE_IMPL_HXX
 // forward declaration of non-public functions if .hxx wasn't included
+#include <regex>
 namespace klfengine{ namespace detail {
 struct fs_w_part_alt {
   std::vector<std::string> alternatives;

@@ -49,7 +49,12 @@ TEST_CASE( "simple compilation with latextoimage_engine produces correct equatio
   in.preamble = std::string("\\usepackage{amsmath}\n\\usepackage{amssymb}");
   in.latex_engine = std::string("pdflatex");
   in.font_size = -1.0;
-  in.margins = klfengine::margins{1,1,1,1};
+  in.margins = klfengine::margins{
+    klfengine::length{"1bp"},
+    klfengine::length{"1bp"},
+    klfengine::length{"1bp"},
+    klfengine::length{"1bp"}
+  };
   in.dpi = 1200;
   in.scale = 1.0;
   in.outline_fonts = true;

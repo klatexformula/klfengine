@@ -32,6 +32,7 @@
 #include <string>
 
 #include <klfengine/process>
+#include <klfengine/h/detail/utils.h>
 #include <klfengine/h/detail/simple_gs_interface.h>
 
 
@@ -218,6 +219,8 @@ get_gs_help_section(const std::string & out, const char * sec_name)
 _KLFENGINE_INLINE
 simple_gs_interface::gs_info_t simple_gs_interface::get_gs_info()
 {
+  using namespace klfengine::detail::utils;
+
   binary_data out_buf;
 
   run_gs( {"--help"}, capture_stdout_data{&out_buf} );

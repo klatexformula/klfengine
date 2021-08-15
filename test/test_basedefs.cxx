@@ -72,12 +72,3 @@ TEST_CASE( "klfe::detail::get_type_name", "[basedefs]" )
 }
 
 
-
-TEST_CASE( "klfe::detail::str_split_rx", "[basedefs]" )
-{
-  std::string x{"abcd;efghijkl;;m;nn;op;"};
-  REQUIRE(
-      klfengine::detail::str_split_rx(x.begin(), x.end(), std::regex{"\\;+"})
-      == std::vector<std::string>{ "abcd", "efghijkl", "m", "nn", "op", "" }
-    );
-}

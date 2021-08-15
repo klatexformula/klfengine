@@ -85,31 +85,6 @@ std::string get_type_name_impl(
 
 
 
-_KLFENGINE_INLINE
-std::vector<std::string> str_split_rx(
-    std::string::const_iterator a, std::string::const_iterator b,
-    const std::regex & rx_sep, bool skip_empty
-    )
-{
-  std::vector<std::string> items;
-  auto last_sep_end = a;
-
-  for (std::sregex_iterator it = std::sregex_iterator(a, b, rx_sep);
-       it != std::sregex_iterator{}; ++it) {
-    // iterating over matches of the separator regex
-    std::smatch sep_match = *it;
-    if (!skip_empty || sep_match[0].first != last_sep_end) {
-      items.push_back(std::string{last_sep_end,sep_match[0].first});
-    }
-    last_sep_end = sep_match[0].second;
-  }
-  if (!skip_empty || last_sep_end != b) {
-    items.push_back(std::string{last_sep_end,b});
-  }
-  return items;
-}
-
-
 
 
 } // namespace detail

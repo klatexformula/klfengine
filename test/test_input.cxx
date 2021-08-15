@@ -30,9 +30,13 @@
 #include <klfengine/input>
 
 
+
 #include <catch2/catch.hpp>
 
 //#include <iostream> // DEBUG
+
+
+
 
 
 TEST_CASE( "struct input has the right fields of the right type", "[input]" )
@@ -108,7 +112,7 @@ klfengine::input test_make_input(
     std::pair<std::string,std::string> math_mode,
     std::string preamble,
     std::string latex_engine,
-    klfengine::length font_size,
+    double font_size,
     klfengine::color fg_color,
     klfengine::color bg_color,
     klfengine::margins margins,

@@ -5,7 +5,7 @@
  *
  * The MIT License (MIT)
  *
- * Copyright 2020 Philippe Faist
+ * Copyright 2021 Philippe Faist
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,52 +29,22 @@
 #pragma once
 
 
-#include <vector>
-#include <string>
-#include <functional>
-
 #include <klfengine/basedefs>
-#include <klfengine/value>
 
-#include <klfengine/h/detail/provide_fs.h>
+#ifdef KLFENGINE_USE_GULRAK_FILESYSTEM
+#  include <ghc/filesystem.hpp>
+#else
+#  include <filesystem>
+#endif
 
 
 namespace klfengine {
 
-namespace detail {
-
-
-#ifdef _KLFENGINE_OS_WIN
-constexpr char path_separator = ';';
+#ifdef KLFENGINE_USE_GULRAK_FILESYSTEM
+namespace fs = ghc::filesystem;
 #else
-constexpr char path_separator = ':';
+namespace fs = std::filesystem;
 #endif
 
-
-
-std::vector<fs::path>
-find_wildcard_path(const std::vector<std::string> & wildcard_expressions,
-                   const std::vector<std::string> & file_names
-                     = std::vector<std::string>{},
-                   int limit = -1);
-
-
-std::vector<fs::path>
-find_wildcard_path(const std::vector<std::string> & wildcard_expressions,
-                   const std::vector<std::string> & file_names,
-                   const std::function<bool(const fs::path&)> & predicate,
-                   int limit = -1);
-
-
-std::vector<std::string> get_environment_PATH(const char * varname = "PATH");
-
-
-} // namespace detail
 
 } // namespace klfengine
-
-
-
-#ifndef _KLFENGINE_DONT_INCLUDE_IMPL_HXX
-#include <klfengine/impl/detail/filesystem.hxx>
-#endif

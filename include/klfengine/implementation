@@ -9,6 +9,7 @@
 #include <klfengine/impl/basedefs.hxx>
 #include <klfengine/impl/version.hxx>
 #include <klfengine/impl/value.hxx>
+#include <klfengine/impl/length.hxx>
 #include <klfengine/impl/input.hxx>
 #include <klfengine/impl/settings.hxx>
 #include <klfengine/impl/format_spec.hxx>

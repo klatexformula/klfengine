@@ -93,6 +93,8 @@ klfengine_create_test(value SOURCES test_value.cxx)
 
 klfengine_create_test(version SOURCES test_version.cxx)
 
+klfengine_create_test(length SOURCES test_length.cxx)
+
 klfengine_create_test(input SOURCES test_input.cxx)
 
 klfengine_create_test(settings SOURCES test_settings.cxx)
@@ -140,6 +142,7 @@ klfengine_create_test(separate_impl
           test_basedefs.cxx
           test_value.cxx
           test_version.cxx
+          test_length.cxx
           test_input.cxx
           test_settings.cxx
           test_format_spec.cxx

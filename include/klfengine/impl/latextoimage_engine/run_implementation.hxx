@@ -327,10 +327,10 @@ void run_implementation::impl_compile()
 
   // compute bbox of scaled graphics, including margins etc.
   d->bbox = d->rawbbox;
-  d->bbox.x1 -= in.margins.left;
-  d->bbox.y1 -= in.margins.bottom;
-  d->bbox.x2 += in.margins.right;
-  d->bbox.y2 += in.margins.top;
+  d->bbox.x1 -= in.margins.left.to_value_as_bp();
+  d->bbox.y1 -= in.margins.bottom.to_value_as_bp();
+  d->bbox.x2 += in.margins.right.to_value_as_bp();
+  d->bbox.y2 += in.margins.top.to_value_as_bp();
   // also apply scale to margins
   d->bbox = d->bbox.scaled_by(in.scale);
 }

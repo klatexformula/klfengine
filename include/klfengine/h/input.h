@@ -38,6 +38,7 @@
 
 #include <klfengine/basedefs>
 #include <klfengine/value>
+#include <klfengine/length>
 
 #include <nlohmann/json.hpp>
 
@@ -45,16 +46,6 @@
 namespace klfengine
 {
 
-/** \brief Store a LaTeX length (for now, only in points)
- *
- * For now, this is a double floating-point value, with units of LaTeX points
- * ("1pt").
- *
- * \bug  In the future, we should have a fp-value associated with an explicit
- *       latex unit, without normalizing everything to points, so that we can
- *       specify font-dependent lengths such as "0.3ex".
- */
-using length = double;
 
 /** \brief Store an RGBA color with transparency
  *
@@ -120,7 +111,7 @@ struct input
    *
    *
    */
-  length font_size;
+  double font_size;
 
   color fg_color;
   color bg_color;
@@ -139,6 +130,11 @@ struct input
   value::dict parameters;
 };
 
+
+bool operator==(const length & a, const length & b);
+bool operator!=(const length & a, const length & b);
+void to_json(nlohmann::json & j, const length & v);
+void from_json(const nlohmann::json & j, length & v);
 
 bool operator==(const color & a, const color & b);
 bool operator!=(const color & a, const color & b);

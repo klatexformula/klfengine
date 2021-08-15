@@ -1,6 +1,7 @@
 // shorthand to include all public klfengine API headers
 #include <klfengine/basedefs>
 #include <klfengine/version>
+#include <klfengine/length>
 #include <klfengine/input>
 #include <klfengine/value>
 #include <klfengine/settings>

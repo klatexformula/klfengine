@@ -59,7 +59,7 @@ static std::string test_run_args(Args && ... args)
   return "no.";
 }
 
-TEST_CASE( "argument handling with detail::get_kwargs", "[process]" )
+TEST_CASE( "argument handling with detail::get_kwargs", "[detail-utils]" )
 {
   { auto res = test_run_args(string_arg_test{"hello world"});
     REQUIRE( res == "yes! string_arg_test._data is: hello world" ) ; }
@@ -81,3 +81,15 @@ TEST_CASE( "argument handling with detail::get_kwargs", "[process]" )
 }
 
 
+
+
+
+
+TEST_CASE( "klfengine::detail::str_split_rx", "[detail-utils]" )
+{
+  std::string x{"abcd;efghijkl;;m;nn;op;"};
+  REQUIRE(
+      klfengine::detail::utils::str_split_rx(x.begin(), x.end(), std::regex{"\\;+"})
+      == std::vector<std::string>{ "abcd", "efghijkl", "m", "nn", "op", "" }
+    );
+}

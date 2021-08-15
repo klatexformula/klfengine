@@ -34,7 +34,8 @@
 #include <exception>
 #include <type_traits>
 #include <typeinfo>
-#include <regex>
+
+#include <nlohmann/json.hpp>
 
 
 //
@@ -143,6 +144,29 @@ private:
 
 
 
+
+/** \brief Error parsing object from JSON representation
+ *
+ * This exception is thrown when loading objects (e.g., \ref klfengine::margin,
+ * klfengine::input, etc.) from JSON, e.g., if the given JSON does not have the
+ * expected structure.
+ */
+class invalid_json_value : public klfengine::exception
+{
+public:
+  invalid_json_value(std::string what, const nlohmann::json & json,
+                     std::string moremsg = std::string{})
+    : klfengine::exception{
+        "Cannot parse " + what + " from `" + json.dump() + "'"
+        + (moremsg.size() ? (": "+moremsg) : "")
+      }
+  {}
+};
+
+
+
+
+
 namespace detail {
 
 std::string get_type_name_impl(
@@ -166,11 +190,6 @@ std::string get_type_name()
     );
 }
 
-
-std::vector<std::string> str_split_rx(
-    std::string::const_iterator a, std::string::const_iterator b,
-    const std::regex & rx_sep, bool skip_empty = false
-    );
 
 } // namespace detail
 

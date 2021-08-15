@@ -32,6 +32,7 @@
 #include <regex>
 
 #include <klfengine/basedefs>
+#include <klfengine/h/detail/utils.h>
 #include <klfengine/h/detail/filesystem.h>
 
 
@@ -331,10 +332,14 @@ find_wildcard_path(const std::vector<std::string> & wildcard_expressions,
 _KLFENGINE_INLINE
 std::vector<std::string> get_environment_PATH(const char * varname)
 {
+  using namespace klfengine::detail::utils;
   std::string env_path{ std::getenv(varname) };
-  return
-    detail::str_split_rx(env_path.begin(), env_path.end(),
-                         std::regex(std::string("\\")+path_separator), true);
+  return str_split_rx(
+    env_path.begin(),
+    env_path.end(),
+    std::regex(std::string("\\")+path_separator),
+    true
+  );
 }
 
 

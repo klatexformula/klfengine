@@ -36,9 +36,10 @@
 #include <vector>
 #include <system_error>
 #include <algorithm>
+#include <regex>
 
 #include <klfengine/h/basedefs.h>
-#include <klfengine/h/detail/filesystem.h>
+#include <klfengine/h/detail/provide_fs.h>
 
 
 namespace klfengine {
@@ -49,6 +50,12 @@ namespace detail {
 // "using namespace klfengine::detail::utils"
 namespace utils {
 
+
+
+// ---------------------------------------------------------
+//
+// kwargs-style parsing
+//
 
 
 // from https://en.cppreference.com/w/cpp/types/disjunction
@@ -104,6 +111,9 @@ struct kwargs {
 
 
 
+// ---------------------------------------------------------
+
+
 
 
 inline
@@ -117,6 +127,12 @@ std::string dbl_to_string(double dval)
   s.resize(n);
   return std::string{s.begin(), s.end()};
 }
+
+
+
+
+// ---------------------------------------------------------
+
 
 
 inline
@@ -176,11 +192,73 @@ binary_data load_file_data(const std::string & fname)
 }
 
 
+
+
+// ---------------------------------------------------------
+
+
 inline std::string to_lowercase(std::string x)
 {
   std::transform(x.begin(), x.end(), x.begin(), ::tolower);
   return x;
 }
+
+
+//
+// thanks https://stackoverflow.com/a/25385766/1694896
+//
+
+constexpr char ws[] = " \t\n\r\f\v";
+
+// trim from end of string (right)
+inline void str_rtrim(std::string & s, const std::string & t = ws)
+{
+  s.erase(s.find_last_not_of(t) + 1);
+}
+
+// trim from beginning of string (left)
+inline void str_ltrim(std::string & s, const std::string & t = ws)
+{
+  s.erase(0, s.find_first_not_of(t));
+}
+
+// trim from both ends of string (right then left)
+inline void str_trim(std::string & s, const std::string & t = ws)
+{
+  str_rtrim(s, t);
+  str_ltrim(s, t);
+}
+
+
+
+
+inline
+std::vector<std::string> str_split_rx(
+    std::string::const_iterator a, std::string::const_iterator b,
+    const std::regex & rx_sep, bool skip_empty = false
+    )
+{
+  std::vector<std::string> items;
+  auto last_sep_end = a;
+
+  for (std::sregex_iterator it = std::sregex_iterator(a, b, rx_sep);
+       it != std::sregex_iterator{}; ++it) {
+    // iterating over matches of the separator regex
+    std::smatch sep_match = *it;
+    if (!skip_empty || sep_match[0].first != last_sep_end) {
+      items.push_back(std::string{last_sep_end,sep_match[0].first});
+    }
+    last_sep_end = sep_match[0].second;
+  }
+  if (!skip_empty || last_sep_end != b) {
+    items.push_back(std::string{last_sep_end,b});
+  }
+  return items;
+}
+
+
+
+
 
 
 } // namespace utils
