@@ -13,7 +13,7 @@ This library will provide the core functionality of future versions of
 KLatexFormula.
 
 This header-only library depends on a handful of other header-only C++11
-libraries.  The library `klfengine` also requires access to a working LaTeX
+libraries.  The library `klfengine` requires access to a working LaTeX
 distribution at run time (e.g., `texlive <http://tug.org/texlive/>`_).
 
 

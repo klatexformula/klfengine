@@ -138,8 +138,8 @@ run_implementation::~run_implementation()
 }
 
 
-inline
-std::string assemble_latex_template(const klfengine::input & in)
+_KLFENGINE_INLINE
+std::string run_implementation::assemble_latex_template(const klfengine::input & in)
 {
   using namespace klfengine::detail::utils;
 

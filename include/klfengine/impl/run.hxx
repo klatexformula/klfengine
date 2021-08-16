@@ -59,9 +59,9 @@ _KLFENGINE_INLINE run::run(
   }
 }
 
-_KLFENGINE_INLINE run::~run()
-{
-}
+// _KLFENGINE_INLINE run::~run()
+// {
+// }
 
 
 

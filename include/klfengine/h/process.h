@@ -55,7 +55,9 @@ public:
 
 
 
-/** \brief A mapping object of names with values, representing a process environment
+/** \brief A mapping object representing a process environment
+ *
+ * The keys and values are the environment variable names and associated values.
  */
 using environment = std::map<std::string, std::string>;
 
@@ -68,6 +70,10 @@ environment parse_environment(char ** env_ptr);
 
 /** \brief Instruct \ref klfengine::set_environment() to include variables if
  *         not already defined
+ *
+ * If the given variable is not present in the \a environment object, then it is
+ * added with the given value.  If it is already present, no action is
+ * performed.
  *
  * Construct this object inline using member initialization.  Example:
  * \code
@@ -82,6 +88,8 @@ struct provide_environment_variables {
   environment variables;
 };
 /** \brief Instruct \ref set_environment() to set variables to new values
+ *
+ * Any existing value for the given variable is overwritten.
  *
  * Construct this object inline using member initialization.  Example:
  * \code
@@ -111,6 +119,12 @@ struct remove_environment_variables {
 };
 /** \brief Instruct \ref set_environment() to prepend paths to some variables
  *
+ * The given variables will be parsed as a list of paths separated by colons \c
+ * ":" (unix-like systems) or semicolons \c ";" (windows).  For each variable,
+ * if an existing value is found in the \a environment, then the new given path
+ * list will be prepended to the existing path list; if no existing value is
+ * found the variable is set to the new given path list.
+ *
  * Construct this object inline using member initialization.  Example:
  * \code
  *  set_environment(...,
@@ -124,6 +138,12 @@ struct prepend_path_environment_variables {
   environment variables;
 };
 /** \brief Instruct \ref set_environment() to append paths to some variables
+ *
+ * The given variables will be parsed as a list of paths separated by colons \c
+ * ":" (unix-like systems) or semicolons \c ";" (windows).  For each variable,
+ * if an existing value is found in the \a environment, then the new given path
+ * list will be appended to the existing path list; if no existing value is
+ * found the variable is set to the new given path list.
  *
  * Construct this object inline using member initialization.  Example:
  * \code
@@ -185,29 +205,32 @@ inline void do_set_environment(environment & env, append_path_environment_variab
 } // namespace detail
 
 #ifdef _KLFENGINE_PROCESSED_BY_DOXYGEN
-/** \brief Change the given environment with the specified operations
+/** \brief Change the given environment object with the specified operations
  *
- * The given \a environment is modified according to the keyword-like arguments
- * \a arg0, \a arg1, ..., which are processed in the given order.  The args must
- * be inline instances that are of type \ref set_environment_variables, \ref
- * provide_environment_variables, \ref remove_environment_variables, \ref
- * prepend_path_environment_variables, or \ref
- * append_path_environment_variables.  See the documentation of those objects
- * for more details about their effect.
+ * The given \a environment object is modified according to the keyword-like
+ * arguments \a arg0, \a arg1, ..., which are processed in the given order.  The
+ * args must be inline instances that are of type \ref
+ * set_environment_variables, \ref provide_environment_variables, \ref
+ * remove_environment_variables, \ref prepend_path_environment_variables, or
+ * \ref append_path_environment_variables.  See the documentation of those
+ * objects for more details about their effect.
+ *
+ * This function does not change the current process environment.  It simply
+ * alters the mapping object \a environment.
  *
  * Example:
  * \code
- *   klfe::environment e{{"VAR1", "value 1"}, {"MY_PATH_VAR", "/usr/bin:/bin"}};
- *   klfe::set_environment(
+ *   klfengine::environment e{{"VAR1", "value 1"}, {"MY_PATH", "/usr/bin:/bin"}};
+ *   klfengine::set_environment(
  *       e,
- *       klfe::set_environment_variables{ {{"VAR2", "value 2"}} },
- *       klfe::remove_environment_variables{ {"VAR1"} },
- *       klfe::prepend_path_environment_variables{
- *         {{"MY_PATH_VAR", "/usr/local/bin:/opt/bin"}}
+ *       klfengine::set_environment_variables{ {{"VAR2", "value 2"}} },
+ *       klfengine::remove_environment_variables{ {"VAR1"} },
+ *       klfengine::prepend_path_environment_variables{
+ *         {{"MY_PATH", "/usr/local/bin:/opt/bin"}}
  *       },
  *   );
  *   // e == { {"VAR2", "value 2"},
- *   //        {"MY_PATH_VAR", "/usr/local/bin:/opt/bin:/usr/bin:/bin"} }
+ *   //        {"MY_PATH", "/usr/local/bin:/opt/bin:/usr/bin:/bin"} }
  * \endcode
  */
 void set_environment(environment & environment,
@@ -297,12 +320,22 @@ public:
   /** \brief Specifies the executable file that should be run
    *
    * If you don't specify this argument to \ref run_and_wait(), then the first
-   * item in \a argv is used as the executable file name (but the executable is
-   * not searched in the system \a $PATH)
+   * item in \a argv is used as the executable file name.
+   *
+   * In either case, the executable is NOT searched for in the system \a $PATH.
+   * You're expected to find it if necessary.
+   *
+   * <em>(Note to self: Internal code can use \a
+   * klfengine::detail::find_wildcard_path() and \a
+   * klfengine::detail::get_environment_PATH().)</em>
    */
   struct executable {
     std::string _data;
   };
+  /** \brief Run process in a different working directory
+   *
+   * Set the current working directory for the subprocess.
+   */
   struct run_in_directory {
     std::string _data;
   };
@@ -313,9 +346,9 @@ public:
    * to its standard input.  Example usage:
    * \code
    *   binary_data in_data = ...;
-   *   klfe::process::run_and_wait(
+   *   klfengine::process::run_and_wait(
    *       ...,
-   *       klfe::process::send_stdin_data{in_data},
+   *       klfengine::process::send_stdin_data{in_data},
    *       ...
    *   );
    * \endcode
@@ -343,9 +376,9 @@ public:
    * into the referenced buffer.  Use as follows:
    * \code
    *   binary_data out_buffer;
-   *   klfe::process::run_and_wait(
+   *   klfengine::process::run_and_wait(
    *       ...,
-   *       klfe::process::capture_stdout_data{&out_buffer},
+   *       klfengine::process::capture_stdout_data{&out_buffer},
    *       ...
    *   );
    * \endcode
@@ -419,10 +452,14 @@ public:
    *   possibly in combination with <code>clear_environment{}</code> -- specify
    *   how to set the subprocess' environment.
    *
-   * Errors are reported by throwing suitable execptions.  If the process exits
-   * with a nonzero return code this is considered an error and an exception is
-   * thrown.  In case of errors and if you're capturing stdout and/or stderr,
-   * the buffers will contain the data that has been received so far.
+   * - You can specify <code>check_exit_code{true|false}</code> to indicate
+   *   whether or not to throw a \ref process_exit_error exception if the
+   *   process exists with a nonzero return code (yes by default).
+   *
+   * Errors are reported by throwing suitable execptions.  An empty \a argv
+   * argument results in \a std::invalid_argument being thrown.  In case of
+   * errors and if you're capturing stdout and/or stderr, the buffers will
+   * contain the data that has been received so far.
    */
   static void run_and_wait(const std::vector<std::string> & argv,
                            RunProcessManipArg0 arg0, RunProcessManipArg1 arg1, ...)

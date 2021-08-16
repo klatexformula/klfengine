@@ -13,5 +13,7 @@ API Documentation
    api/base
    api/inputs
    api/engine
+   api/latextoimage_engine
+   api/klfimplpkg_engine
    api/helpers
    apitodo

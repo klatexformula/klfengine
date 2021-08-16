@@ -92,6 +92,9 @@ _KLFENGINE_INLINE engine_run_implementation::~engine_run_implementation()
 _KLFENGINE_INLINE
 void engine_run_implementation::compile()
 {
+  // note: klfengine::run::compile() already checks that compile() isn't called
+  // twice.
+
   impl_compile();
 }
 

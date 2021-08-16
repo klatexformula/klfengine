@@ -62,29 +62,29 @@ using fmtspec_cache_key_type = std::string;
  *
  * Subclasses are responsible for the following tasks:
  *
+ * - Perform any initial compilation steps that are common for all formats that
+ *   can be requested later (e.g., run latex).  For this reimplement \ref
+ *   impl_compile().
+ *
  * - Report which formats are available, and which format specification
  *   parameters actually represent the same data.  Methods that need to be
  *   reimplemented are \ref impl_available_formats() and \ref
  *   impl_make_canonical()
  *
- * - Perform any initial compilation steps that are common for all formats that
- *   can be requested later (e.g., run latex).  For this reimplement \ref
- *   impl_compile().
- *
  * - Produce the data in a given format.  Reimplement \ref
- *   impl_produce_format().
+ *   impl_produce_data().
  *
  * It might be assumed by users that the initial compilation step (implemented
  * in \ref impl_compile()) will be more computationally intensive than
  * converting the result to a specific requested format (\ref
- * impl_produce_format()).  That is, avoid leaving all the work to
- * impl_produce_format().
+ * impl_produce_data()).  That is, avoid leaving all the work to
+ * impl_produce_data().
  *
  * Methods of \ref run instances will typically directly call the corresponding
  * methods here.  Subclasses of this class should prefer calling public members
  * of this base class (such as get_format_cref() or canonical_format()) rather
  * than recursively calling their own implementation methods such as
- * impl_produce_format().
+ * impl_produce_data().
  *
  * <b>Private, protected, or public virtual?</b>
  *
@@ -103,11 +103,23 @@ using fmtspec_cache_key_type = std::string;
 class engine_run_implementation
 {
 public:
+  /** \brief Constructor */
   engine_run_implementation(klfengine::input input_,
                             klfengine::settings settings_);
+  /** \brief Destructor */
   virtual ~engine_run_implementation();
 
+  /** \brief The klfengine::input data associated with this run instance
+   *
+   * Returns the \a input data that was provided to the constructor.  The input data
+   * remains unchanged during the lifetime of this instance.
+   */
   const klfengine::input & input() const { return _input; }
+  /** \brief The klfengine::settings data associated with this run instance
+   *
+   * Returns the \a settings data that was provided to the constructor.  The
+   * settings data remains unchanged during the lifetime of this instance.
+   */
   const klfengine::settings & settings() const { return _settings; }
 
   /** \brief Perform any initial compilation steps.

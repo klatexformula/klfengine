@@ -75,8 +75,6 @@ class run
 public:
   run(std::unique_ptr<engine_run_implementation> engine_run_implementation_);
 
-  virtual ~run();
-
   /** \brief Run any initial compilation steps
    *
    * Users \b must call \a compile() on this object before calling any of the

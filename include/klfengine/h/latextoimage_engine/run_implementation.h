@@ -50,12 +50,6 @@ public:
     );
   virtual ~run_implementation();
 
-protected:
-  void create_latex_template();
-  void create_dvi();
-  void create_eps_raw();
-  void create_eps_processed();
-
 private:
   run_implementation_private *d;
 
@@ -65,6 +59,8 @@ private:
       const klfengine::format_spec & format, bool check_only
       );
   virtual klfengine::binary_data impl_produce_data(const klfengine::format_spec & format);
+
+  virtual std::string assemble_latex_template(const klfengine::input & input);
 };
 
 
