@@ -40,16 +40,16 @@ namespace klfengine {
  * The \a format name is conventinally an all-caps format name like "PNG" or
  * "PDF".  The \a parameters are implementation-defined arguments that can
  * change the "flavor" of the returned data, while still in the same format.
- * For instance, a "PDF" format could offer a <code>rasterize=true|false</code>
- * parameter indicating whether the PDF data should contain a rasterized picture
- * or vector graphics.
+ * For instance, a "PNG" format could offer a <code>dpi=XXX</code> parameter
+ * indicating the dots-per-inch resolution to which the vector output should be
+ * rasterized into the resulting PNG image.
  *
- * \note We fix the convention that the JPEG format name is spelled out as
- *       "JPEG", not as "JPG".  We'll raise \ref no_such_format if you use the
- *       format "JPG".
+ * \warning We fix the convention that the JPEG format name is spelled out as
+ *          "JPEG", not as "JPG".  Engines will raise \ref no_such_format if you
+ *          use the format name "JPG".
  *
- * \warning Currently, we fix the \a format name to be case-sensitive, and
- *          conventionally we declare that lowercase letters are illegal.
+ * \warning Please use only upper case format names.  We fixed upper case naming
+ *          by convention.
  */
 struct format_spec
 {

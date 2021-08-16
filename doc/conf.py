@@ -20,7 +20,7 @@ import textwrap # dedent()
 # -- Project information -----------------------------------------------------
 
 project = 'klfengine'
-copyright = '2020, Philippe Faist'
+copyright = '2021, Philippe Faist'
 author = 'Philippe Faist'
 
 # The full version, including alpha/beta/rc tags
@@ -116,7 +116,7 @@ html_theme_options = {
     # fonts
 
     'font_family': "'Merriweather light', serif",
-    'font_size': '16px',
+    'font_size': '15px',
     'head_font_family': "'Merriweather', serif",
 
     'code_font_size': '14px',

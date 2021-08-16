@@ -50,6 +50,9 @@ namespace klfengine
 /** \brief Store an RGBA color with transparency
  *
  * The color is stored as a tuple of R,G,B,A values, each ranging 0-255.
+ *
+ * Two \a color objects can be compared for (in)equality with \c == and \c !=.
+ * \a color objects can be serialized to/from JSON.
  */
 struct color {
   std::uint8_t red;
@@ -60,6 +63,9 @@ struct color {
 
 
 /** \brief Margins around a box
+ *
+ * Two \a margins objects can be compared for (in)equality with \c == and \c !=.
+ * Also \a margins objects can be serialized to/from JSON.
  */
 struct margins {
   length top;
@@ -70,6 +76,8 @@ struct margins {
 
 /** \brief Description of a piece of LaTeX code and how to compile it
  *
+ * Two \a input objects can be compared for (in)equality with \c == and \c !=.
+ * The \a input object can be serialized to/from JSON.
  */
 struct input
 {

@@ -3,6 +3,12 @@ body {
 }
 
 
+
+div.body p, div.body dd, div.body li, div.body blockquote {
+    line-height: 1.6em;
+}
+
+
 div.sphinxsidebarwrapper p.logo {
     text-align: left;
 }

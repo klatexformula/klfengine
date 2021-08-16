@@ -53,6 +53,9 @@ public:
  * "pt", "mm", "em", etc.).  We don't directly store values in a standardized
  * unit because some units depend on the context (e.g. "ex", "em").
  *
+ * Length objects can be compared for (in)equality with \c == and \c !=.  Length
+ * objects can be serialized to/from JSON.
+ *
  * \note Two length objects compare as equal only if they have the same units!
  *       E.g. "2cm" and "20mm" are considered different "length objects".
  */
