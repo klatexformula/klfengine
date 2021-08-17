@@ -741,6 +741,7 @@ gs_device_args_format_provider::impl_available_formats()
   };
 }
 
+_KLFENGINE_INLINE
 format_spec gs_device_args_format_provider::impl_make_canonical(
   const format_spec & format,
   bool // check_available_only
@@ -797,6 +798,7 @@ format_spec gs_device_args_format_provider::impl_make_canonical(
       aadic["text_alpha_bits"] = value{paa.take("text_alpha_bits", 4)};
       paa.finished();
     } else {
+      param.disable_check();
       throw invalid_parameter{param.what(), "invalid value for antialiasing="};
     }
     f.parameters["antialiasing"] = value{aadic};
@@ -805,10 +807,13 @@ format_spec gs_device_args_format_provider::impl_make_canonical(
     return f;
   }
 
+  param.disable_check();
+
   // no such format
   return format_spec{};
 }
 
+_KLFENGINE_INLINE
 std::vector<std::string>
 gs_device_args_format_provider::get_device_args_for_format( const format_spec & fmt )
 {

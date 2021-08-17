@@ -521,7 +521,7 @@ private:
   {
     _check_all_taken_called = true;
     if (!_paramdict.empty()) {
-      std::string msg = "superfluous keys ";
+      std::string msg = "superfluous key(s) ";
       bool first = true;
       for ( const std::pair<std::string, const value *> & p : _paramdict ) {
         if (!first) {

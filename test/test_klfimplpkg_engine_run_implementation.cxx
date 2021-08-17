@@ -62,12 +62,15 @@ TEST_CASE( "simple compilation with klfimplpkg_engine produces correct equation 
 
   r->compile();
 
-  auto pdfdata = r->get_data(klfengine::format_spec{"PDF", {{"raw", klfengine::value{true}}}});
+  auto pdfdata = r->get_data(klfengine::format_spec{
+      "PDF",
+      {{"latex_raw", klfengine::value{true}}}
+    });
 
   //std::string data_str{reinterpret_cast<const char*>(&pdfdata[0]), pdfdata.size()};
   std::string data_str{pdfdata.begin(), pdfdata.end()};
 
-  // CAPTURE( data_str );
+  CAPTURE( data_str );
 
   // fprintf(stderr, "PDF DATA IS:\n");
   // fwrite(&data[0], 1, data.size(), stderr);   fprintf(stderr, "\n");

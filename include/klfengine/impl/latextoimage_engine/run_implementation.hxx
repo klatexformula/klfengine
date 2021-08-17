@@ -246,7 +246,7 @@ void run_implementation::impl_compile()
   dump_cstr_to_file(d->fn.tex.native(), latex_str.c_str());
 
   //fprintf(stderr, "LATEX DOCUMENT IS =\n%s\n", latex_str.c_str());
-  (void) store_to_cache(format_spec{"LATEX", value::dict{{"raw", value{true}}}},
+  (void) store_to_cache(format_spec{"LATEX", value::dict{{"latex_raw", value{true}}}},
                         binary_data{latex_str.begin(), latex_str.end()});
 
 
@@ -272,7 +272,7 @@ void run_implementation::impl_compile()
     binary_data dvi_data_obj;
     dvi_data_obj = load_file_data( d->fn.dvi.native() );
     //  const binary_data & dvi_data =
-      store_to_cache(format_spec{"DVI", value::dict{{"raw", value{true}}}},
+      store_to_cache(format_spec{"DVI", value::dict{{"latex_raw", value{true}}}},
                      std::move(dvi_data_obj));
 
     binary_data dvips_out;
@@ -292,7 +292,7 @@ void run_implementation::impl_compile()
     binary_data ps_data_obj;
     ps_data_obj = load_file_data( d->fn.ps.native() );
     //  const binary_data & dvi_data =
-      store_to_cache(format_spec{"PS", value::dict{{"raw", value{true}}}},
+      store_to_cache(format_spec{"PS", value::dict{{"latex_raw", value{true}}}},
                      std::move(ps_data_obj));
       
   } else {
@@ -300,7 +300,7 @@ void run_implementation::impl_compile()
     pdf_data_obj = load_file_data( d->fn.pdf.native() );
     ;
     //  const binary_data & pdf_data =
-      store_to_cache(format_spec{"PDF", value::dict{{"raw", value{true}}}},
+      store_to_cache(format_spec{"PDF", value::dict{{"latex_raw", value{true}}}},
                      std::move(pdf_data_obj));
   }
 
@@ -401,6 +401,7 @@ klfengine::format_spec run_implementation::impl_make_canonical(
   if (format.format == "LATEX") {
     bool latex_raw = param.take("latex_raw", true);
     if (latex_raw == false) {
+      param.disable_check();
       throw invalid_parameter{param.what(), "\"LATEX\" format requires latex_raw=true"};
     }
     param.finished();
@@ -412,6 +413,7 @@ klfengine::format_spec run_implementation::impl_make_canonical(
     if (d->via_dvi) {
       bool latex_raw = param.take("latex_raw", true);
       if (latex_raw == false) {
+        param.disable_check();
         throw invalid_parameter{param.what(), "\"DVI\" format requires latex_raw=true"};
       }
       param.finished();
@@ -420,8 +422,10 @@ klfengine::format_spec run_implementation::impl_make_canonical(
       return canon_format;
     } else {
       // no DVI available, no such format
-      param.finished();
-      return {};
+      param.disable_check();
+      throw no_such_format{
+        "There is no \"latex_raw\" DVI because the latex engine doesn't generate DVI output"
+      };
     }
   }
 
@@ -431,18 +435,15 @@ klfengine::format_spec run_implementation::impl_make_canonical(
 
     if (want_latex_raw) {
       if (format.format == "PDF" && d->via_dvi) {
+        param.disable_check();
         throw no_such_format{
           "There is no \"latex_raw\" PDF because the latex engine doesn't directly generate PDF"
         };
       }
       if (format.format == "PS" && !d->via_dvi) {
+        param.disable_check();
         throw no_such_format{
           "There is no \"latex_raw\" PS because the latex engine doesn't generate DVI output"
-        };
-      }
-      if (format.format == "DVI" && !d->via_dvi) {
-        throw no_such_format{
-          "There is no \"latex_raw\" DVI because the latex engine doesn't generate DVI output"
         };
       }
     }
@@ -470,6 +471,7 @@ klfengine::format_spec run_implementation::impl_make_canonical(
   }
 
   // no such format
+  param.disable_check();
   return {};
 }
 
