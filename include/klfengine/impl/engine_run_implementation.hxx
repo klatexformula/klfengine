@@ -99,65 +99,6 @@ void engine_run_implementation::compile()
 }
 
 
-_KLFENGINE_INLINE bool
-engine_run_implementation::has_format(std::string format)
-{
-  return has_format( format_spec{ std::move(format) });
-}
-
-_KLFENGINE_INLINE bool
-engine_run_implementation::has_format(const format_spec & format)
-{
-  try {
-    (void) internal_canonical_format(format, true);
-  } catch (no_such_format & /*exc*/) {
-    return false;
-  }
-  return true;
-}
-
-_KLFENGINE_INLINE format_spec
-engine_run_implementation::canonical_format(const format_spec & format)
-{
-  return internal_canonical_format(format, false);
-}
-
-_KLFENGINE_INLINE format_spec
-engine_run_implementation::canonical_format_or_empty(const format_spec & format)
-{
-  try {
-    return internal_canonical_format(format, false);
-  } catch (no_such_format & ex) {
-    return format_spec{};
-  }
-}
-
-_KLFENGINE_INLINE format_spec
-engine_run_implementation::internal_canonical_format(const format_spec & format,
-                                                     bool check_available_only)
-{
-  if (format.format == "JPG") {
-    throw no_such_format(
-        "JPG",
-        "You misspelled format name ‘JPEG’ as ‘JPG’ (use the former exclusively please)"
-        );
-  }
-
-  auto canon_fmt = impl_make_canonical(format, check_available_only);
-
-  if (canon_fmt.format.empty()) {
-    throw no_such_format(format.format, "format is unknown or is not available");
-  }
-
-  return canon_fmt;
-}
-
-
-_KLFENGINE_INLINE std::vector<format_description>
-engine_run_implementation::available_formats()
-{
-  return impl_available_formats();
-}
 
 _KLFENGINE_INLINE const binary_data &
 engine_run_implementation::get_data_cref(const format_spec & format)

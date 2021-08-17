@@ -321,6 +321,8 @@ inline bool dict_do_if(const value::dict & dict, const std::string & key,
 
 namespace detail {
 
+using paramdict_type = std::map<std::string,const value*>;
+
 class paramdict_citerator : public value::dict::const_iterator
 {
 public:
@@ -328,9 +330,7 @@ public:
     : value::dict::const_iterator(std::move(it))
   {}
 
-  inline
-  std::pair<std::string, const value *>
-  operator*() const
+  inline paramdict_type::value_type operator*() const
   {
     return std::make_pair(
         value::dict::const_iterator::operator->()->first,
@@ -339,10 +339,31 @@ public:
   }
 
 private:
-  inline std::pair<std::string, const value *>
-  operator->() const
+  inline paramdict_type::value_type operator->() const
   {
     throw std::runtime_error{"no operator-> for paramdict_citerator"};
+  }
+};
+
+class paramdict_to_dict_citerator : public paramdict_type::const_iterator
+{
+public:
+  paramdict_to_dict_citerator(paramdict_type::const_iterator it)
+    : paramdict_type::const_iterator(std::move(it))
+  {}
+
+  inline value::dict::value_type operator*() const
+  {
+    return std::make_pair(
+        paramdict_type::const_iterator::operator->()->first,
+        * paramdict_type::const_iterator::operator->()->second
+    );
+  }
+
+private:
+  inline value::dict::value_type operator->() const
+  {
+    throw std::runtime_error{"no operator-> for paramdict_to_dict_citerator"};
   }
 };
 
@@ -389,7 +410,7 @@ public:
   /** \brief Initialize the parameter_taker with a value::dict const reference
    *
    * The provided dictionary reference must be valid and unchanged during the
-   * entire lifetime of the presetn \a parameter_taker instance.
+   * entire lifetime of the present \a parameter_taker instance.
    */
   explicit parameter_taker(const value::dict & dict_,
                            std::string what_ = std::string{})
@@ -432,6 +453,16 @@ public:
     _check_all_taken(true);
   }
 
+  /** \brief Don't worry about remaining parameters
+   *
+   * Call this if you want the parameter_taker not to warn about un-take()-en
+   * parameters in its destructor.
+   */
+  void disable_check()
+  {
+    _check_all_taken_called = true;
+  }
+
   inline std::string what() const { return _what; }
 
   parameter_taker(const parameter_taker & copy) = delete;
@@ -467,8 +498,22 @@ public:
     return val->get<X>();
   }
 
+  value::dict get_remaining() const
+  {
+    return value::dict{
+      detail::paramdict_to_dict_citerator( _paramdict.begin() ),
+      detail::paramdict_to_dict_citerator( _paramdict.end() )
+    };
+  }
+  value::dict take_remaining()
+  {
+    value::dict rem = get_remaining();
+    _paramdict.clear();
+    return rem;
+  }
+
 private:
-  std::map<std::string, const value *> _paramdict;
+  detail::paramdict_type _paramdict;
   std::string _what;
   bool _check_all_taken_called;
 

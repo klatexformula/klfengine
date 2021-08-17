@@ -32,6 +32,9 @@
 #include <klfengine/value>
 
 
+#include <nlohmann/json.hpp>
+
+
 namespace klfengine {
 
 
@@ -64,12 +67,12 @@ struct format_spec
   format_spec(std::string format_, value::dict parameters_)
     : format(std::move(format_)), parameters(std::move(parameters_))
   {}
+  ~format_spec() { }
 
   std::string format;
   value::dict parameters;
 
   std::string as_string() const;
-
 
   format_spec & operator=(std::string other_) {
     format = std::move(other_);
@@ -91,6 +94,10 @@ inline bool operator!=(const format_spec & a, const format_spec & b)
 }
 
 
+void to_json(nlohmann::json & j, const format_spec & v);
+void from_json(const nlohmann::json & j, format_spec & v);
+
+
 /** \brief A format specification along with a short title and description
  *
  * A combination of a \ref format_spec along with a short title and description.
@@ -109,8 +116,9 @@ inline bool operator!=(const format_spec & a, const format_spec & b)
  *  {
  *    "type": "bool"|"int"|"double"|"string"|"array"|"dict"|"color"|"length"|"margins",
  *    "null_ok": true|false,
- *    "validate_regex": <regex>,
+ *    "validate_regex": <regex>, // applicable to bool,int,double,string
  *    "default": <default value>
+ *    "dict_keys": { ... } // recursive, if type=="dict"
  *  }
  * \endcode
  *
@@ -127,6 +135,8 @@ struct format_description
 
 
 
+void to_json(nlohmann::json & j, const format_description & v);
+void from_json(const nlohmann::json & j, format_description & v);
 
 
 
@@ -154,6 +164,168 @@ public:
 
 
 
+/** \brief Abstract base class for objects that provide format output
+ *
+ * 
+ */
+class format_provider
+{
+public:
+  /** \brief Return the format specification in canonical form
+   *
+   * Throws \ref no_such_format if the given format is invalid or is not
+   * available.
+   */
+  format_spec canonical_format(const format_spec & format);
+
+  /** \brief Return the format specification in canonical form
+   *
+   * This method never throws \ref no_such_format; if the given format is
+   * invalid or is not available, it returns a default-constructed \ref
+   * format_spec (with an empty format string).
+   */
+  format_spec canonical_format_or_empty(const format_spec & format);
+
+  /** \brief Return a list of available formats
+   *
+   * Returns a list of formats that this run instance can produce, as a vector
+   * of \ref format_description objects.  Each format description should include
+   * a short title and a brief description for each format specification (see
+   * \ref format_description).
+   *
+   * Subclasses should reimplement \ref impl_available_formats().
+   */
+  std::vector<format_description> available_formats();
+
+
+  /** \brief Check if a given format is available.
+   *
+   * Returns TRUE if the given format can be produced, or FALSE otherwise.
+   *
+   * (The \a format need not be in canonical form.  Actually, the way \a
+   * has_format() works is that it attempts to get the canonical form for the
+   * given \a format, and any error means that the format is not available.)
+   */
+  bool has_format(const format_spec & format);
+
+  /** \brief Check if a given format is available.
+   *
+   * Overloaded method, provided for convenience.
+   */
+  bool has_format(std::string format);
+
+
+  /** \brief Find a suitable format
+   *
+   * Returns the first available format from the given list of \a formats.
+   *
+   * Formats might be a list of \a string 's for \a format_spec 's.  Parameters
+   * are taken into account.
+   */
+  template<typename IteratorInterfaceContainer>
+  format_spec find_format(IteratorInterfaceContainer && formats);
+
+
+private:
+
+  /** \brief Get a list of available formats
+   *
+   * Returns a list of formats that this run instance can produce, as a vector
+   * of \ref format_description objects.  Each format description should include
+   * a short title and a brief description for each format specification, and if
+   * possible a specification of accepted parameters (see \ref
+   * format_description).
+   */
+  virtual std::vector<format_description> impl_available_formats() = 0;
+
+  /** \brief Canonicalize the format specification
+   *
+   * Sometimes different \a format_spec instances are in fact equivalent.  For
+   * instance, the <code>format_spec{"PNG"}</code> might be equivalent to
+   * <code>format_spec{"PNG", {value::dict{{"raw", value{false}}}}}</code>.  The
+   * engine should know of such equivalences of format_spec's, because if say
+   * the latter format_spec is requested when we have already compiled the
+   * former, we don't need to compile anything again and simply return the
+   * cached data.
+   *
+   * To inform our engine of such equivalences between \a format_spec s, this
+   * function should return a \em canonical \ref format_spec for the given \a
+   * format.  That is, the return value of this function should be the same for
+   * any two equivalent \a format_spec s but different for any two nonequivalent
+   * ones.
+   *
+   * By convention, it's preferable to choose a 'canonical format' in which all
+   * relevant parameter keys are present (e.g. select as canonical choices
+   * <code>('PDF', {"raw": false}), ('PDF', {"raw": true})</code> instead of
+   * <code>('PDF', {}), ('PDF', {"raw": true})</code>)  It's easer that way to
+   * access the underlying value of these parameters and can allow the defaults
+   * to change.
+   *
+   * If the format is invalid, or cannot be delivered, this implementation may
+   * choose to:
+   *
+   * - either throw \ref no_such_format with an optional description of why
+   *   this format is not available
+   *
+   * - or return an empty (default-constructed) \ref format_spec.  In this case
+   *   \ref canonical_format() will automatically detect this and throw a \ref
+   *   no_such_format exception.
+   *
+   * If \a check_available_only is \a true, then the subclass doesn't actually
+   * have to compute the canonical form of \a format, it only needs to check
+   * that the format is available.  In this case, the subclass should return any
+   * (arbitrary) non-empty format_spec if the format is available, and do either
+   * of the above two points if the format is unavailable (i.e., return an empty
+   * format_spec or raise \ref no_such_format).
+   */
+  virtual format_spec impl_make_canonical(const format_spec & format,
+                                          bool check_available_only) = 0;
+
+
+
+private:
+  /*---*
+   * \internal
+   *
+   * Internal call that implements canonical_format by wrapping the user's
+   * canonical_format into some additional checks.
+   *
+   * This behaves like canonical_format() if check_available_only is false.
+   *
+   * If check_available_only is set, then:
+   *
+   *  - the return value is undefined and is to be discarded
+   *
+   *  - if the format is not available, \ref no_such_format is always raised
+   *
+   *  - if the format is available, no exception is raised.
+   */
+  format_spec internal_canonical_format(const format_spec & format,
+                                        bool check_available_only);
+};
+
+
+
+
+// template members need to be in the .h, not in the .hxx which might be
+// compiled separately in a single translation unit
+
+template<typename IteratorInterfaceContainer>
+inline format_spec format_provider::find_format(IteratorInterfaceContainer && formats)
+{
+  // note container value type can also be std::string, because you can
+  // construct a format_spec from a std::string
+
+  for (auto it = formats.begin(); it != formats.end(); ++it) {
+    format_spec canon = canonical_format_or_empty( format_spec{*it} );
+    if (!canon.format.empty()) {
+      return canon;
+    }
+  }
+
+  // reached the end, didn't find a suitable format
+  throw no_such_format("<no suitable format found in given list>");
+}
 
 } // namespace klfengine
 

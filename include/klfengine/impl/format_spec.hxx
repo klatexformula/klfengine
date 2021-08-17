@@ -47,6 +47,120 @@ std::string format_spec::as_string() const
   return s;
 }
 
+_KLFENGINE_INLINE
+void to_json(nlohmann::json & j, const format_spec & v)
+{
+  j = nlohmann::json{
+    {"format", v.format},
+    {"parameters", v.parameters}
+  };
+}
+_KLFENGINE_INLINE
+void from_json(const nlohmann::json & j, format_spec & v)
+{
+  try {
+    j.at("format").get_to(v.format);
+    j.at("parameters").get_to(v.parameters);
+  } catch (nlohmann::json::exception & e) {
+    throw invalid_json_value{"klfengine::format_spec", j, e.what()};
+  }
+}
+
+
+
+
+_KLFENGINE_INLINE
+void to_json(nlohmann::json & j, const format_description & v)
+{
+  j = nlohmann::json{
+    {"format_spec", v.format_spec},
+    {"title", v.title},
+    {"description", v.description}
+  };
+}
+_KLFENGINE_INLINE
+void from_json(const nlohmann::json & j, format_description & v)
+{
+  try {
+    j.at("format_spec").get_to(v.format_spec);
+    j.at("title").get_to(v.title);
+    j.at("description").get_to(v.description);
+  } catch (nlohmann::json::exception & e) {
+    throw invalid_json_value{"klfengine::format_description", j, e.what()};
+  }
+}
+
+
+
+// ---------------------------------------------------------
+
+
+
+_KLFENGINE_INLINE
+bool  format_provider::has_format(std::string format)
+{
+  return has_format( format_spec{ std::move(format) });
+}
+
+_KLFENGINE_INLINE
+bool  format_provider::has_format(const format_spec & format)
+{
+  try {
+    (void) internal_canonical_format(format, true);
+  } catch (no_such_format & /*exc*/) {
+    return false;
+  }
+  return true;
+}
+
+_KLFENGINE_INLINE
+format_spec  format_provider::canonical_format(const format_spec & format)
+{
+  return internal_canonical_format(format, false);
+}
+
+_KLFENGINE_INLINE
+format_spec  format_provider::canonical_format_or_empty(const format_spec & format)
+{
+  try {
+    return internal_canonical_format(format, false);
+  } catch (no_such_format & ex) {
+    return format_spec{};
+  }
+}
+
+_KLFENGINE_INLINE
+format_spec  format_provider::internal_canonical_format(
+    const format_spec & format,
+    bool check_available_only
+)
+{
+  if (format.format == "JPG") {
+    throw no_such_format(
+        "JPG",
+        "You misspelled format name ‘JPEG’ as ‘JPG’ (use the former exclusively please)"
+        );
+  }
+
+  auto canon_fmt = impl_make_canonical(format, check_available_only);
+
+  if (canon_fmt.format.empty()) {
+    throw no_such_format(format.format, "format is unknown or is not available");
+  }
+
+  return canon_fmt;
+}
+
+
+_KLFENGINE_INLINE
+std::vector<format_description> format_provider::available_formats()
+{
+  return impl_available_formats();
+
+}
+
+
+
 
 
 

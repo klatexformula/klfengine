@@ -100,7 +100,7 @@ using fmtspec_cache_key_type = std::string;
  *   compilation should only happen once anyways
  *
  */
-class engine_run_implementation
+class engine_run_implementation : public format_provider
 {
 public:
   /** \brief Constructor */
@@ -129,48 +129,6 @@ public:
    * before calling any other method of this class.
    */
   void compile();
-
-  /** \brief Return the format specification in canonical form
-   *
-   * Throws \ref no_such_format if the given format is invalid or is not
-   * available.
-   */
-  format_spec canonical_format(const format_spec & format);
-
-  /** \brief Return the format specification in canonical form
-   *
-   * This method never throws \ref no_such_format; if the given format is
-   * invalid or is not available, it returns a default-constructed \ref
-   * format_spec (with an empty format string).
-   */
-  format_spec canonical_format_or_empty(const format_spec & format);
-
-  /** \brief Return a list of available formats
-   *
-   * Returns a list of formats that this run instance can produce, as a vector
-   * of \ref format_description objects.  Each format description should include
-   * a short title and a brief description for each format specification (see
-   * \ref format_description).
-   *
-   * Subclasses should reimplement \ref impl_available_formats().
-   */
-  std::vector<format_description> available_formats();
-
-
-  /** \brief Check if a given format is available.
-   *
-   * Returns TRUE if the given format can be produced, or FALSE otherwise.
-   *
-   * (The \a format need not be in canonical form.  Actually, a format in
-   * canonical form that is non-empty is a format that is available.)
-   */
-  bool has_format(const format_spec & format);
-
-  /** \brief Check if a given format is available.
-   *
-   * Overloaded method, provided for convenience.
-   */
-  bool has_format(std::string format);
 
 
   /** \brief Get result data associated with the given format
@@ -207,63 +165,6 @@ private:
   virtual void impl_compile() = 0;
 
 
-  /** \brief Get a list of available formats
-   *
-   * Returns a list of formats that this run instance can produce, as a vector
-   * of \ref format_description objects.  Each format description should include
-   * a short title and a brief description for each format specification (see
-   * \ref format_description).
-   *
-   * \todo BUG/TODO/FIXME: We cannot ask subclasses to return ALL possible
-   * format_spec's.  Also, a UI would probably better ask for a format first,
-   * and then present an UI for the parameters. ........... NEED DESIGN DECISION
-   * HERE .......
-   */
-  virtual std::vector<format_description> impl_available_formats() = 0;
-
-  /** \brief Canonicalize the format specification
-   *
-   * Sometimes different \a format_spec instances are in fact equivalent.  For
-   * instance, the <code>format_spec{"PNG"}</code> might be equivalent to
-   * <code>format_spec{"PNG", {value::dict{{"raw", value{false}}}}}</code>.  The
-   * engine should know of such equivalences of format_spec's, because if say
-   * the latter format_spec is requested when we have already compiled the
-   * former, we don't need to compile anything again and simply return the
-   * cached data.
-   *
-   * To inform our engine of such equivalences between \a format_spec s, this
-   * function should return a \em canonical \ref format_spec for the given \a
-   * format.  That is, the return value of this function should be the same for
-   * any two equivalent \a format_spec s but different for any two nonequivalent
-   * ones.
-   *
-   * By convention, it's preferable to choose a 'canonical format' in which all
-   * relevant parameter keys are present (e.g. select as canonical choices
-   * <code>('PDF', {"raw": false}), ('PDF', {"raw": true})</code> instead of
-   * <code>('PDF', {}), ('PDF', {"raw": true})</code>)  It's easer that way to
-   * access the underlying value of these parameters and can allow the defaults
-   * to change.
-   *
-   * If the format is invalid, or cannot be delivered, this implementation may
-   * choose to:
-   *
-   * - either throw \ref no_such_format with an optional description of why
-   *   this format is not available
-   *
-   * - or return an empty (default-constructed) \ref format_spec.  In this case
-   *   \ref canonical_format() will automatically detect this and throw a \ref
-   *   no_such_format exception.
-   *
-   * If \a check_available_only is \a true, then the subclass doesn't actually
-   * have to compute the canonical form of \a format, it only needs to check
-   * that the format is available.  In this case, the subclass should return any
-   * (arbitrary) non-empty format_spec if the format is available, and do either
-   * of the above two points if the format is unavailable (i.e., return an empty
-   * format_spec or raise \ref no_such_format).
-   */
-  virtual format_spec impl_make_canonical(const format_spec & format,
-                                          bool check_available_only) = 0;
-
   /** \brief Return the data associated with the given canonical format
    *
    * Subclasses should here process whatever needs to be processed to obtain the
@@ -278,6 +179,7 @@ private:
    * make_canonical()).
    */
   virtual binary_data impl_produce_data(const format_spec & canon_format) = 0;
+
 
 protected:
 
@@ -306,22 +208,6 @@ private:
   const klfengine::settings _settings;
 
   std::unordered_map<detail::fmtspec_cache_key_type,binary_data> _cache;
-
-  /**
-   * \internal
-   *
-   * Like canonical_format() if check_available_only is false.
-   *
-   * If check_available_only is set, then:
-   *
-   *  - the return value is undefined and is to be discarded
-   *
-   *  - if the format is not available, \ref no_such_format is always raised
-   *
-   *  - if the format is available, no exception is raised.
-   */
-  format_spec internal_canonical_format(const format_spec & format,
-                                        bool check_available_only);
 
 };
 

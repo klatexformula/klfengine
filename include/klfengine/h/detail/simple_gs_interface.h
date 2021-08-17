@@ -31,6 +31,7 @@
 #include <klfengine/basedefs>
 #include <klfengine/settings>
 #include <klfengine/process>
+#include <klfengine/format_spec>
 
 namespace klfengine {
 
@@ -102,10 +103,6 @@ public:
   using capture_stderr_data = klfengine::process::capture_stderr_data;
   using capture_stdout_data = klfengine::process::capture_stdout_data;
 
-  // struct set_device_for_format {
-  // .... copy common code from both engines to this modifier ....
-  // };
-  
   template<typename... Args>
   void run_gs(std::vector<std::string> gs_args, Args && ... args)
   {
@@ -148,6 +145,7 @@ public:
       stdin_data_bufptr = d._data_ptr;
     }
 
+
     impl_run_gs(std::move(gs_args),
                 stdin_data_bufptr,
                 add_standard_batch_flags_yn,
@@ -166,6 +164,7 @@ private:
     binary_data * capture_stderr
   );
 };
+
 
 
 
@@ -193,6 +192,62 @@ public:
 private:
   std::unique_ptr<simple_gs_interface> _gs_interface;
   simple_gs_interface::gs_version_and_info_t _gs_version_and_info;
+};
+
+
+
+// -------------------------------------
+
+
+/** \brief Construct Ghostscript arguments for multiple vector and image formats
+ *
+ *
+ * Here are the possible formats that we can produce Ghostscript flags for.  For
+ * each format, we look for parameters that can influence Ghostscript's output
+ * as documented below:
+ *
+ * Raster Formats: "PNG", "JPEG", "BMP", "TIFF".  Accepted parameters:
+ * \code
+ * {
+ *   "dpi": <int>,
+ *   "antialiasing": true|false|{"TextBits": 1|2|4, "GraphicsAlphaBits": 1|2|4}
+ * }
+ * \endcode
+ *
+ * Vector Formats: "PDF", "PS", "EPS".  Accepted parameters:
+ * \code
+ * {
+ *   "outline_fonts": true|false
+ * }
+ * \endcode
+ *
+ */
+class gs_device_args_format_provider : public format_provider
+{
+public:
+  gs_device_args_format_provider(
+      simple_gs_interface_engine_tool * gs_iface_tool_,
+      value::dict param_defaults_
+  )
+    : _gs_iface_tool(gs_iface_tool_), _param_defaults(std::move(param_defaults_)) { }
+
+  /** \brief Set -sDEVICE=... etc. for the required format spec.
+   *
+   * Returns a list of switches to include towards the beginning of your
+   * Ghostscript argument list in order to produce output in the desired format.
+   *
+   */
+  std::vector<std::string> get_device_args_for_format(
+      const format_spec & format
+  );
+
+private:
+  virtual std::vector<format_description> impl_available_formats();
+  virtual format_spec impl_make_canonical(const format_spec & format,
+                                          bool check_available_only);
+
+  simple_gs_interface_engine_tool * _gs_iface_tool;
+  value::dict _param_defaults;
 };
 
 

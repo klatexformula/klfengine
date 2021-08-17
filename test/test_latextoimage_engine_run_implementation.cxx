@@ -68,6 +68,11 @@ TEST_CASE( "simple compilation with latextoimage_engine produces correct equatio
 
   r->compile();
 
+  auto canon_format_spec = r->canonical_format(klfengine::format_spec{"PNG"});
+  nlohmann::json canon_format_spec_j;
+  canon_format_spec_j = canon_format_spec;
+  CAPTURE( canon_format_spec_j.dump() );
+
   auto pngdata = r->get_data(klfengine::format_spec{"PNG"});
 
   klfengine::detail::utils::dump_binary_data_to_file("testoutf_931ieowf.png", pngdata);

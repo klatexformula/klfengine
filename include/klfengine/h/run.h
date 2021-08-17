@@ -158,18 +158,7 @@ inline format_spec run::find_format(IteratorInterfaceContainer && formats)
 
   std::lock_guard<std::mutex> lckgrd(_mutex);
 
-  // note container value type can also be std::string, because you can
-  // construct a format_spec from a std::string
-
-  for (auto it = formats.begin(); it != formats.end(); ++it) {
-    format_spec canon = _e->canonical_format_or_empty( format_spec{*it} );
-    if (!canon.format.empty()) {
-      return canon;
-    }
-  }
-
-  // reached the end, didn't find a suitable format
-  throw no_such_format("<no suitable format found in list>");
+  return _e->find_format(std::forward<IteratorInterfaceContainer>(formats));
 }
 
 

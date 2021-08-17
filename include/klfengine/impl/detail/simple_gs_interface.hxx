@@ -129,7 +129,6 @@ const std::string & simple_gs_interface::gs_path() const
 
 
 
-
 // static
 _KLFENGINE_INLINE
 simple_gs_interface::method
@@ -146,6 +145,9 @@ simple_gs_interface::parse_method(const std::string & method_s)
   }
   throw std::invalid_argument("Invalid gs interface method: " + method_s);
 }
+
+
+
 
 _KLFENGINE_INLINE
 simple_gs_interface::gs_version_t simple_gs_interface::get_gs_version()
@@ -647,6 +649,252 @@ void simple_gs_interface_engine_tool::set_settings(const settings & settings)
   _gs_version_and_info = _gs_interface->get_gs_version_and_info();
 }
 
+
+
+
+
+// =============================================================================
+
+
+
+_KLFENGINE_INLINE
+std::vector<klfengine::format_description>
+gs_device_args_format_provider::impl_available_formats()
+{
+  // parameter specification = 
+  // {
+  //   "type": "bool"|"int"|"double"|"string"|"array"|"dict"|"color"|"length"|"margins",
+  //   "null_ok": true|false,
+  //   "validate_regex": <regex>, // applicable to bool,int,double,string
+  //   "default": <default value>
+  //   "dict_keys": { ... } // recursive
+  // }
+  value::dict vector_format_spec{
+    {"outline_fonts", value{value::dict{
+        {"type", value{std::string{"bool"}}},
+        {"default", dict_get(_param_defaults, "outline_fonts", value{true})}
+      }}}
+  };
+  value::dict raster_format_spec{
+    {"dpi", value{value::dict{
+        {"type", value{std::string{"int"}}},
+        {"default", dict_get(_param_defaults, "dpi", value{600})}
+      }}},
+    {"antialiasing", value{value::dict{
+        {"type", value{std::string{"bool|dict"}}},
+        {"default", dict_get(_param_defaults, "antialiasing", value{true})},
+        {"dict_keys", value{value::dict{
+            {"text_alpha_bits", value{value::dict{
+                {"type", value{std::string{"int"}}},
+                {"validate_regex", value{std::string{"^1|2|4$"}}}
+              }}},
+            {"graphics_alpha_bits", value{value::dict{
+                {"type", value{std::string{"int"}}},
+                {"validate_regex", value{std::string{"^1|2|4$"}}}
+              }}}
+          }}}
+      }}}
+  };
+  value::dict png_format_spec{ raster_format_spec };
+  png_format_spec["transparency"] = value{value::dict{
+    {"type", value{std::string{"bool"}}},
+    {"default", dict_get(_param_defaults, "transparency", value{true})}
+  }};
+
+  return std::vector<klfengine::format_description>{
+    {
+      {"PNG", png_format_spec},
+      "PNG Image",
+      "Portable Network Graphics Image, widely compatible raster "
+      "image format with transparency"
+    },
+    {
+      {"PDF", vector_format_spec},
+      "PDF Document",
+      "Portable Document Format, a widely compatible vector drawing format"
+    },
+    {
+      {"JPEG", raster_format_spec},
+      "JPEG Image",
+      "Standard JPEG Image (does not have transparency)"
+    },
+    {
+      {"PS", vector_format_spec},
+      "PostScript (PS) Document",
+      "Vector PostScript Drawing Document"
+    },
+    {
+      {"EPS", vector_format_spec},
+      "Encapsulated PostScript (EPS) Document",
+      "Vector Encapsulated PostScript Drawing Document"
+    },
+    {
+      {"TIFF", raster_format_spec},
+      "TIFF Image",
+      "Standard uncompressed TIFF Image (does not have transparency)"
+    },
+    {
+      {"BMP", raster_format_spec},
+      "BMP Image",
+      "Uncompressed BMP Image (does not have transparency)"
+    },
+  };
+}
+
+format_spec gs_device_args_format_provider::impl_make_canonical(
+  const format_spec & format,
+  bool // check_available_only
+)
+{
+  parameter_taker param{
+    format.parameters,
+    "klfengine::detail::simple_gs_interface::gs_args_canonical_format_parameters"
+  };
+
+  if (format.format == "PDF" || format.format == "PS" || format.format == "EPS") {
+
+    format_spec f{format.format, {}};
+
+    bool outline_fonts = dict_get<bool>(_param_defaults, "outline_fonts", true);
+    f.parameters["outline_fonts"] = value{param.take<bool>("outline_fonts", outline_fonts)};
+
+    param.finished();
+    return f;
+  }
+
+  if (format.format == "PNG" || format.format == "JPEG" || format.format == "TIFF"
+      || format.format == "BMP") {
+
+    format_spec f{format.format, {}};
+    
+    if (format.format == "PNG") {
+      bool transparency = dict_get<bool>(_param_defaults, "transparency", true);
+      transparency = param.take("transparency", transparency);
+      f.parameters["transparency"] = value{transparency};
+    }
+
+    int dpi = dict_get<int>(_param_defaults, "dpi", true);
+    f.parameters["dpi"] = value{param.take<int>("dpi", dpi)};
+    
+    value::dict aadic;
+    value antialiasing = dict_get<value>(_param_defaults, "antialiasing", value{true});
+    antialiasing = param.take("antialiasing", antialiasing);
+    if (antialiasing.has_type<bool>()) {
+      if (antialiasing.get<bool>()) {
+        aadic["graphics_alpha_bits"] = value{4};
+        aadic["text_alpha_bits"] = value{4};
+      } else {
+        // no antialiasing
+        aadic["graphics_alpha_bits"] = value{1};
+        aadic["text_alpha_bits"] = value{1};
+      }
+    } else if (antialiasing.has_type<value::dict>()) {
+      parameter_taker paa{
+        antialiasing.get<value::dict>(),
+        "klfengine::detail::simple_gs_interface::gs_args_set_device_for_format (antialiasing)"
+      };
+      aadic["graphics_alpha_bits"] = value{paa.take("graphics_alpha_bits", 4)};
+      aadic["text_alpha_bits"] = value{paa.take("text_alpha_bits", 4)};
+      paa.finished();
+    } else {
+      throw invalid_parameter{param.what(), "invalid value for antialiasing="};
+    }
+    f.parameters["antialiasing"] = value{aadic};
+    
+    param.finished();
+    return f;
+  }
+
+  // no such format
+  return format_spec{};
+}
+
+std::vector<std::string>
+gs_device_args_format_provider::get_device_args_for_format( const format_spec & fmt )
+{
+  format_spec format = canonical_format(fmt);
+
+  std::vector<std::string> gs_args;
+
+  parameter_taker param{
+    format.parameters,
+    "klfengine::detail::simple_gs_interface::gs_args_set_device_for_format"
+  };
+  param.disable_check();
+
+  bool is_vector_format = true;
+
+  // choose correct device
+  if (format.format == "PNG") {
+    is_vector_format = false;
+    bool transparency = param.take<bool>("transparency");
+    if (transparency) {
+      gs_args.push_back("-sDEVICE=pngalpha");
+      // gs starts rendering transparency poorly in larger images without the
+      // following option -- https://stackoverflow.com/a/4907328/1694896
+      gs_args.push_back("-dMaxBitmap=2147483647");
+    } else {
+      gs_args.push_back("-sDEVICE=png16m");
+    }
+  } else if (format.format == "JPEG") {
+    is_vector_format = false;
+    gs_args.push_back("-sDEVICE=jpeg");
+    // TODO : parameter to set JPEG quality
+  } else if (format.format == "TIFF") {
+    is_vector_format = false;
+    gs_args.push_back("-sDEVICE=tiff24nc");
+  } else if (format.format == "BMP") {
+    is_vector_format = false;
+    gs_args.push_back("-sDEVICE=bmp16m");
+  } else if (format.format == "PDF") {
+    is_vector_format = true;
+    gs_args.push_back("-sDEVICE=pdfwrite");
+  } else if (format.format == "PS") {
+    is_vector_format = true;
+    gs_args.push_back("-sDEVICE=ps2write");
+  } else if (format.format == "EPS") {
+    is_vector_format = true;
+    gs_args.push_back("-sDEVICE=eps2write");
+  } else {
+    throw std::invalid_argument{"Cannot produce Ghostscript flags for format "+format.format};
+  }
+
+  // outline fonts, if applicable
+  if (is_vector_format) {
+    bool outline_fonts = param.take<bool>("outline_fonts");
+    if (outline_fonts) {
+      auto gs_ver = _gs_iface_tool->gs_version();
+      if (gs_ver.major < 9 || (gs_ver.major == 9 && gs_ver.minor < 15)) {
+        error(
+          "klfengine::detail::simple_gs_interface::gs_args_set_device_for_format",
+          "Requested outline_fonts=true, but "
+          "you have ghostscript v" + std::to_string(gs_ver.major) + "."
+          + std::to_string(gs_ver.minor) + ".  Please upgrade to gs>=9.15 for font outlines."
+        );
+      } else {
+        gs_args.push_back("-dNoOutputFonts");
+      }
+    }
+  }
+
+  // dpi and anti-aliasing
+  if ( ! is_vector_format ) {
+
+    int dpi = param.take<int>("dpi");
+    gs_args.push_back("-r" + std::to_string(dpi));
+
+    value::dict antialiasing_dic = param.take<value::dict>("antialiasing");
+
+    const int graphics_alpha_bits = dict_get<int>(antialiasing_dic, "graphics_alpha_bits");
+    const int text_alpha_bits = dict_get<int>(antialiasing_dic, "text_alpha_bits");
+
+    gs_args.push_back("-dGraphicsAlphaBits="+std::to_string(graphics_alpha_bits));
+    gs_args.push_back("-dTextAlphaBits="+std::to_string(text_alpha_bits));
+
+  }
+
+  return gs_args;
+}
 
 
 

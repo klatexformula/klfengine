@@ -68,6 +68,8 @@ struct run_implementation_private
 
   std::shared_ptr<klfengine::detail::simple_gs_interface_engine_tool> gs_iface_tool;
 
+  klfengine::detail::gs_device_args_format_provider gs_args_provider;
+
   struct filenames_t
   {
     fs::path base, tex, dvi, ps, pdf, gs_input;
@@ -102,6 +104,16 @@ run_implementation::run_implementation(
     )
   : klfengine::engine_run_implementation(std::move(input_), std::move(settings_))
 {
+  auto * gs_iface_tool_ptr = gs_iface_tool_.get();
+
+  bool bg_is_transparent = (input().bg_color.alpha < 255);
+
+  value::dict fmt_param_defaults_{
+    {"transparency", value{ bg_is_transparent }},
+    {"outline_fonts", value{input().outline_fonts}},
+    {"dpi", value{input().dpi}},
+    {"antialiasing", value{true}}
+  };
 
   d = new run_implementation_private{
     // temp_dir
@@ -117,6 +129,8 @@ run_implementation::run_implementation(
     },
     // gs_iface_tool
     std::move(gs_iface_tool_), // move the shared pointer, not the actual object (!)
+    // gs_args_provider
+    { gs_iface_tool_ptr, std::move(fmt_param_defaults_) },
     // fn
     {},
     // via_dvi
@@ -338,12 +352,42 @@ void run_implementation::impl_compile()
 _KLFENGINE_INLINE
 std::vector<klfengine::format_description> run_implementation::impl_available_formats()
 {
-  return {}; // FIXME !!!
-  // if (d->via_dvi) {
-  //   return { {"DVI",{}}, {"EPS",{}}, {"PS",{}}, {"PDF",{}}, {"PNG",{}} };
-  // } else {
-  //   return { {"EPS",{}}, {"PS",{}}, {"PDF",{}}, {"PNG",{}}} };
-  // }
+  std::vector<klfengine::format_description> fmtlist;
+
+  // initialize with Ghostscript-based formats
+  fmtlist = d->gs_args_provider.available_formats();
+
+  value want_raw_spec{value::dict{
+    { "type", value{std::string{"bool"}} }
+  }};
+
+  // find PDF, PS and add latex_raw parameter
+  for (auto & x : fmtlist) {
+    if (x.format_spec.format == "PDF" && !d->via_dvi) {
+      x.format_spec.parameters["latex_raw"] = want_raw_spec;
+      continue;
+    }
+    if (x.format_spec.format == "PS" && d->via_dvi) {
+      x.format_spec.parameters["latex_raw"] = want_raw_spec;
+      continue;
+    }
+  }
+
+  // Add LATEX, DVI.  Don't even offer latex_raw option, cause it's not an option :) 
+  fmtlist.push_back({
+      { "LATEX", {} },
+      "LaTeX document",
+      "The full LaTeX document used to compile the equation",
+  });
+  if ( d->via_dvi ) {
+    fmtlist.push_back({
+      { "DVI", {} },
+      "Latex DVI output",
+      "The raw DVI output obtained by compiling the LaTeX document",
+      });
+  }
+
+  return fmtlist;
 }
 
 _KLFENGINE_INLINE
@@ -351,71 +395,81 @@ klfengine::format_spec run_implementation::impl_make_canonical(
     const klfengine::format_spec & format, bool /*check_available_only*/
     )
 {
+  klfengine::format_spec canon_format;
   parameter_taker param{ format.parameters, "klfengine::latextoimage_engine" };
 
   if (format.format == "LATEX") {
-    bool raw = param.take("raw", true);
-    if (raw == false) {
-      throw invalid_parameter{param.what(), "\"LATEX\" format requires raw=true"};
+    bool latex_raw = param.take("latex_raw", true);
+    if (latex_raw == false) {
+      throw invalid_parameter{param.what(), "\"LATEX\" format requires latex_raw=true"};
     }
     param.finished();
-    return {"LATEX", value::dict{{"raw", value{true}}}};
+    canon_format.format = "LATEX";
+    canon_format.parameters["latex_raw"] = value{true};
+    return canon_format;
   }
   if (format.format == "DVI") {
     if (d->via_dvi) {
-      bool raw = param.take("raw", true);
-      if (raw == false) {
-        throw invalid_parameter{param.what(), "\"DVI\" format requires raw=true"};
+      bool latex_raw = param.take("latex_raw", true);
+      if (latex_raw == false) {
+        throw invalid_parameter{param.what(), "\"DVI\" format requires latex_raw=true"};
       }
       param.finished();
-      return {"DVI", value::dict{{"raw", value{true}}}}; // always "raw"
+      canon_format.format = "DVI";
+      canon_format.parameters["latex_raw"] = value{true};
+      return canon_format;
     } else {
       // no DVI available, no such format
       param.finished();
       return {};
     }
   }
-  if (format.format == "EPS") {
-    param.finished();
-    return {"EPS", {}};
-  }
-  if (format.format == "PS") {
-    // could request either raw or non-raw PS if latex engine generates DVI
-    bool want_raw = param.take("raw", false);
-    param.finished();
-    if (!d->via_dvi && want_raw) {
-      throw no_such_format{
-        "There is now \"raw\" PS because the engine doesn't generate DVI output"
-      };
-    }
-    return {"PS", value::dict{{"raw", value{want_raw}}}};
-  }
-  if (format.format == "PDF") {
-    // could request either raw or non-raw PS if latex engine directly generates PDF
-    bool want_raw = param.take("raw", false);
-    param.finished();
-    if (d->via_dvi && want_raw) {
-      throw no_such_format{
-        "There is now \"raw\" PDF because the engine doesn't directly generate PDF output"
-      };
-    }
-    return {"PDF", value::dict{{"raw", value{want_raw}}}};
-  }
 
-  if (format.format == "PNG" || format.format == "JPEG" ||
-      format.format == "TIFF" || format.format == "BMP") {
-    int dpi = dict_get<int>(format.parameters, "dpi", input().dpi);
-    bool antialiasing = dict_get<bool>(format.parameters, "antialiasing", true);
-    param.finished();
-    return {
-      format.format,
-      value::dict{
-        {"dpi", value{dpi}},
-        {"antialiasing", value{antialiasing}}
+  if (format.format == "PDF" || format.format == "PS") {
+    // these formats can be the latex raw versions, enabled with latex_raw=true.
+    bool want_latex_raw = param.take("latex_raw", false);
+
+    if (want_latex_raw) {
+      if (format.format == "PDF" && d->via_dvi) {
+        throw no_such_format{
+          "There is no \"latex_raw\" PDF because the latex engine doesn't directly generate PDF"
+        };
       }
-    };
+      if (format.format == "PS" && !d->via_dvi) {
+        throw no_such_format{
+          "There is no \"latex_raw\" PS because the latex engine doesn't generate DVI output"
+        };
+      }
+      if (format.format == "DVI" && !d->via_dvi) {
+        throw no_such_format{
+          "There is no \"latex_raw\" DVI because the latex engine doesn't generate DVI output"
+        };
+      }
+    }
+
+    if (want_latex_raw) {
+      canon_format.format = format.format;
+      canon_format.parameters["latex_raw"] = value{true};
+      return canon_format;
+    }
+
+    // get Ghostscript's canonical format
+    
+    format_spec gs_format{ format.format, param.take_remaining() };
+    param.finished();
+    canon_format = d->gs_args_provider.canonical_format( std::move(gs_format) );
+    canon_format.parameters["latex_raw"] = value{false};
+    return canon_format;
   }
 
+  // Offer any remaining Ghostscript-based formats.  See if our Ghostscript
+  // handler can handle them:
+  canon_format = d->gs_args_provider.canonical_format_or_empty( format );
+  if ( canon_format != format_spec{} ) {
+    return canon_format;
+  }
+
+  // no such format
   return {};
 }
 
@@ -447,48 +501,15 @@ run_implementation::impl_produce_data(const klfengine::format_spec & format)
 
   bool bg_is_transparent = (in.bg_color.alpha < 255);
 
-  std::vector<std::string> gs_process_args;
-
   // don't use ghostscript STDOUT so that we can also use libgs-based methods in
   // simple_gs_interface
   fs::path outf = d->fn.base;
   outf.replace_filename(d->fn.base.filename().generic_string() + "-gs."
                         + to_lowercase(format.format));
 
-  bool is_vector_format = true;
-
-  // choose correct device
-  if (format.format == "PNG") {
-    is_vector_format = false;
-    if (bg_is_transparent) {
-      gs_process_args.push_back("-sDEVICE=pngalpha");
-      // gs starts rendering transparency poorly in larger images without the
-      // following option -- https://stackoverflow.com/a/4907328/1694896
-      gs_process_args.push_back("-dMaxBitmap=2147483647");
-    } else {
-      gs_process_args.push_back("-sDEVICE=png16m");
-    }
-  } else if (format.format == "JPEG") {
-    is_vector_format = false;
-    gs_process_args.push_back("-sDEVICE=jpeg");
-  } else if (format.format == "TIFF") {
-    is_vector_format = false;
-    gs_process_args.push_back("-sDEVICE=tiff24nc");
-  } else if (format.format == "BMP") {
-    is_vector_format = false;
-    gs_process_args.push_back("-sDEVICE=bmp16m");
-  } else if (format.format == "PDF") {
-    gs_process_args.push_back("-sDEVICE=pdfwrite");
-  } else if (format.format == "PS") {
-    gs_process_args.push_back("-sDEVICE=ps2write");
-  } else if (format.format == "EPS") {
-    gs_process_args.push_back("-sDEVICE=eps2write");
-  }
-
-  if ( ! is_vector_format ) {
-    int dpi = dict_get<int>(format.parameters, "dpi");
-    gs_process_args.push_back("-r" + std::to_string(dpi));
-  }
+  std::vector<std::string> gs_process_args{
+    d->gs_args_provider.get_device_args_for_format(format)
+  };
 
   gs_process_args.push_back("-sOutputFile="+outf.native());
 
@@ -496,36 +517,15 @@ run_implementation::impl_produce_data(const klfengine::format_spec & format)
   const double heightpt = d->bbox.y2 - d->bbox.y1;
 
   auto gs_iface = d->gs_iface_tool->gs_interface();
-  auto gs_ver = d->gs_iface_tool->gs_version();
-
-  // outline fonts, if applicable
-  if (is_vector_format && in.outline_fonts) {
-    if (gs_ver.major < 9 || (gs_ver.major == 9 && gs_ver.minor < 15)) {
-      fprintf(stderr,
-              "*** klfengine::latextoimage_engine warning: input requested outline_fonts=true, but "
-              "you have ghostscript v%d.%d.  Please upgrade to gs>=9.15 for font outlines.\n",
-              gs_ver.major, gs_ver.minor);
-    } else {
-      gs_process_args.push_back("-dNoOutputFonts");
-    }
-  }
   
   // output size
   gs_process_args.push_back("-dDEVICEWIDTHPOINTS=" + dbl_to_string(widthpt));
   gs_process_args.push_back("-dDEVICEHEIGHTPOINTS=" + dbl_to_string(heightpt));
   gs_process_args.push_back("-dFIXEDMEDIA");
 
-  // anti-aliasing
-  if ( ! is_vector_format ) {
-    bool antialiasing = dict_get<bool>(format.parameters, "antialiasing");
-    if (antialiasing) {
-      gs_process_args.push_back("-dGraphicsAlphaBits=4");
-      gs_process_args.push_back("-dTextAlphaBits=4");
-    }
-  }
 
-  // PostScript page initialization code -- draw background color rectangle, then apply
-  // translation & scaling
+  // PostScript page initialization code -- draw background color rectangle,
+  // then apply translation & scaling
   std::string gs_ps_cmds;
   gs_ps_cmds +=
     "<< /BeginPage { ";
