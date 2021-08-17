@@ -31,7 +31,7 @@
 #include <klfengine/basedefs>
 #include <klfengine/input>
 #include <klfengine/settings>
-#include <klfengine/format_spec>
+#include <klfengine/format>
 
 
 namespace klfengine {
@@ -59,6 +59,13 @@ using fmtspec_cache_key_type = std::string;
  * core of their functionality.  The object is constructed with some \ref
  * klfengine::input and \ref klfengine::settings objects (these should remain
  * constant throughout the lifetime of this instance).
+ *
+ * .. note:: You should never have to construct engine_run_implementation
+ *           instances directly when you want to use an engine.  When
+ *           implementing a new engine, you should only create a
+ *           engine_run_implementation instance when reimplementing \ref
+ *           klfengine::impl_create_engine_run_implementation().
+ *  
  *
  * Subclasses are responsible for the following tasks:
  *

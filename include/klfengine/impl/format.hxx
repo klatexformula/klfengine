@@ -28,7 +28,7 @@
 
 #pragma once
 
-#include <klfengine/format_spec>
+#include <klfengine/format>
 
 #include <nlohmann/json.hpp>
 

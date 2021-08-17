@@ -33,7 +33,7 @@
 #include <mutex>
 
 #include <klfengine/engine_run_implementation>
-#include <klfengine/format_spec>
+#include <klfengine/format>
 
 
 namespace klfengine {
@@ -91,6 +91,8 @@ public:
    * compile() has completed.
    *
    * See also \ref compile().
+   *
+   * This function does not lock any mutex and returns immediately.
    */
   bool compiled() const;
 
@@ -98,27 +100,69 @@ public:
 
   bool has_format(std::string format);
 
-  /** ...
+  /** \brief Return a list of available output formats and their specifications
    *
-   * Even this method can only be called after compile() is called.  (Otherwise,
-   * use corresponding method on klfengine::engine object.)
+   * See \ref format_description for more details on the precise information
+   * provided.
+   *
+   * Even this method can only be called after compile() is called.
    */
   std::vector<format_description> available_formats();
 
-  /** ...
+  /** \brief Get canonical equivalent format specification
    *
-   * Even this method can only be called after compile() is called.  (Otherwise,
-   * use corresponding method on klfengine::engine object.)
+   * See \ref format_provider::canonical_format().  Throws an exception if the
+   * format is not available.
+   *
+   * Even this method can only be called after compile() is called.
    */
   format_spec canonical_format(const format_spec & format);
 
+
+  /** \brief Get canonical equivalent format specification
+   *
+   * See \ref format_provider::canonical_format_or_empty().  Returns a
+   * default-constructed empty \ref format_spec if the format is not available.
+   *
+   * Even this method can only be called after compile() is called.
+   */
   format_spec canonical_format_or_empty(const format_spec & format);
 
+
+  /** \brief Find the first availble format in the given list
+   *
+   * See \ref format_provider::find_format().
+   *
+   * This method can only be called after compile() is called.
+   */
   template<typename IteratorInterfaceContainer>
   format_spec find_format(IteratorInterfaceContainer && formats);
+  
 
-
+  /** \brief Get output data for a requested format
+   *
+   * If the output data associated with \a format has not yet been computed, the
+   * engine will run the necessary process to obtain the data and return it.
+   * The data is cached such that future calls do not recompute the data.
+   *
+   * See also \ref engine_run_implementation::get_data_cref().
+   *
+   * The given \a format is transformed into canonical form before any
+   * processing, so you don't have to worry which equivalent format_spec you
+   * provide.
+   *
+   * If you only need read access to the data, consider using \ref
+   * get_data_cref() which avoids an unnecessary copy.
+   */
   binary_data get_data(const format_spec & format);
+
+  /** \brief Get read-only output data for a requested format
+   *
+   * This function behaves exactly like \ref get_data(), except that it returns
+   * a const reference to an internal data structure where the data is stored.
+   * This method avoids an unecessary copy if you only need read-only access to
+   * the data.  Do NOT attempt to modify the data please!
+   */
   const binary_data & get_data_cref(const format_spec & format);
 
 

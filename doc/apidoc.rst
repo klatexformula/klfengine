@@ -12,6 +12,7 @@ API Documentation
 
    api/base
    api/inputs
+   api/format
    api/engine
    api/latextoimage_engine
    api/klfimplpkg_engine

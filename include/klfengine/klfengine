@@ -5,7 +5,7 @@
 #include <klfengine/input>
 #include <klfengine/value>
 #include <klfengine/settings>
-#include <klfengine/format_spec>
+#include <klfengine/format>
 #include <klfengine/engine>
 #include <klfengine/engine_run_implementation>
 #include <klfengine/run>

@@ -31,7 +31,7 @@
 #include <klfengine/basedefs>
 #include <klfengine/settings>
 #include <klfengine/process>
-#include <klfengine/format_spec>
+#include <klfengine/format>
 
 namespace klfengine {
 

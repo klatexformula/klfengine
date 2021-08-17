@@ -29,8 +29,12 @@ Related helper functions
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. doxygenfunction:: klfengine::dict_get(const value::dict &, const std::string &)
-.. doxygenfunction:: klfengine::dict_get(const value::dict & dict, const std::string & key, X dflt)
-.. doxygenfunction:: klfengine::dict_do_if(const value::dict & dict, const std::string & key, std::function<void(const X&)> fn)
+.. doxygenfunction:: klfengine::dict_get(const value::dict &, const std::string &, X)
+.. doxygenfunction:: klfengine::dict_take(value::dict &, const std::string &)
+.. doxygenfunction:: klfengine::dict_take(value::dict &, const std::string &, X)
+.. doxygenfunction:: klfengine::dict_do_if(const value::dict &, const std::string &, std::function<void(const X&)>)
+
+.. doxygenclass:: klfengine::parameter_taker
 
 
 File ``<klfengine/version>``

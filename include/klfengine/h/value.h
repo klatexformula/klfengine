@@ -219,7 +219,7 @@ using value = detail::value;
  * klfengine::value object is returned.
  */
 template<typename X = value>
-inline X dict_get(const value::dict & dict, std::string key)
+inline X dict_get(const value::dict & dict, const std::string & key)
 {
   auto it = dict.find(key);
   if (it == dict.end()) {
@@ -239,7 +239,7 @@ inline X dict_get(const value::dict & dict, std::string key)
  * klfengine::value object is returned.
  */
 template<typename X>
-inline X dict_get(const value::dict & dict, std::string key, X dflt)
+inline X dict_get(const value::dict & dict, const std::string & key, X dflt)
 {
   auto it = dict.find(key);
   if (it == dict.end()) {
@@ -259,7 +259,7 @@ inline X dict_get(const value::dict & dict, std::string key, X dflt)
  * klfengine::value object is returned.
  */
 template<typename X = value>
-inline X dict_take(value::dict & dict, std::string key)
+inline X dict_take(value::dict & dict, const std::string & key)
 {
   auto it = dict.find(key);
   if (it == dict.end()) {
@@ -282,7 +282,7 @@ inline X dict_take(value::dict & dict, std::string key)
  * klfengine::value object is returned.
  */
 template<typename X>
-inline X dict_take(value::dict & dict, std::string key, X dflt)
+inline X dict_take(value::dict & dict, const std::string & key, X dflt)
 {
   auto it = dict.find(key);
   if (it == dict.end()) {

@@ -48,8 +48,8 @@ namespace klfengine {
  * rasterized into the resulting PNG image.
  *
  * \warning We fix the convention that the JPEG format name is spelled out as
- *          "JPEG", not as "JPG".  Engines will raise \ref no_such_format if you
- *          use the format name "JPG".
+ *          "JPEG", not as "JPG".  Format providers will raise \ref
+ *          no_such_format if you use the format name "JPG".
  *
  * \warning Please use only upper case format names.  We fixed upper case naming
  *          by convention.
@@ -331,5 +331,5 @@ inline format_spec format_provider::find_format(IteratorInterfaceContainer && fo
 
 
 #ifndef _KLFENGINE_DONT_INCLUDE_IMPL_HXX
-#include <klfengine/impl/format_spec.hxx>
+#include <klfengine/impl/format.hxx>
 #endif

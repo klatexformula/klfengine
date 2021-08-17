@@ -27,7 +27,7 @@
  */
 
 // header we are testing gets included first (helps detect missing #include's)
-#include <klfengine/format_spec>
+#include <klfengine/format>
 
 
 #include <catch2/catch.hpp>

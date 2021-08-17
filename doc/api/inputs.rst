@@ -22,11 +22,3 @@ Ghostscript location, etc.
 
 .. doxygenstruct:: klfengine::settings
 
-
-File ``<klfengine/format_spec>``
---------------------------------
-
-.. doxygenstruct:: klfengine::format_spec
-
-
-

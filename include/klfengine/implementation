@@ -12,7 +12,7 @@
 #include <klfengine/impl/length.hxx>
 #include <klfengine/impl/input.hxx>
 #include <klfengine/impl/settings.hxx>
-#include <klfengine/impl/format_spec.hxx>
+#include <klfengine/impl/format.hxx>
 #include <klfengine/impl/engine.hxx>
 #include <klfengine/impl/engine_run_implementation.hxx>
 #include <klfengine/impl/run.hxx>

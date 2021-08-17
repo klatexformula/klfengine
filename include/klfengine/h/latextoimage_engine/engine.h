@@ -35,6 +35,7 @@
 #include <klfengine/engine_run_implementation>
 
 #include <klfengine/h/latextoimage_engine/run_implementation.h>
+#include <klfengine/h/detail/simple_gs_interface.h>
 
 namespace klfengine {
 namespace latextoimage_engine {
@@ -45,11 +46,9 @@ public:
   engine();
   virtual ~engine();
 
-protected:
-  void adjust_for_new_settings(klfengine::settings & settings);
-
 private:
   // reimplemented from klfengine::engine
+  void adjust_for_new_settings(klfengine::settings & settings);
   klfengine::engine_run_implementation *
   impl_create_engine_run_implementation( klfengine::input input_,
                                          klfengine::settings settings_ );

@@ -99,7 +99,7 @@ klfengine_create_test(input SOURCES test_input.cxx)
 
 klfengine_create_test(settings SOURCES test_settings.cxx)
 
-klfengine_create_test(format_spec SOURCES test_format_spec.cxx)
+klfengine_create_test(format SOURCES test_format.cxx)
 
 klfengine_create_test(engine SOURCES test_engine.cxx)
 
@@ -145,7 +145,7 @@ klfengine_create_test(separate_impl
           test_length.cxx
           test_input.cxx
           test_settings.cxx
-          test_format_spec.cxx
+          test_format.cxx
           test_engine_run_implementation.cxx
           test_engine.cxx
           test_run.cxx
@@ -166,7 +166,8 @@ klfengine_create_test(separate_impl
 
 
 
-# help catch functions that we didn't properly prefix with _KLFENGINE_INLINE
+# help catch functions that we didn't properly prefix with _KLFENGINE_INLINE.
+# we include the entire <klfengine/klfengine> in both compilation units
 klfengine_create_test(inline_impl
   SOURCES test_inline_impl_1.cxx
           test_inline_impl_2.cxx
