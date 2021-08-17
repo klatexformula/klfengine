@@ -168,6 +168,25 @@ public:
 
 
 
+/** \brief Invalid parameter provided
+ *
+ * This exception is thrown in methods that accept paramters, typically from a
+ * general dictionary object, to indicate that an invalid parameter name or
+ * value was encountered.
+ */
+class invalid_parameter : public klfengine::exception
+{
+public:
+  invalid_parameter(std::string what_, std::string msg)
+    : klfengine::exception{
+        (what_.empty()?std::string{}:what_+": ")
+        + "invalid parameter: " + msg
+      }
+  {}
+};
+
+
+
 
 
 namespace detail {

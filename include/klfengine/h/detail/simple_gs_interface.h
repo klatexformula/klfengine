@@ -101,6 +101,10 @@ public:
   using send_stdin_data = klfengine::process::send_stdin_data;
   using capture_stderr_data = klfengine::process::capture_stderr_data;
   using capture_stdout_data = klfengine::process::capture_stdout_data;
+
+  // struct set_device_for_format {
+  // .... copy common code from both engines to this modifier ....
+  // };
   
   template<typename... Args>
   void run_gs(std::vector<std::string> gs_args, Args && ... args)

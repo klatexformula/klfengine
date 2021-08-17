@@ -87,14 +87,36 @@ struct recursive_variant_with_vector_and_map
   // FUNCTION to_json() IN value.hxx !!!
   variant_type<PrimaryDataTypes..., array, dict> _data;
 
-  template<typename GetValueType>
+  // --
+
+  template<typename GetValueType,
+           typename std::enable_if<!std::is_same<GetValueType, this_type>::value,
+                                   int>::type = 0 >
   inline const GetValueType & get() const {
     return _KLFENGINE_VARIANT_GET<GetValueType>(_data);
   }
-  template<typename GetValueType>
+  template<typename GetValueType,
+           typename std::enable_if<!std::is_same<GetValueType, this_type>::value,
+                                   int>::type = 0>
   inline GetValueType & get() {
     return _KLFENGINE_VARIANT_GET<GetValueType>(_data);
   }
+
+  // helper access function .get<value>() for dict_get, dict_take, parameter_taker, etc.
+  template<typename GetValueType,
+           typename std::enable_if<std::is_same<GetValueType, this_type>::value,
+                                   int>::type = 0>
+  inline const GetValueType & get() const {
+    return *this;
+  }
+  template<typename GetValueType,
+           typename std::enable_if<std::is_same<GetValueType, this_type>::value,
+                                   int>::type = 0 >
+  inline GetValueType & get() {
+    return *this;
+  }
+
+  // --
   
   template<typename GetValueType>
   inline bool has_type() const {
@@ -197,19 +219,15 @@ using value = detail::value;
  * klfengine::value object is returned.
  */
 template<typename X = value>
-inline X dict_get(const value::dict & dict, const std::string & key)
-{
-  return dict_get<value>(dict, key).get<X>();
-}
-template<>
-inline value dict_get<value>(const value::dict & dict, const std::string & key)
+inline X dict_get(const value::dict & dict, std::string key)
 {
   auto it = dict.find(key);
   if (it == dict.end()) {
     throw std::out_of_range("No such key in dictionary: " + key);
   }
-  return it->second;
+  return it->second.get<X>();
 }
+
 /** \brief Fetch a value in a map by key, possibly with a default if the key
  *         does not exist.
  *
@@ -221,18 +239,58 @@ inline value dict_get<value>(const value::dict & dict, const std::string & key)
  * klfengine::value object is returned.
  */
 template<typename X>
-inline X dict_get(const value::dict & dict, const std::string & key, X dflt)
-{
-  return dict_get<value>(dict, key, value{std::move(dflt)}).get<X>();
-}
-template<>
-inline value dict_get<value>(const value::dict & dict, const std::string & key, value dflt)
+inline X dict_get(const value::dict & dict, std::string key, X dflt)
 {
   auto it = dict.find(key);
   if (it == dict.end()) {
     return dflt; // std::move redundant
   }
-  return it->second;
+  return it->second.get<X>();
+}
+
+/** \brief Take a value in a map by key
+ *
+ * If the given key is found in the dictionary, the associated value is returned
+ * and the key is removed from the dictionary.  This function throws \a
+ * std::out_of_range if the key is not in the dictionary.
+ *
+ * If \a X is a standard klfengine::value type (bool, int, etc.), then the
+ * corresponding value is returned.  If \a X is klfengine::value, the
+ * klfengine::value object is returned.
+ */
+template<typename X = value>
+inline X dict_take(value::dict & dict, std::string key)
+{
+  auto it = dict.find(key);
+  if (it == dict.end()) {
+    throw std::out_of_range("No such key in dictionary: " + key);
+  }
+  value val{ std::move(it->second) };
+  dict.erase(it);
+  return val.get<X>();
+}
+
+/** \brief Take a value from a map by key, possibly with a default if the key
+ *         does not exist.
+ *
+ * If the given key is found in the dictionary, the associated value is returned
+ * and the key is removed from the dictionary.  If the given \a key cannot be
+ * found in the dictionary, then \a dflt is returned instead.
+ *
+ * If \a X is a standard klfengine::value type (bool, int, etc.), then the
+ * corresponding value is returned.  If \a X is klfengine::value, the
+ * klfengine::value object is returned.
+ */
+template<typename X>
+inline X dict_take(value::dict & dict, std::string key, X dflt)
+{
+  auto it = dict.find(key);
+  if (it == dict.end()) {
+    return dflt; // std::move redundant
+  }
+  value val{ std::move(it->second) };
+  dict.erase(it);
+  return val.get<X>();
 }
 
 /** \brief Execute the given callback if a key exists in the dictionary
@@ -255,17 +313,188 @@ inline bool dict_do_if(const value::dict & dict, const std::string & key,
   fn(it->second.get<X>());
   return true;
 }
-template<>
-inline bool dict_do_if<value>(const value::dict & dict, const std::string & key,
-                              std::function<void(const value&)> fn)
+
+
+
+
+
+
+namespace detail {
+
+class paramdict_citerator : public value::dict::const_iterator
 {
-  auto it = dict.find(key);
-  if (it == dict.end()) {
-    return false;
+public:
+  paramdict_citerator(value::dict::const_iterator it)
+    : value::dict::const_iterator(std::move(it))
+  {}
+
+  inline
+  std::pair<std::string, const value *>
+  operator*() const
+  {
+    return std::make_pair(
+        value::dict::const_iterator::operator->()->first,
+        & value::dict::const_iterator::operator->()->second
+    );
   }
-  fn(it->second);
-  return true;
-}
+
+private:
+  inline std::pair<std::string, const value *>
+  operator->() const
+  {
+    throw std::runtime_error{"no operator-> for paramdict_citerator"};
+  }
+};
+
+} // namespace detail
+
+
+
+
+/** \brief Utility to parse parameters provided as a \ref klfengine::value::dict structure
+ *
+ * Use this helper class as follows:
+ * \code
+ * void myfunction(const value::dict & parameters)
+ * {
+ *   parameter_taker param(parameters, "myfunction");
+ *   bool use_raster = param.take("raster", false); // false is default
+ *   int dpi = -1;
+ *   if (use_raster) {
+ *     dpi = param.take("dpi", 600); // 600 is default
+ *   }
+ *   // check that all parameters were take()en and throw an exception
+ *   // if that's not the case
+ *   param.finished();
+ *
+ *   // ... do something ...
+ *
+ * }
+ * \endcode
+ *
+ * The original dictionary object specified to the constructor is not modified.
+ *
+ * Call \ref finished() to check that all parameters have been consumed by calls
+ * to \ref take().  (If you don't call finished(), then the destructor will also
+ * perform this check, but will only produce a warning message without throwing
+ * an exception.)
+ *
+ * \warning You must ensure that the dictionary reference provided to the
+ *          constructor remains valid and constant during the entire lifetime of
+ *          the parameter_taker instance.
+ */
+class parameter_taker
+{
+public:
+  /** \brief Initialize the parameter_taker with a value::dict const reference
+   *
+   * The provided dictionary reference must be valid and unchanged during the
+   * entire lifetime of the presetn \a parameter_taker instance.
+   */
+  explicit parameter_taker(const value::dict & dict_,
+                           std::string what_ = std::string{})
+    : _paramdict(
+        detail::paramdict_citerator(dict_.begin()),
+        detail::paramdict_citerator(dict_.end())
+      ),
+      _what(what_),
+      _check_all_taken_called(false)
+  {
+    // for (const auto & p : dict_) {
+    //   fprintf(stderr, "DEBUG: original dictionary got item = %s, ptr = %p\n",
+    //           p.first.c_str(), & p.second);
+    // }
+    // for (const auto & p : _paramdict) {
+    //   fprintf(stderr, "DEBUG: our own pointer dictionary got item = %s, ptr = %p\n",
+    //           p.first.c_str(), p.second);
+    // }
+  }
+
+  /** \brief Destructor checks that all parameters were "take()en"
+   *
+   * The destructor calls check_all_taken(), unless you have already called
+   * check_all_taken() at least once.
+   */
+  ~parameter_taker()
+  {
+    if (!_check_all_taken_called) {
+      _check_all_taken(false);
+    }
+  }
+
+  /** \brief Check that all parameters were "take()en"
+   *
+   * If there are any remaining parameters for which \ref take() was not called,
+   * an \a klfengine::invalid_parameter exception is thrown.
+   */
+  void finished()
+  {
+    _check_all_taken(true);
+  }
+
+  inline std::string what() const { return _what; }
+
+  parameter_taker(const parameter_taker & copy) = delete;
+  parameter_taker(parameter_taker && move) = delete;
+  parameter_taker & operator=(const parameter_taker & copy) = delete;
+  parameter_taker & operator=(parameter_taker && move) = delete;
+
+  inline bool has(std::string key)
+  {
+    auto it = _paramdict.find(key);
+    return (it != _paramdict.end());
+  }
+
+  template<typename X = value>
+  const X & take(std::string key) {
+    auto it = _paramdict.find(key);
+    if (it == _paramdict.end()) {
+      throw std::out_of_range("No such key in dictionary: " + key);
+    }
+    const value * val = it->second;
+    _paramdict.erase(it);
+    return val->get<X>();
+  }
+
+  template<typename X>
+  const X & take(std::string key, const X & dflt) {
+    auto it = _paramdict.find(key);
+    if (it == _paramdict.end()) {
+      return dflt;
+    }
+    const value * val = it->second;
+    _paramdict.erase(it);
+    return val->get<X>();
+  }
+
+private:
+  std::map<std::string, const value *> _paramdict;
+  std::string _what;
+  bool _check_all_taken_called;
+
+  void _check_all_taken(bool throw_exception = true)
+  {
+    _check_all_taken_called = true;
+    if (!_paramdict.empty()) {
+      std::string msg = "superfluous keys ";
+      bool first = true;
+      for ( const std::pair<std::string, const value *> & p : _paramdict ) {
+        if (!first) {
+          msg += ",";
+          first = false;
+        }
+        msg += "\""+p.first+"\"";
+      }
+
+      if (throw_exception) {
+        throw invalid_parameter{_what, msg};
+      } else {
+        warn(_what, "invalid parameters, " + msg);
+      }
+    }
+  }
+};
+
 
 
 

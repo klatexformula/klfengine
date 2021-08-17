@@ -351,33 +351,53 @@ klfengine::format_spec run_implementation::impl_make_canonical(
     const klfengine::format_spec & format, bool /*check_available_only*/
     )
 {
+  parameter_taker param{ format.parameters, "klfengine::latextoimage_engine" };
+
   if (format.format == "LATEX") {
+    bool raw = param.take("raw", true);
+    if (raw == false) {
+      throw invalid_parameter{param.what(), "\"LATEX\" format requires raw=true"};
+    }
+    param.finished();
     return {"LATEX", value::dict{{"raw", value{true}}}};
   }
   if (format.format == "DVI") {
     if (d->via_dvi) {
+      bool raw = param.take("raw", true);
+      if (raw == false) {
+        throw invalid_parameter{param.what(), "\"DVI\" format requires raw=true"};
+      }
+      param.finished();
       return {"DVI", value::dict{{"raw", value{true}}}}; // always "raw"
     } else {
       // no DVI available, no such format
+      param.finished();
       return {};
     }
   }
   if (format.format == "EPS") {
+    param.finished();
     return {"EPS", {}};
   }
   if (format.format == "PS") {
-    bool want_raw = false;
-    if (d->via_dvi) {
-      // could request either raw or non-raw PS
-      want_raw = dict_get<bool>(format.parameters, "raw", want_raw);
+    // could request either raw or non-raw PS if latex engine generates DVI
+    bool want_raw = param.take("raw", false);
+    param.finished();
+    if (!d->via_dvi && want_raw) {
+      throw no_such_format{
+        "There is now \"raw\" PS because the engine doesn't generate DVI output"
+      };
     }
     return {"PS", value::dict{{"raw", value{want_raw}}}};
   }
   if (format.format == "PDF") {
-    bool want_raw = false;
-    if (!d->via_dvi) {
-      // could request either raw or non-raw PDF
-      want_raw = dict_get<bool>(format.parameters, "raw", want_raw);
+    // could request either raw or non-raw PS if latex engine directly generates PDF
+    bool want_raw = param.take("raw", false);
+    param.finished();
+    if (d->via_dvi && want_raw) {
+      throw no_such_format{
+        "There is now \"raw\" PDF because the engine doesn't directly generate PDF output"
+      };
     }
     return {"PDF", value::dict{{"raw", value{want_raw}}}};
   }
@@ -386,6 +406,7 @@ klfengine::format_spec run_implementation::impl_make_canonical(
       format.format == "TIFF" || format.format == "BMP") {
     int dpi = dict_get<int>(format.parameters, "dpi", input().dpi);
     bool antialiasing = dict_get<bool>(format.parameters, "antialiasing", true);
+    param.finished();
     return {
       format.format,
       value::dict{

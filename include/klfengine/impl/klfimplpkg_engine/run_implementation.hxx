@@ -416,19 +416,28 @@ klfengine::format_spec run_implementation::impl_make_canonical(
     const klfengine::format_spec & format, bool /*check_only*/
     )
 {
+  parameter_taker param{ format.parameters, "klfengine::klfimplpkg_engine" };
+
   if (format.format == "LATEX") {
+    bool raw = param.take("raw", true);
+    if (raw == false) {
+      throw invalid_parameter{param.what(), "\"LATEX\" format requires raw=true"};
+    }
+    param.finished();
     return {"LATEX", value::dict{{"raw", value{true}}}};
   }
 
   if (format.format == "PDF") {
-    bool want_raw = dict_get<bool>(format.parameters, "raw", false);
+    bool want_raw = param.take("raw", false);
+    param.finished();
     return {"PDF", value::dict{{"raw", value{want_raw}}}};
   }
   
   if (format.format == "PNG" || format.format == "JPEG" ||
       format.format == "TIFF" || format.format == "BMP") {
-    int dpi = dict_get<int>(format.parameters, "dpi", input().dpi);
-    bool antialiasing = dict_get<bool>(format.parameters, "antialiasing", true);
+    int dpi = param.take("dpi", input().dpi);
+    bool antialiasing = param.take("antialiasing", true);
+    param.finished();
     return {
       format.format,
       value::dict{
@@ -438,11 +447,12 @@ klfengine::format_spec run_implementation::impl_make_canonical(
     };
   }
 
-
   if (format.format == "PS") {
+    param.finished();
     return {"PS", {}};
   }
   if (format.format == "EPS") {
+    param.finished();
     return {"EPS", {}};
   }
 

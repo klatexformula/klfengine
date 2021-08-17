@@ -101,6 +101,22 @@ inline bool operator!=(const format_spec & a, const format_spec & b)
  * description might include a little more information, and might perhaps be
  * suitable for a mouse-over tooltip or a separate widget that can display
  * additional text describing this format.
+ *
+ * The \a format_spec can contain a parameter map that describes the possible
+ * parameters that can be set.  For each parameter, we expect the value in the
+ * parameter map to have the special structure
+ * \code
+ *  {
+ *    "type": "bool"|"int"|"double"|"string"|"array"|"dict"|"color"|"length"|"margins",
+ *    "null_ok": true|false,
+ *    "validate_regex": <regex>,
+ *    "default": <default value>
+ *  }
+ * \endcode
+ *
+ * The parameter structure isn't validated in any way by \a klfengine base
+ * functions.  They are an indication of what type of user input forms should be
+ * presented to the user for them to specify the format parameters.
  */
 struct format_description
 {
@@ -121,8 +137,9 @@ struct format_description
  * not available.  Both these arguments are combined into the output of the
  * exception's standard \a what() method.
  */
-struct no_such_format : exception
+class no_such_format : public klfengine::exception
 {
+public:
   no_such_format(std::string fmt)
     : exception("No such format: " + std::move(fmt))
   { }

@@ -38,7 +38,7 @@
 #include <catch2/catch.hpp>
 
 
-TEST_CASE( "variant_type can store an int or a string", "[variants]" )
+TEST_CASE( "variant_type can store an int or a string", "[value]" )
 {
 
   // ### TODO: should we expose a public klfengine-wide API for std::get vs
@@ -59,7 +59,7 @@ TEST_CASE( "variant_type can store an int or a string", "[variants]" )
 }
 
 
-TEST_CASE( "value can get different data types correctly", "[variants]" )
+TEST_CASE( "value can get different data types correctly", "[value]" )
 {
   REQUIRE( klfengine::value{nullptr}.get<std::nullptr_t>() == nullptr );
   REQUIRE( klfengine::value{true}.get<bool>() == true );
@@ -69,7 +69,7 @@ TEST_CASE( "value can get different data types correctly", "[variants]" )
 }
 
 
-TEST_CASE( "value can store different data types recursively", "[variants]" )
+TEST_CASE( "value can store different data types recursively", "[value]" )
 {
   // const char * gets converted to bool (no, really, gotta be kidding me C++)
   //klfengine::value x{"one"};
@@ -133,7 +133,7 @@ TEST_CASE( "value can store different data types recursively", "[variants]" )
 
 
 
-TEST_CASE( "value offers has_type", "[variants]" )
+TEST_CASE( "value offers has_type", "[value]" )
 {
   REQUIRE( klfengine::value{nullptr}.has_type<std::nullptr_t>() );
   REQUIRE( ! klfengine::value{nullptr}.has_type<int>() );
@@ -218,7 +218,7 @@ struct simple_visitor
 };
 
 
-TEST_CASE( "value can be visited", "[variants]" )
+TEST_CASE( "value can be visited", "[value]" )
 {
   { auto v = klfengine::value{nullptr};
     simple_visitor vis;
@@ -293,7 +293,7 @@ struct simple_visit_transformer
 };
 
 
-TEST_CASE( "value can be transformed", "[variants]" )
+TEST_CASE( "value can be transformed", "[value]" )
 {
   { auto v = klfengine::value{nullptr};
     REQUIRE( v.transform(simple_visit_transformer()) == "null" ); }
@@ -329,7 +329,7 @@ TEST_CASE( "value can be transformed", "[variants]" )
 
 
 
-TEST_CASE( "value supports equality comparision", "[variants]" )
+TEST_CASE( "value supports equality comparision", "[value]" )
 {
   REQUIRE( klfengine::value{12} == klfengine::value{12} );
   REQUIRE( klfengine::value{12} != klfengine::value{13} );
@@ -409,7 +409,7 @@ TEST_CASE( "debugging json stuff")
 
 
 
-TEST_CASE( "value can be converted to JSON", "[variants]" )
+TEST_CASE( "value can be converted to JSON", "[value]" )
 {
   klfengine::value d{
         klfengine::value::array{
@@ -437,7 +437,7 @@ TEST_CASE( "value can be converted to JSON", "[variants]" )
 
 
 
-TEST_CASE( "value can be converted from JSON", "[variants]" )
+TEST_CASE( "value can be converted from JSON", "[value]" )
 {
   const nlohmann::json j = nlohmann::json::parse(R"xx( {
       "A": 1,
@@ -477,5 +477,209 @@ TEST_CASE( "value can be converted from JSON", "[variants]" )
   REQUIRE(
       v.get<dict>()["C"].get<dict>()["e"].get<array>()[0].get<std::nullptr_t>() == nullptr
       );
+
+}
+
+
+
+// -------------------------------------
+
+// dict_get, dict_take
+
+TEST_CASE("dict_get finds existing value in dict", "[value]")
+{
+  klfengine::value::dict d{
+    {"A", klfengine::value{std::string{"value of A"}}},
+    {"B", klfengine::value{std::string{"value of B"}}},
+    {"C", klfengine::value{std::string{"value of C"}}}
+  };
+
+  REQUIRE( klfengine::dict_get(d, "B") == klfengine::value{std::string{"value of B"}} );
+}
+
+TEST_CASE("dict_get finds existing value in dict and converts type", "[value]")
+{
+  klfengine::value::dict d{
+    {"A", klfengine::value{std::string{"value of A"}}},
+    {"B", klfengine::value{std::string{"value of B"}}},
+    {"C", klfengine::value{std::string{"value of C"}}}
+  };
+
+  REQUIRE( klfengine::dict_get<std::string>(d, "B") == std::string{"value of B"} );
+}
+
+TEST_CASE("dict_get throws error on nonexistent key", "[value]")
+{
+  klfengine::value::dict d{
+    {"A", klfengine::value{std::string{"value of A"}}},
+    {"B", klfengine::value{std::string{"value of B"}}},
+    {"C", klfengine::value{std::string{"value of C"}}}
+  };
+
+  REQUIRE_THROWS_AS( klfengine::dict_get<std::string>(d, "D") , std::out_of_range );
+}
+
+TEST_CASE("dict_get with default value finds existing value in dict", "[value]")
+{
+  klfengine::value::dict d{
+    {"A", klfengine::value{std::string{"value of A"}}},
+    {"B", klfengine::value{std::string{"value of B"}}},
+    {"C", klfengine::value{std::string{"value of C"}}}
+  };
+
+  REQUIRE( klfengine::dict_get(d, "B", std::string{"XXXYYYZZZ"})
+           == std::string{"value of B"} );
+}
+
+TEST_CASE("dict_get returns default on nonexistent key", "[value]")
+{
+  klfengine::value::dict d{
+    {"A", klfengine::value{std::string{"value of A"}}},
+    {"B", klfengine::value{std::string{"value of B"}}},
+    {"C", klfengine::value{std::string{"value of C"}}}
+  };
+
+  REQUIRE( klfengine::dict_get(d, "D", 1234) == 1234 );
+}
+
+// ---
+
+TEST_CASE("dict_take finds existing value in dict", "[value]")
+{
+  klfengine::value::dict d{
+    {"A", klfengine::value{std::string{"value of A"}}},
+    {"B", klfengine::value{std::string{"value of B"}}},
+    {"C", klfengine::value{std::string{"value of C"}}}
+  };
+
+  REQUIRE( klfengine::dict_take(d, "B") == klfengine::value{std::string{"value of B"}} );
+
+  REQUIRE( d.size() == 2 );
+  REQUIRE( d == klfengine::value::dict{
+    {"A", klfengine::value{std::string{"value of A"}}},
+    {"C", klfengine::value{std::string{"value of C"}}}
+  } );
+}
+
+TEST_CASE("dict_take finds existing value in dict and converts type", "[value]")
+{
+  klfengine::value::dict d{
+    {"A", klfengine::value{std::string{"value of A"}}},
+    {"B", klfengine::value{std::string{"value of B"}}},
+    {"C", klfengine::value{std::string{"value of C"}}}
+  };
+
+  REQUIRE( klfengine::dict_take<std::string>(d, "B") == std::string{"value of B"} );
+
+  REQUIRE( d.size() == 2 );
+  REQUIRE( d == klfengine::value::dict{
+    {"A", klfengine::value{std::string{"value of A"}}},
+    {"C", klfengine::value{std::string{"value of C"}}}
+  } );
+}
+
+TEST_CASE("dict_take throws error on nonexistent key", "[value]")
+{
+  klfengine::value::dict d{
+    {"A", klfengine::value{std::string{"value of A"}}},
+    {"B", klfengine::value{std::string{"value of B"}}},
+    {"C", klfengine::value{std::string{"value of C"}}}
+  };
+
+  REQUIRE_THROWS_AS( klfengine::dict_take(d, "D") , std::out_of_range );
+
+  REQUIRE( d.size() == 3 );
+  REQUIRE( d == klfengine::value::dict{
+    {"A", klfengine::value{std::string{"value of A"}}},
+    {"B", klfengine::value{std::string{"value of B"}}},
+    {"C", klfengine::value{std::string{"value of C"}}}
+  } );
+}
+
+TEST_CASE("dict_take with default value finds existing value in dict", "[value]")
+{
+  klfengine::value::dict d{
+    {"A", klfengine::value{std::string{"value of A"}}},
+    {"B", klfengine::value{std::string{"value of B"}}},
+    {"C", klfengine::value{std::string{"value of C"}}}
+  };
+
+  REQUIRE( klfengine::dict_take(d, "B", std::string{"XXX"})
+           == std::string{"value of B"} );
+
+  REQUIRE( d.size() == 2 );
+  REQUIRE( d == klfengine::value::dict{
+    {"A", klfengine::value{std::string{"value of A"}}},
+    {"C", klfengine::value{std::string{"value of C"}}}
+  } );
+}
+
+TEST_CASE("dict_take returns default value on nonexistent key in dict", "[value]")
+{
+  klfengine::value::dict d{
+    {"A", klfengine::value{std::string{"value of A"}}},
+    {"B", klfengine::value{std::string{"value of B"}}},
+    {"C", klfengine::value{std::string{"value of C"}}}
+  };
+
+  REQUIRE( klfengine::dict_take(d, "D", std::string{"XXX"})
+           == std::string{"XXX"} );
+
+  REQUIRE( d.size() == 3 );
+  REQUIRE( d == klfengine::value::dict{
+    {"A", klfengine::value{std::string{"value of A"}}},
+    {"B", klfengine::value{std::string{"value of B"}}},
+    {"C", klfengine::value{std::string{"value of C"}}}
+  } );
+}
+
+// --
+
+TEST_CASE("parameter_taker parses parameters as expected", "[value]")
+{
+  const klfengine::value::dict d{
+    {"A", klfengine::value{std::string{"value of A"}}},
+    {"B", klfengine::value{std::string{"value of B"}}},
+    {"C", klfengine::value{std::string{"value of C"}}}
+  };
+
+  // keep param within a C++ block scope
+  {
+    klfengine::parameter_taker param(d, "phase 1");
+
+    std::string value_A = param.take<std::string>("A");
+    klfengine::value value_B = param.take<klfengine::value>("B");
+    klfengine::value value_C = param.take("C");
+    param.finished();
+
+    REQUIRE(value_A == "value of A");
+    REQUIRE(value_B == klfengine::value{std::string{"value of B"}});
+    REQUIRE(value_C == klfengine::value{std::string{"value of C"}});
+  }
+
+}
+
+TEST_CASE("parameter_taker.finished() checks that all parameters were take()en", "[value]")
+{
+  const klfengine::value::dict d{
+    {"A", klfengine::value{std::string{"value of A"}}},
+    {"B", klfengine::value{std::string{"value of B"}}},
+    {"C", klfengine::value{std::string{"value of C"}}}
+  };
+
+  // keep param within a C++ block scope
+  {
+    klfengine::parameter_taker param(d, "phase 2");
+
+    std::string value_A = param.take<std::string>("A");
+    // forgot to take "B"
+    klfengine::value value_C = param.take("C");
+
+    REQUIRE(value_A == "value of A");
+    REQUIRE(value_C == klfengine::value{std::string{"value of C"}});
+
+    CHECK_THROWS_AS( param.finished(), klfengine::invalid_parameter ) ;
+    CHECK_THROWS_WITH( param.finished(), Catch::Contains("\"B\"") ) ;
+  };
 
 }
