@@ -30,12 +30,14 @@
 
 #include <klfengine/basedefs>
 
-#include <klfengine/h/detail/simple_gs_interface.h>
 #include <klfengine/run>
 #include <klfengine/engine_run_implementation>
 
 
 namespace klfengine {
+
+class ghostscript_interface_engine_tool;
+
 namespace latextoimage_engine {
 
 struct run_implementation_private;
@@ -44,7 +46,7 @@ class run_implementation : public klfengine::engine_run_implementation
 {
 public:
   run_implementation(
-    std::shared_ptr<klfengine::detail::simple_gs_interface_engine_tool> gs_iface_tool_,
+    std::shared_ptr<klfengine::ghostscript_interface_engine_tool> gs_iface_tool_,
     klfengine::input input_,
     klfengine::settings settings_
     );

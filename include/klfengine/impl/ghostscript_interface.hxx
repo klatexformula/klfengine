@@ -5,7 +5,7 @@
  *
  * The MIT License (MIT)
  *
- * Copyright 2020 Philippe Faist
+ * Copyright 2021 Philippe Faist
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -33,7 +33,7 @@
 
 #include <klfengine/process>
 #include <klfengine/h/detail/utils.h>
-#include <klfengine/h/detail/simple_gs_interface.h>
+#include <klfengine/h/ghostscript_interface.h>
 
 
 #if defined(KLFENGINE_USE_LINKED_GHOSTSCRIPT) || defined(KLFENGINE_USE_LOAD_GHOSTSCRIPT)
@@ -44,7 +44,6 @@
 
 namespace klfengine {
 
-namespace detail {
 
 
 _KLFENGINE_INLINE
@@ -58,9 +57,9 @@ ghostscript_error::~ghostscript_error()
 
 
 
-struct simple_gs_interface_private
+struct ghostscript_interface_private
 {
-  simple_gs_interface::method method;
+  ghostscript_interface::method method;
   std::string gs_path;
 
   std::vector<std::string> construct_gs_argv(
@@ -94,19 +93,19 @@ struct simple_gs_interface_private
 
 
 _KLFENGINE_INLINE
-simple_gs_interface::simple_gs_interface(method method_, std::string gs_path)
+ghostscript_interface::ghostscript_interface(method method_, std::string gs_path)
 {
-  d = new simple_gs_interface_private{method_, std::move(gs_path)};
+  d = new ghostscript_interface_private{method_, std::move(gs_path)};
 }
 
 _KLFENGINE_INLINE
-simple_gs_interface::simple_gs_interface(std::string method_s, std::string gs_path)
+ghostscript_interface::ghostscript_interface(std::string method_s, std::string gs_path)
 {
-  d = new simple_gs_interface_private{parse_method(method_s), std::move(gs_path)};
+  d = new ghostscript_interface_private{parse_method(method_s), std::move(gs_path)};
 }
 
 _KLFENGINE_INLINE
-simple_gs_interface::~simple_gs_interface()
+ghostscript_interface::~ghostscript_interface()
 {
   if (d != nullptr) {
     delete d;
@@ -117,12 +116,12 @@ simple_gs_interface::~simple_gs_interface()
 
 
 _KLFENGINE_INLINE
-simple_gs_interface::method simple_gs_interface::gs_method() const
+ghostscript_interface::method ghostscript_interface::gs_method() const
 {
   return d->method;
 }
 _KLFENGINE_INLINE
-const std::string & simple_gs_interface::gs_path() const
+const std::string & ghostscript_interface::gs_path() const
 {
   return d->gs_path;
 }
@@ -131,8 +130,8 @@ const std::string & simple_gs_interface::gs_path() const
 
 // static
 _KLFENGINE_INLINE
-simple_gs_interface::method
-simple_gs_interface::parse_method(const std::string & method_s)
+ghostscript_interface::method
+ghostscript_interface::parse_method(const std::string & method_s)
 {
   if (method_s == "none") {
     return method::None;
@@ -150,7 +149,7 @@ simple_gs_interface::parse_method(const std::string & method_s)
 
 
 _KLFENGINE_INLINE
-simple_gs_interface::gs_version_t simple_gs_interface::get_gs_version()
+ghostscript_interface::gs_version_t ghostscript_interface::get_gs_version()
 {
 #if defined(KLFENGINE_USE_LINKED_GHOSTSCRIPT)
   if (d->method == method::LinkedLibgs) {
@@ -186,7 +185,10 @@ simple_gs_interface::gs_version_t simple_gs_interface::get_gs_version()
   return{ std::stoi(ver_match[1].str()), std::stoi(ver_match[2].str()) };
 }
 
-//namespace detail { // already in namespace detail
+
+
+namespace detail {
+
 inline std::pair<std::string::const_iterator,std::string::const_iterator>
 get_gs_help_section(const std::string & out, const char * sec_name)
 {
@@ -214,12 +216,14 @@ get_gs_help_section(const std::string & out, const char * sec_name)
   return{ m[2].first, m[2].second };
 }
 
-//} // namespace detail
+} // namespace detail
+
+
 
 
 // static
 _KLFENGINE_INLINE
-simple_gs_interface::gs_info_t simple_gs_interface::get_gs_info()
+ghostscript_interface::gs_info_t ghostscript_interface::get_gs_info()
 {
   using namespace klfengine::detail::utils;
 
@@ -263,7 +267,7 @@ simple_gs_interface::gs_info_t simple_gs_interface::get_gs_info()
 }
 
 _KLFENGINE_INLINE
-simple_gs_interface::gs_version_and_info_t simple_gs_interface::get_gs_version_and_info()
+ghostscript_interface::gs_version_and_info_t ghostscript_interface::get_gs_version_and_info()
 {
   // I'm a bit wary of parsing the version information from the --help heading,
   // because the heading might change.  In contrast --version is specifically
@@ -277,7 +281,7 @@ simple_gs_interface::gs_version_and_info_t simple_gs_interface::get_gs_version_a
 
 
 _KLFENGINE_INLINE
-void simple_gs_interface::impl_run_gs(
+void ghostscript_interface::impl_run_gs(
   std::vector<std::string> gs_args,
   const binary_data * stdin_data,
   bool add_standard_batch_flags,
@@ -318,7 +322,7 @@ void simple_gs_interface::impl_run_gs(
 // -------------------------------------
 inline
 std::vector<std::string>
-simple_gs_interface_private::construct_gs_argv(
+ghostscript_interface_private::construct_gs_argv(
   std::string argv0,
   std::vector<std::string> gs_args,
   bool add_standard_batch_flags
@@ -345,7 +349,7 @@ simple_gs_interface_private::construct_gs_argv(
 // -------------------------------------
 
 inline
-void simple_gs_interface_private::impl_run_gs_process(
+void ghostscript_interface_private::impl_run_gs_process(
   std::vector<std::string> gs_args,
   const binary_data * stdin_data,
   bool add_standard_batch_flags,
@@ -477,7 +481,7 @@ static int _klfengine_gs_callback_stderr_fn(void * caller_handle, const char * b
 // -------------------------------------
 
 inline
-void simple_gs_interface_private::impl_run_gs_linkedlibgs(
+void ghostscript_interface_private::impl_run_gs_linkedlibgs(
   std::vector<std::string> gs_args,
   const binary_data * stdin_data,
   bool add_standard_batch_flags,
@@ -497,7 +501,7 @@ void simple_gs_interface_private::impl_run_gs_linkedlibgs(
         return (s == "-sOutputFile=-") || (s == "-sOUTPUTFILE=-") || (s == "-o-");
       } )
       != gs_args.end() ) {
-    warn("klfengine::detail::simple_gs_interface",
+    warn("klfengine::ghostscript_interface",
          "It looks ghostscript device output is stdout. There is no way for "
          "us to capture this output with a libgs-based method. Please switch "
          "to the 'process' method or change your ghostscript to write to a "
@@ -577,7 +581,7 @@ void simple_gs_interface_private::impl_run_gs_linkedlibgs(
 // -------------------------------------
 
 inline
-void simple_gs_interface_private::impl_run_gs_loadlibgs(
+void ghostscript_interface_private::impl_run_gs_loadlibgs(
   std::vector<std::string> ,//gs_argv,
   const binary_data * ,//stdin_data,
   bool ,//add_standard_batch_flags,
@@ -598,15 +602,15 @@ void simple_gs_interface_private::impl_run_gs_loadlibgs(
 
 
 _KLFENGINE_INLINE
-simple_gs_interface_engine_tool::simple_gs_interface_engine_tool()
+ghostscript_interface_engine_tool::ghostscript_interface_engine_tool()
 {
 }
 
 _KLFENGINE_INLINE
-void simple_gs_interface_engine_tool::set_settings(const settings & settings)
+void ghostscript_interface_engine_tool::set_settings(const settings & settings)
 {
   struct gs_sett_pair_t {
-    simple_gs_interface::method method;
+    ghostscript_interface::method method;
     const std::string * gs_path_ptr;
   };
 
@@ -616,20 +620,20 @@ void simple_gs_interface_engine_tool::set_settings(const settings & settings)
   }
 
   const std::string emptystr;
-  gs_sett_pair_t newsett{simple_gs_interface::parse_method(settings.gs_method), &emptystr};
-  if (newsett.method == simple_gs_interface::method::Process) {
+  gs_sett_pair_t newsett{ghostscript_interface::parse_method(settings.gs_method), &emptystr};
+  if (newsett.method == ghostscript_interface::method::Process) {
     newsett.gs_path_ptr = & settings.gs_executable_path;
-  } else if (newsett.method == simple_gs_interface::method::LoadLibgs) {
+  } else if (newsett.method == ghostscript_interface::method::LoadLibgs) {
     newsett.gs_path_ptr = & settings.gs_libgs_path;
   }
 
   if (_gs_interface) {
     if (cursett.method == newsett.method) {
-      if (cursett.method == simple_gs_interface::method::Process) {
+      if (cursett.method == ghostscript_interface::method::Process) {
         if (settings.gs_executable_path == *cursett.gs_path_ptr) {
           return; // no changes to gs method / path
         }
-      } else if (cursett.method == simple_gs_interface::method::LoadLibgs) {
+      } else if (cursett.method == ghostscript_interface::method::LoadLibgs) {
         if (settings.gs_libgs_path == *cursett.gs_path_ptr) {
           return; // no changes to gs method / path
         }
@@ -640,10 +644,10 @@ void simple_gs_interface_engine_tool::set_settings(const settings & settings)
     }
   }
 
-  // changes, need to create new simple_gs_interface object.  Being a
+  // changes, need to create new ghostscript_interface object.  Being a
   // std::unique_ptr, this will delete any old instance, if any.
-  _gs_interface = std::unique_ptr<simple_gs_interface>{
-    new simple_gs_interface{newsett.method, *newsett.gs_path_ptr}
+  _gs_interface = std::unique_ptr<ghostscript_interface>{
+    new ghostscript_interface{newsett.method, *newsett.gs_path_ptr}
   };
 
   _gs_version_and_info = _gs_interface->get_gs_version_and_info();
@@ -749,7 +753,7 @@ format_spec gs_device_args_format_provider::impl_make_canonical(
 {
   parameter_taker param{
     format.parameters,
-    "klfengine::detail::simple_gs_interface::gs_args_canonical_format_parameters"
+    "klfengine::ghostscript_interface::gs_args_canonical_format_parameters"
   };
 
   if (format.format == "PDF" || format.format == "PS" || format.format == "EPS") {
@@ -792,7 +796,7 @@ format_spec gs_device_args_format_provider::impl_make_canonical(
     } else if (antialiasing.has_type<value::dict>()) {
       parameter_taker paa{
         antialiasing.get<value::dict>(),
-        "klfengine::detail::simple_gs_interface::gs_args_set_device_for_format (antialiasing)"
+        "klfengine::ghostscript_interface::gs_args_set_device_for_format (antialiasing)"
       };
       aadic["graphics_alpha_bits"] = value{paa.take("graphics_alpha_bits", 4)};
       aadic["text_alpha_bits"] = value{paa.take("text_alpha_bits", 4)};
@@ -823,7 +827,7 @@ gs_device_args_format_provider::get_device_args_for_format( const format_spec & 
 
   parameter_taker param{
     format.parameters,
-    "klfengine::detail::simple_gs_interface::gs_args_set_device_for_format"
+    "klfengine::ghostscript_interface::gs_args_set_device_for_format"
   };
   param.disable_check();
 
@@ -871,7 +875,7 @@ gs_device_args_format_provider::get_device_args_for_format( const format_spec & 
       auto gs_ver = _gs_iface_tool->gs_version();
       if (gs_ver.major < 9 || (gs_ver.major == 9 && gs_ver.minor < 15)) {
         error(
-          "klfengine::detail::simple_gs_interface::gs_args_set_device_for_format",
+          "klfengine::ghostscript_interface::gs_args_set_device_for_format",
           "Requested outline_fonts=true, but "
           "you have ghostscript v" + std::to_string(gs_ver.major) + "."
           + std::to_string(gs_ver.minor) + ".  Please upgrade to gs>=9.15 for font outlines."
@@ -902,7 +906,5 @@ gs_device_args_format_provider::get_device_args_for_format( const format_spec & 
 }
 
 
-
-} // namespace detail
 
 } // namespace klfengine

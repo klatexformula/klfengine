@@ -34,8 +34,8 @@
 #include <catch2/catch.hpp>
 
 #include <klfengine/process>
+#include <klfengine/ghostscript_interface>
 #include <klfengine/h/detail/filesystem.h>
-#include <klfengine/h/detail/simple_gs_interface.h>
 
 
 
@@ -167,13 +167,13 @@ inline void pdfdata_to_pngfile(
 
   CAPTURE( gs_pdftopng_args );
 
-  klfengine::detail::simple_gs_interface gsiface("process", gs_exec);
+  klfengine::ghostscript_interface gsiface("process", gs_exec);
   gsiface.run_gs(
     gs_pdftopng_args,
-    klfengine::detail::simple_gs_interface::send_stdin_data{pdfdata},
-    klfengine::detail::simple_gs_interface::add_standard_batch_flags{true},
-    klfengine::detail::simple_gs_interface::capture_stdout_data{&gs_pdftopng_stdout},
-    klfengine::detail::simple_gs_interface::capture_stderr_data{&gs_pdftopng_stderr}
+    klfengine::ghostscript_interface::send_stdin_data{pdfdata},
+    klfengine::ghostscript_interface::add_standard_batch_flags{true},
+    klfengine::ghostscript_interface::capture_stdout_data{&gs_pdftopng_stdout},
+    klfengine::ghostscript_interface::capture_stderr_data{&gs_pdftopng_stderr}
   );
 
   std::string gs_pdftopng_stdout_s{gs_pdftopng_stdout.begin(), gs_pdftopng_stdout.end()};

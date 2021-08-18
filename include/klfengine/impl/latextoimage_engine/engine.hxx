@@ -29,6 +29,7 @@
 #pragma once
 
 #include <klfengine/latextoimage_engine>
+#include <klfengine/ghostscript_interface>
 
 
 namespace klfengine {
@@ -38,8 +39,8 @@ _KLFENGINE_INLINE
 engine::engine()
   : klfengine::engine("latextoimage_engine")
 {
-  _gs_iface_tool = std::shared_ptr<klfengine::detail::simple_gs_interface_engine_tool>{
-    new klfengine::detail::simple_gs_interface_engine_tool{}
+  _gs_iface_tool = std::shared_ptr<klfengine::ghostscript_interface_engine_tool>{
+    new klfengine::ghostscript_interface_engine_tool{}
   };
 }
 

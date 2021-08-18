@@ -17,4 +17,5 @@ API Documentation
    api/latextoimage_engine
    api/klfimplpkg_engine
    api/helpers
+   api/ghostscript
    apitodo

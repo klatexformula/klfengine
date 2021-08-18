@@ -113,6 +113,9 @@ klfengine_create_test(process SOURCES test_process.cxx)
 klfengine_create_test(temporary_directory
   SOURCES test_temporary_directory.cxx)
 
+klfengine_create_test(ghostscript_interface
+  SOURCES test_ghostscript_interface.cxx)
+
 klfengine_create_test(klfimplpkg_engine_run_implementation
   SOURCES test_klfimplpkg_engine_run_implementation.cxx)
 
@@ -131,9 +134,6 @@ klfengine_create_test(detail_filesystem
 klfengine_create_test(detail_utils
   SOURCES test_detail_utils.cxx)
 
-klfengine_create_test(detail_simple_gs_interface
-  SOURCES test_detail_simple_gs_interface.cxx)
-
 
 
 klfengine_create_test(separate_impl
@@ -151,6 +151,7 @@ klfengine_create_test(separate_impl
           test_run.cxx
           test_process.cxx
           test_temporary_directory.cxx
+          test_ghostscript_interface.cxx
           test_klfimplpkg_engine_run_implementation.cxx
           test_klfimplpkg_engine_engine.cxx
           test_latextoimage_engine_run_implementation.cxx
@@ -158,7 +159,6 @@ klfengine_create_test(separate_impl
           #
           test_detail_filesystem.cxx
           test_detail_utils.cxx
-          test_detail_simple_gs_interface.cxx
           
   COMPILE_OPTIONS
           -DKLFENGINE_SEPARATE_IMPLEMENTATION

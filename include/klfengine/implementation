@@ -18,6 +18,7 @@
 #include <klfengine/impl/run.hxx>
 #include <klfengine/impl/process.hxx>
 #include <klfengine/impl/temporary_directory.hxx>
+#include <klfengine/impl/ghostscript_interface.hxx>
 
 // engine(s)
 #include <klfengine/impl/latextoimage_engine.hxx>

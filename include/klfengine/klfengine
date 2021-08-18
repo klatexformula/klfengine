@@ -10,6 +10,7 @@
 #include <klfengine/engine_run_implementation>
 #include <klfengine/run>
 #include <klfengine/temporary_directory>
+#include <klfengine/ghostscript_interface>
 
 // engines
 #include <klfengine/klfimplpkg_engine>

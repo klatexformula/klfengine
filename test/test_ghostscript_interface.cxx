@@ -27,7 +27,7 @@
  */
 
 // header we are testing gets included first (helps detect missing #include's)
-#include <klfengine/h/detail/simple_gs_interface.h>
+#include <klfengine/ghostscript_interface>
 
 #include <klfengine/process>
 
@@ -73,7 +73,7 @@ inline std::string get_gs_path()
 
 
 
-inline void do_test_check_gs_version(klfengine::detail::simple_gs_interface & gs)
+inline void do_test_check_gs_version(klfengine::ghostscript_interface & gs)
 {
   auto ver = gs.get_gs_version();
 
@@ -89,8 +89,8 @@ inline void do_test_check_gs_version(klfengine::detail::simple_gs_interface & gs
 
 TEST_CASE( "check gs version via Process", "[detail-simple_gs_interface]" )
 {
-  klfengine::detail::simple_gs_interface gs{
-    klfengine::detail::simple_gs_interface::method::Process,
+  klfengine::ghostscript_interface gs{
+    klfengine::ghostscript_interface::method::Process,
     get_gs_path()
   };
 
@@ -99,8 +99,8 @@ TEST_CASE( "check gs version via Process", "[detail-simple_gs_interface]" )
 
 TEST_CASE( "check gs version via LinkedLibgs", "[detail-simple_gs_interface]" )
 {
-  klfengine::detail::simple_gs_interface gs{
-    klfengine::detail::simple_gs_interface::method::LinkedLibgs,
+  klfengine::ghostscript_interface gs{
+    klfengine::ghostscript_interface::method::LinkedLibgs,
     get_gs_path()
   };
 
@@ -109,8 +109,8 @@ TEST_CASE( "check gs version via LinkedLibgs", "[detail-simple_gs_interface]" )
 
 TEST_CASE( "check gs version via LoadLibgs", "[detail-simple_gs_interface][!mayfail]" )
 {
-  klfengine::detail::simple_gs_interface gs{
-    klfengine::detail::simple_gs_interface::method::LoadLibgs,
+  klfengine::ghostscript_interface gs{
+    klfengine::ghostscript_interface::method::LoadLibgs,
     get_gs_path()
   };
 
@@ -135,7 +135,7 @@ inline std::ostream & operator<<(std::ostream& s, const std::vector<T> & v)
 
 
 
-inline void do_check_gs_information(klfengine::detail::simple_gs_interface & gs)
+inline void do_check_gs_information(klfengine::ghostscript_interface & gs)
 {
   auto info = gs.get_gs_info();
 
@@ -151,8 +151,8 @@ inline void do_check_gs_information(klfengine::detail::simple_gs_interface & gs)
 
 TEST_CASE( "check gs information via Process", "[detail-simple_gs_interface]" )
 {
-  klfengine::detail::simple_gs_interface gs{
-    klfengine::detail::simple_gs_interface::method::Process,
+  klfengine::ghostscript_interface gs{
+    klfengine::ghostscript_interface::method::Process,
     get_gs_path()
   };
 
@@ -161,8 +161,8 @@ TEST_CASE( "check gs information via Process", "[detail-simple_gs_interface]" )
 
 TEST_CASE( "check gs information via LinkedLibgs", "[detail-simple_gs_interface]" )
 {
-  klfengine::detail::simple_gs_interface gs{
-    klfengine::detail::simple_gs_interface::method::LinkedLibgs,
+  klfengine::ghostscript_interface gs{
+    klfengine::ghostscript_interface::method::LinkedLibgs,
     get_gs_path()
   };
 
@@ -171,8 +171,8 @@ TEST_CASE( "check gs information via LinkedLibgs", "[detail-simple_gs_interface]
 
 TEST_CASE( "check gs information via LoadLibgs", "[detail-simple_gs_interface][!mayfail]" )
 {
-  klfengine::detail::simple_gs_interface gs{
-    klfengine::detail::simple_gs_interface::method::LoadLibgs,
+  klfengine::ghostscript_interface gs{
+    klfengine::ghostscript_interface::method::LoadLibgs,
     get_gs_path()
   };
 
@@ -180,7 +180,7 @@ TEST_CASE( "check gs information via LoadLibgs", "[detail-simple_gs_interface][!
 }
 
 
-inline void do_handle_gs_errors(klfengine::detail::simple_gs_interface & gs)
+inline void do_handle_gs_errors(klfengine::ghostscript_interface & gs)
 {
   klfengine::binary_data stderr_data;
   klfengine::binary_data output_data;
@@ -188,12 +188,12 @@ inline void do_handle_gs_errors(klfengine::detail::simple_gs_interface & gs)
   CHECK_THROWS_AS(
       gs.run_gs(
           {"-sDEVICE=pdfwrite","-dBATCH", "-q", "-dNOPAUSE"}, // missing -sOutputFile=
-          klfengine::detail::simple_gs_interface::send_stdin_data{klfengine::binary_data{}},
-          klfengine::detail::simple_gs_interface::add_standard_batch_flags{false},
-          klfengine::detail::simple_gs_interface::capture_stderr_data{&stderr_data},
-          klfengine::detail::simple_gs_interface::capture_stdout_data{&output_data}
+          klfengine::ghostscript_interface::send_stdin_data{klfengine::binary_data{}},
+          klfengine::ghostscript_interface::add_standard_batch_flags{false},
+          klfengine::ghostscript_interface::capture_stderr_data{&stderr_data},
+          klfengine::ghostscript_interface::capture_stdout_data{&output_data}
           ),
-      klfengine::detail::ghostscript_error
+      klfengine::ghostscript_error
       );
 
   std::string stderr_s{stderr_data.begin(), stderr_data.end()};
@@ -205,8 +205,8 @@ inline void do_handle_gs_errors(klfengine::detail::simple_gs_interface & gs)
 
 TEST_CASE( "handle gs errors via Process", "[detail-simple_gs_interface]" )
 {
-  klfengine::detail::simple_gs_interface gs{
-    klfengine::detail::simple_gs_interface::method::Process,
+  klfengine::ghostscript_interface gs{
+    klfengine::ghostscript_interface::method::Process,
     get_gs_path()
   };
 
@@ -215,8 +215,8 @@ TEST_CASE( "handle gs errors via Process", "[detail-simple_gs_interface]" )
 
 TEST_CASE( "handle gs errors via LinkedLibgs", "[detail-simple_gs_interface]" )
 {
-  klfengine::detail::simple_gs_interface gs{
-    klfengine::detail::simple_gs_interface::method::LinkedLibgs,
+  klfengine::ghostscript_interface gs{
+    klfengine::ghostscript_interface::method::LinkedLibgs,
     get_gs_path()
   };
 
@@ -225,8 +225,8 @@ TEST_CASE( "handle gs errors via LinkedLibgs", "[detail-simple_gs_interface]" )
 
 TEST_CASE( "handle gs errors via LoadLibgs", "[detail-simple_gs_interface][!mayfail]" )
 {
-  klfengine::detail::simple_gs_interface gs{
-    klfengine::detail::simple_gs_interface::method::LoadLibgs,
+  klfengine::ghostscript_interface gs{
+    klfengine::ghostscript_interface::method::LoadLibgs,
     get_gs_path()
   };
 
@@ -234,7 +234,7 @@ TEST_CASE( "handle gs errors via LoadLibgs", "[detail-simple_gs_interface][!mayf
 }
 
 
-inline void do_can_run_gs(klfengine::detail::simple_gs_interface & gs)
+inline void do_can_run_gs(klfengine::ghostscript_interface & gs)
 {
   std::string ps_code{
     "%!PS\n"
@@ -247,14 +247,14 @@ inline void do_can_run_gs(klfengine::detail::simple_gs_interface & gs)
   gs.run_gs(
       {"-sDEVICE=pdfwrite","-dBATCH", "-q", "-dNOPAUSE", "-sOutputFile=-", "-"},
       // send some dummy PS input to stdin
-      klfengine::detail::simple_gs_interface::send_stdin_data{
+      klfengine::ghostscript_interface::send_stdin_data{
         klfengine::binary_data{ps_code.begin(), ps_code.end()}
       },
       // already have all necessary flags above
-      klfengine::detail::simple_gs_interface::add_standard_batch_flags{false},
+      klfengine::ghostscript_interface::add_standard_batch_flags{false},
       // output & error streams
-      klfengine::detail::simple_gs_interface::capture_stdout_data{&stdout_data},
-      klfengine::detail::simple_gs_interface::capture_stderr_data{&stderr_data}
+      klfengine::ghostscript_interface::capture_stdout_data{&stdout_data},
+      klfengine::ghostscript_interface::capture_stderr_data{&stderr_data}
       );
 
   std::string stderr_s{stderr_data.begin(), stderr_data.end()};
@@ -270,8 +270,8 @@ inline void do_can_run_gs(klfengine::detail::simple_gs_interface & gs)
 
 TEST_CASE( "can run gs via Process", "[detail-simple_gs_interface]" )
 {
-  klfengine::detail::simple_gs_interface gs{
-    klfengine::detail::simple_gs_interface::method::Process,
+  klfengine::ghostscript_interface gs{
+    klfengine::ghostscript_interface::method::Process,
     get_gs_path()
   };
 
@@ -283,8 +283,8 @@ TEST_CASE( "can run gs via Process", "[detail-simple_gs_interface]" )
 //
 // TEST_CASE( "can run gs via LinkedLibgs", "[detail-simple_gs_interface]" )
 // {
-//   klfengine::detail::simple_gs_interface gs{
-//     klfengine::detail::simple_gs_interface::method::LinkedLibgs,
+//   klfengine::ghostscript_interface gs{
+//     klfengine::ghostscript_interface::method::LinkedLibgs,
 //     get_gs_path()
 //   };
 //   do_can_run_gs( gs );
@@ -292,8 +292,8 @@ TEST_CASE( "can run gs via Process", "[detail-simple_gs_interface]" )
 
 TEST_CASE( "can run gs via LoadLibgs", "[detail-simple_gs_interface][!mayfail]" )
 {
-  klfengine::detail::simple_gs_interface gs{
-    klfengine::detail::simple_gs_interface::method::LoadLibgs,
+  klfengine::ghostscript_interface gs{
+    klfengine::ghostscript_interface::method::LoadLibgs,
     get_gs_path()
   };
 

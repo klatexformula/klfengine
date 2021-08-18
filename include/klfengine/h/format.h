@@ -166,23 +166,22 @@ public:
 
 /** \brief Abstract base class for objects that provide format output
  *
- * 
  */
 class format_provider
 {
 public:
   /** \brief Return the format specification in canonical form
    *
-   * Throws \ref no_such_format if the given format is invalid or is not
-   * available.
+   * Throws \ref klfengine::no_such_format if the given format is invalid or is
+   * not available.
    */
   format_spec canonical_format(const format_spec & format);
 
   /** \brief Return the format specification in canonical form
    *
-   * This method never throws \ref no_such_format; if the given format is
-   * invalid or is not available, it returns a default-constructed \ref
-   * format_spec (with an empty format string).
+   * This method never throws \ref klfengine::no_such_format; if the given
+   * format is invalid or is not available, it returns a default-constructed
+   * \ref format_spec (with an empty format string).
    */
   format_spec canonical_format_or_empty(const format_spec & format);
 
@@ -219,8 +218,15 @@ public:
    *
    * Returns the first available format from the given list of \a formats.
    *
-   * Formats might be a list of \a string 's for \a format_spec 's.  Parameters
-   * are taken into account.
+   * Formats might be a list of \a string s for \a format_spec s.  This function
+   * works by considering each given format in order and attempting to get its
+   * canonical form.  If the canonicalization succeeds, this means the format is
+   * available and this function returns the canonical format.  If the
+   * canonicalization fails, the format is unavailable and the next given format
+   * is considered.
+   *
+   * If none of the given formats are available, \ref klfengine::no_such_format
+   * is thrown.
    */
   template<typename IteratorInterfaceContainer>
   format_spec find_format(IteratorInterfaceContainer && formats);
@@ -264,19 +270,19 @@ private:
    * If the format is invalid, or cannot be delivered, this implementation may
    * choose to:
    *
-   * - either throw \ref no_such_format with an optional description of why
-   *   this format is not available
+   * - either throw \ref klfengine::no_such_format with an optional description
+   *   of why this format is not available
    *
    * - or return an empty (default-constructed) \ref format_spec.  In this case
    *   \ref canonical_format() will automatically detect this and throw a \ref
-   *   no_such_format exception.
+   *   klfengine::no_such_format exception.
    *
    * If \a check_available_only is \a true, then the subclass doesn't actually
    * have to compute the canonical form of \a format, it only needs to check
    * that the format is available.  In this case, the subclass should return any
    * (arbitrary) non-empty format_spec if the format is available, and do either
    * of the above two points if the format is unavailable (i.e., return an empty
-   * format_spec or raise \ref no_such_format).
+   * format_spec or raise \ref klfengine::no_such_format).
    */
   virtual format_spec impl_make_canonical(const format_spec & format,
                                           bool check_available_only) = 0;
@@ -296,7 +302,8 @@ private:
    *
    *  - the return value is undefined and is to be discarded
    *
-   *  - if the format is not available, \ref no_such_format is always raised
+   * - if the format is not available, \ref klfengine::no_such_format is always
+   *   raised
    *
    *  - if the format is available, no exception is raised.
    */

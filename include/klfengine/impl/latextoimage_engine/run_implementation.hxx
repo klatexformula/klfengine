@@ -5,7 +5,7 @@
  *
  * The MIT License (MIT)
  *
- * Copyright 2020 Philippe Faist
+ * Copyright 2021 Philippe Faist
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -33,7 +33,7 @@
 #include <klfengine/latextoimage_engine>
 #include <klfengine/temporary_directory>
 #include <klfengine/h/detail/utils.h>
-#include <klfengine/h/detail/simple_gs_interface.h>
+#include <klfengine/ghostscript_interface>
 #include <klfengine/version>
 
 
@@ -66,9 +66,9 @@ struct run_implementation_private
 {
   temporary_directory temp_dir;
 
-  std::shared_ptr<klfengine::detail::simple_gs_interface_engine_tool> gs_iface_tool;
+  std::shared_ptr<klfengine::ghostscript_interface_engine_tool> gs_iface_tool;
 
-  klfengine::detail::gs_device_args_format_provider gs_args_provider;
+  klfengine::gs_device_args_format_provider gs_args_provider;
 
   struct filenames_t
   {
@@ -98,7 +98,7 @@ struct run_implementation_private
 
 _KLFENGINE_INLINE
 run_implementation::run_implementation(
-    std::shared_ptr<klfengine::detail::simple_gs_interface_engine_tool> gs_iface_tool_,
+    std::shared_ptr<klfengine::ghostscript_interface_engine_tool> gs_iface_tool_,
     klfengine::input input_,
     klfengine::settings settings_
     )
@@ -315,8 +315,8 @@ void run_implementation::impl_compile()
       "-sDEVICE=bbox",
       d->fn.gs_input.native()
     },
-    simple_gs_interface::add_standard_batch_flags{true},
-    simple_gs_interface::capture_stderr_data{&gsbbox_err_data}
+    ghostscript_interface::add_standard_batch_flags{true},
+    ghostscript_interface::capture_stderr_data{&gsbbox_err_data}
   );
 
   std::string gsbbox_err{gsbbox_err_data.begin(), gsbbox_err_data.end()};
@@ -504,7 +504,7 @@ run_implementation::impl_produce_data(const klfengine::format_spec & format)
   bool bg_is_transparent = (in.bg_color.alpha < 255);
 
   // don't use ghostscript STDOUT so that we can also use libgs-based methods in
-  // simple_gs_interface
+  // ghostscript_interface
   fs::path outf = d->fn.base;
   outf.replace_filename(d->fn.base.filename().generic_string() + "-gs."
                         + to_lowercase(format.format));
@@ -570,9 +570,9 @@ run_implementation::impl_produce_data(const klfengine::format_spec & format)
   //binary_data gs_stdout;
   gs_iface->run_gs(
     gs_process_args,
-    simple_gs_interface::add_standard_batch_flags{true}
-    //simple_gs_interface::capture_stdout_data{&gs_stdout},
-    //simple_gs_interface::capture_stderr_data{&gs_stderr}
+    ghostscript_interface::add_standard_batch_flags{true}
+    //ghostscript_interface::capture_stdout_data{&gs_stdout},
+    //ghostscript_interface::capture_stderr_data{&gs_stderr}
   );
 
   binary_data gs_result_data{ load_file_data(outf.native()) };
