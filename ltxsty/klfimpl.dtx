@@ -636,6 +636,13 @@
 \newdimen\klf@set@bgtmp@recth
 %    \end{macrocode}
 %
+% The background color will be drawn as a filled rectangle, extending on all
+% sides with a bleed length stored in |\klf@set@bgcolor@bleed|.
+%    \begin{macrocode}
+\newdimen\klf@set@bgcolor@bleed
+\klf@set@bgcolor@bleed=\p@
+%    \end{macrocode}
+%
 % \begin{macro}{\klf@DrawBackground@Color}
 %   The code to draw the background color.  Draw the background color as a
 %   rectangle, with the required opacity.  Of course, don't do this if the
@@ -657,9 +664,12 @@
       \color{klfbgcolor}%
       \klf@tmp@pgfsetfillopacity{\klf@set@bgcoloropacity}%
       \hbox to \z@{%
-        \hskip -\klf@set@bgcolor@bleed\relax
+        \hbox{}\hskip -\klf@set@bgcolor@bleed\relax
         \vbox to \z@{%
+          \hrule \@height\z@
+          \nobreak
           \vskip-\klf@set@bgcolor@bleed\relax
+          \vskip\z@skip\relax
           \rule{\klf@set@bgtmp@rectw}{\klf@set@bgtmp@recth}%
         }%
       }%
@@ -782,15 +792,9 @@
 % \end{macro}
 %
 % \begin{macro}{\klf@DrawBackground}
-%   Here's our internal code that renders the background.  The background color
-%   will be drawn as a filled rectangle, extending on all sides with a bleed
-%   length stored in |\klf@set@bgcolor@bleed|.
+%   Here's our main internal code macro that renders the background.
 %    \begin{macrocode}
-\newdimen\klf@set@bgcolor@bleed
-\klf@set@bgcolor@bleed=\p@
 \def\klf@DrawBackground{%
-%    \end{macrocode}
-%    \begin{macrocode}
   \klf@DrawBackground@Color
   \klf@DrawBackground@Frame
   \klf@DrawBackground@CustomCommands

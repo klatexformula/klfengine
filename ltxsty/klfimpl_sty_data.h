@@ -275,6 +275,8 @@ const char * klfimpl_sty_data =
 }
 \newdimen\klf@set@bgtmp@rectw
 \newdimen\klf@set@bgtmp@recth
+\newdimen\klf@set@bgcolor@bleed
+\klf@set@bgcolor@bleed=\p@
 \def\klf@DrawBackground@Color{%
   \ifdim\klf@set@bgcoloropacity\p@=\z@\relax
   \else
@@ -291,9 +293,12 @@ const char * klfimpl_sty_data =
       \color{klfbgcolor}%
       \klf@tmp@pgfsetfillopacity{\klf@set@bgcoloropacity}%
       \hbox to \z@{%
-        \hskip -\klf@set@bgcolor@bleed\relax
+        \hbox{}\hskip -\klf@set@bgcolor@bleed\relax
         \vbox to \z@{%
+          \hrule \@height\z@
+          \nobreak
           \vskip-\klf@set@bgcolor@bleed\relax
+          \vskip\z@skip\relax
           \rule{\klf@set@bgtmp@rectw}{\klf@set@bgtmp@recth}%
         }%
       }%
@@ -367,8 +372,6 @@ const char * klfimpl_sty_data =
     \the\klf@set@bgextradrawcommands
   \fi
 }
-\newdimen\klf@set@bgcolor@bleed
-\klf@set@bgcolor@bleed=\p@
 \def\klf@DrawBackground{%
   \klf@DrawBackground@Color
   \klf@DrawBackground@Frame
