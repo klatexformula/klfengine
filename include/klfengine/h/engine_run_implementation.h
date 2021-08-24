@@ -46,7 +46,7 @@ namespace detail
  * Type to use for cache keys (which represent format_spec's).  We'll store some
  * (binary?) string representing the format_spec (e.g. JSON? or BSON?)
  */
-using fmtspec_cache_key_type = std::string;
+using fmtspec_cache_key_type = format_spec; //std::string;
 }
 
 

@@ -9,6 +9,9 @@ cmake_minimum_required(VERSION 3.8)
 
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 
+# add our source /deps_install/ directory created by fetch_and_setup_dependencies.py
+set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${CMAKE_SOURCE_DIR}/deps_install)
+
 include(klfengine_get_version)
 
 #

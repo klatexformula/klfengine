@@ -49,25 +49,35 @@ struct cache_entry_already_exists
   }
 };
 
-/** \brief Get the cache key for the given format
- *
- * \internal
- *
- * Produces a condensed form of the given \a format object into an internal
- * object type (this might be a std::string) used as the key to the map.
- *
- * \warning Assumes that \a format is in canonical form.
- *
- */
-_KLFENGINE_INLINE
-fmtspec_cache_key_type formatspec_cache_key(const format_spec & format)
-{
-  if (format.parameters.empty()) {
-    return format.format;
-  }
-  return format.format + std::string("\0", 1) +
-    nlohmann::json{format.parameters}.dump();
-}
+// /*---* \brief Get the cache key for the given format
+//  *
+//  * \internal
+//  *
+//  * Produces a condensed form of the given \a format object into an internal
+//  * object type (this might be a std::string) used as the key to the map.
+//  *
+//  * \warning Assumes that \a format is in canonical form.
+//  *
+//  * *****************************************************************************
+//  * TODO: We could use a hash function to generate the key.  See, e.g.:
+//  *       https://stackoverflow.com/a/114102/1694896
+//  *
+//  *       Actually we could simply use format_spec itself as the key and
+//  *       implement std::hash(const format_spec&).  That would be much easier!
+//  * *****************************************************************************
+//  *
+//  */
+// _KLFENGINE_INLINE
+// fmtspec_cache_key_type formatspec_cache_key(const format_spec & format)
+// {
+//   if (format.parameters.empty()) {
+//     return format.format;
+//   }
+//   return format.format + std::string("\0", 1) +
+//     nlohmann::json{format.parameters}.dump();
+// }
+
+
 
 } // namespace detail
 
@@ -104,9 +114,9 @@ _KLFENGINE_INLINE const binary_data &
 engine_run_implementation::get_data_cref(const format_spec & format)
 {
   auto canon_fmt = canonical_format(format);
-  auto ckey = detail::formatspec_cache_key(canon_fmt);
+  //auto ckey = detail::formatspec_cache_key(canon_fmt);
 
-  auto cache_it = _cache.find(ckey);
+  auto cache_it = _cache.find(canon_fmt); //ckey);
   if (cache_it != _cache.end()) {
     // format exists in cache
     return cache_it->second;
@@ -116,7 +126,7 @@ engine_run_implementation::get_data_cref(const format_spec & format)
   binary_data data = impl_produce_data(canon_fmt);
 
   auto result = _cache.insert(
-      std::pair<detail::fmtspec_cache_key_type,binary_data>(std::move(ckey),
+      std::pair<detail::fmtspec_cache_key_type,binary_data>(canon_fmt, //std::move(ckey),
                                                             std::move(data))
       );
 
@@ -146,12 +156,15 @@ engine_run_implementation::store_to_cache(
     binary_data && data
     )
 {
-  auto ckey = detail::formatspec_cache_key(canon_fmt);
+  //auto ckey = detail::formatspec_cache_key(canon_fmt);
 
   auto result = _cache.insert(
       // `data` is already an rvalue-reference, so no std::move(data) here:
-      std::pair<detail::fmtspec_cache_key_type,binary_data>(std::move(ckey), data)
-      );
+      std::pair<detail::fmtspec_cache_key_type,binary_data>(
+          canon_fmt, //std::move(ckey),
+          data
+      )
+  );
 
   if (!result.second) {
     // insert() failed, entry already exists. This should not happen.

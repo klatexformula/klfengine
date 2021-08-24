@@ -29,6 +29,7 @@
 #pragma once
 
 
+#include <klfengine/basedefs>
 #include <klfengine/value>
 
 #include <nlohmann/json.hpp>
@@ -156,6 +157,65 @@ inline void from_json(const nlohmann::json & j, value & v)
     }
   }
 }
+
+
+
+struct value_hasher_visitor
+{
+  std::size_t * seed_ptr;
+
+  void operator()(const value::array & a);
+  void operator()(const value::dict & d);
+
+  template<typename SimpleType,
+           typename SimpleTypeNoRef = typename std::remove_reference<SimpleType>::type,
+           typename std::enable_if<
+             !(std::is_same<SimpleTypeNoRef, value::array>::value ||
+               std::is_same<SimpleTypeNoRef, value::dict>::value),
+           bool>::type = true>
+  void operator()(SimpleType x)
+  {
+    assert(seed_ptr != nullptr) ;
+    hash_combine(*seed_ptr, std::hash<SimpleType>{}(x));
+  }
+};
+
+inline
+void value_hasher_visitor::operator()(const value::array & a)
+{
+  assert(seed_ptr != nullptr) ;
+  for (auto const& x : a) {
+    x.visit(value_hasher_visitor{seed_ptr});
+  }
+}
+inline
+void value_hasher_visitor::operator()(const value::dict & d)
+{
+  assert(seed_ptr != nullptr) ;
+  for (auto const& x : d) {
+    hash_combine(*seed_ptr, std::hash<value::dict::key_type>{}(x.first));
+    x.second.visit(value_hasher_visitor{seed_ptr});
+  }
+}
+
+
+
+_KLFENGINE_INLINE
+std::size_t hash_value(const value & v)
+{
+  std::size_t seed = 0;
+  v.visit(value_hasher_visitor{&seed});
+  return seed;
+}
+
+_KLFENGINE_INLINE
+std::size_t hash_value_dict(const value::dict & d)
+{
+  std::size_t seed = 0;
+  value_hasher_visitor{&seed}(d);
+  return seed;
+}
+
 
 } // namespace detail
 

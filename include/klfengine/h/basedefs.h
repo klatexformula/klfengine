@@ -213,6 +213,16 @@ std::string get_type_name()
 }
 
 
+
+// useful way of combining hashes as in boost: (cf
+// https://stackoverflow.com/a/2595226/1694896)
+inline void hash_combine(std::size_t& seed, std::size_t b)
+{
+  seed ^= (b + 0x9e3779b9 + (seed<<6) + (seed>>2));
+}
+
+
+
 } // namespace detail
 
 } // namespace klfengine

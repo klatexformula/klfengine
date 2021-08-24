@@ -85,7 +85,8 @@ struct recursive_variant_with_vector_and_map
 
   // !!! CAUTION !!! ANY CHANGE TO THE ORDER HERE MUST BE REFLECTED IN THE
   // FUNCTION to_json() IN value.hxx !!!
-  variant_type<PrimaryDataTypes..., array, dict> _data;
+  using this_variant_type = variant_type<PrimaryDataTypes..., array, dict>;
+  this_variant_type _data;
 
   // --
 
@@ -149,6 +150,7 @@ struct recursive_variant_with_vector_and_map
   }
 };
 
+
 // !!! CAUTION !!! ANY CHANGE TO THESE PRIMARY TYPES OR THEIR ORDER MUST BE
 // REFLECTED IN THE FUNCTION to_json() IN value.hxx !!!
 using value = recursive_variant_with_vector_and_map<
@@ -164,6 +166,12 @@ using value = recursive_variant_with_vector_and_map<
 
 void to_json(nlohmann::json & j, const value & v);
 void from_json(const nlohmann::json & j, value & v);
+
+
+
+// provide some hashing functions
+std::size_t hash_value(const value & v);
+std::size_t hash_value_dict(const value::dict & d);
 
 
 } // namespace detail
@@ -367,6 +375,7 @@ private:
   }
 };
 
+
 } // namespace detail
 
 
@@ -540,12 +549,31 @@ private:
   }
 };
 
-
-
-
-
-
 } // namespace klfengine
+
+
+
+// custom specialization of std::hash can be injected in namespace std
+//
+// hash of klfengine::value is used e.g. to allow format_spec to be a valid key
+// type in an std::unordered_map
+namespace std {
+template<> struct hash<klfengine::value>
+{
+  std::size_t operator()(klfengine::value const & v) const noexcept
+  {
+    return klfengine::detail::hash_value(v);
+  }
+};
+template<> struct hash<klfengine::value::dict>
+{
+  std::size_t operator()(klfengine::value::dict const & v) const noexcept
+  {
+    return klfengine::detail::hash_value_dict(v);
+  }
+};
+} // namespace std
+
 
 
 #ifndef _KLFENGINE_DONT_INCLUDE_IMPL_HXX
