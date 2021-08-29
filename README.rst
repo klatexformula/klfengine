@@ -27,8 +27,8 @@ Quick how to
   .. code-block:: bash
 
      > cd doc/
-     > poetry run doxygen
-     > poetry run make html
+     doc> poetry run doxygen
+     doc> poetry run make html
  
      # View index file doc/_build/html/index.html
 
