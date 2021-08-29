@@ -45,27 +45,19 @@ DEPS_INFO = {
             GHC_FILESYSTEM_WITH_INSTALL='on',
         )),
     ),
-    'arun11299-cppsubprocess': dict(
-        giturl='https://github.com/arun11299/cpp-subprocess.git',
-        gittag='v2.0',
-        cmake=dict(vars=dict(
-            BUILD_TESTING='off',
-        )),
-    ),
-    'sheredom-subprocess': dict(
-        giturl='https://github.com/sheredom/subprocess.h.git',
-        gitcommit='9882bf9c0ed5f17c28497b5dd72ccd242bd18ef8', # Mar 22, 2021
-        only_copy_files=[
-            ('subprocess.h', 'include/sheredom/subprocess.h'),
-        ]
-    ),
-    # ### I didn't notice that tiny-process-library wasn't header-only
-    # 'tiny-process-library': dict(
-    #     giturl='https://gitlab.com/eidheim/tiny-process-library.git',
-    #     gittag='v2.0.4',
+    # 'arun11299-cppsubprocess': dict(
+    #     giturl='https://github.com/arun11299/cpp-subprocess.git',
+    #     gittag='v2.0',
     #     cmake=dict(vars=dict(
     #         BUILD_TESTING='off',
     #     )),
+    # ),
+    # 'sheredom-subprocess': dict(
+    #     giturl='https://github.com/sheredom/subprocess.h.git',
+    #     gitcommit='9882bf9c0ed5f17c28497b5dd72ccd242bd18ef8', # Mar 22, 2021
+    #     only_copy_files=[
+    #         ('subprocess.h', 'include/sheredom/subprocess.h'),
+    #     ]
     # ),
     'catch2': dict(
         giturl='https://github.com/catchorg/Catch2.git',
@@ -108,18 +100,25 @@ CMDS = {
 }
 
 
+class InstallationEnvironment:
+    def __init__(self, source_root_dir, prefix_install_dir):
+        self.source_root_dir = source_root_dir
+        self.prefix_install_dir = prefix_install_dir
+
 #
 # Base classes and implementations for our installer tool
 #
 class BaseDependencyInstaller:
-    def __init__(self, depname, depinfo):
+    def __init__(self, depname, depinfo, instenv):
         self.depname = depname
         self.depinfo = depinfo
-        self.srcdir = os.path.join(DEPS_SRCDIR, self.depname)
+        self.instenv = instenv
+        self.srcdir = os.path.join(self.instenv.source_root_dir, self.depname)
         self.srcbuilddir = os.path.join(self.srcdir, "build")
         if os.path.exists(self.srcdir):
             logger.error(
-                "Please remove (or rename) the existing download ‘{}’ before running this script."
+                "Please remove (or rename) the existing download ‘{}’ before "
+                "running this script."
                 .format(self.srcdir)
             )
             # don't exit, do that when we're actually asked to install
@@ -152,7 +151,7 @@ class BaseDependencyInstaller:
               self.depinfo['giturl'],
               *gitopts,
               self.depname ],
-            cwd=DEPS_SRCDIR,
+            cwd=self.instenv.source_root_dir,
         )
 
         if 'gitcommit' in self.depinfo:
@@ -180,7 +179,7 @@ class CopyFilesDependencyInstaller(BaseDependencyInstaller):
         print("\n*** Copying files for {}:\n".format(self.depname), file=logfile)
         for fnsrc, fndest in self.depinfo['only_copy_files']:
             a = os.path.join(self.srcdir, fnsrc)
-            b = os.path.join(DEPS_INSTALLDIR, fndest)
+            b = os.path.join(self.instenv.prefix_install_dir, fndest)
             bdir = os.path.realpath(os.path.dirname(b))
             print("    - {} -> {}\n        in [{}]".format(a, b, bdir), file=logfile)
             os.makedirs(bdir, exist_ok=True)
@@ -203,7 +202,8 @@ class StandardDependencyInstaller(BaseDependencyInstaller):
         runprocess(
             [ CMDS['cmake'],
               '..',
-              "-DCMAKE_INSTALL_PREFIX={}".format(os.path.abspath(DEPS_INSTALLDIR)),
+              "-DCMAKE_INSTALL_PREFIX={}".format(
+                  os.path.abspath(self.instenv.prefix_install_dir)),
               *[ "-D{}={}".format(k, v) for k, v in cmakevars.items() ] ],
             cwd=self.srcbuilddir,
         )
@@ -228,15 +228,20 @@ class StandardDependencyInstaller(BaseDependencyInstaller):
 #
 # Create appropriate installer object to use based on the DEPS_INFO information
 #
-def get_dependency_installer(depname):
-    depinfo = DEPS_INFO[depname]
-
+def get_dependency_installer(depname, depinfo, instenv):
     if 'only_copy_files' in depinfo:
-        return CopyFilesDependencyInstaller(depname, depinfo)
+        return CopyFilesDependencyInstaller(depname, depinfo, instenv)
 
-    return StandardDependencyInstaller(depname, depinfo)
+    return StandardDependencyInstaller(depname, depinfo, instenv)
 
 
+
+#
+# Folders where dependencies will be downloaded, and where they will be
+# installed
+#
+_default_source_root_dir = os.path.join('.', 'deps_src')
+_default_prefix_install_dir = os.path.join('.', 'deps_install')
 
 #
 # Parse arguments
@@ -253,21 +258,30 @@ arg_parser.add_argument(
     default=",".join(DEPS_INFO.keys())
 )
 arg_parser.add_argument(
+    '--prefix',
+    action='store',
+    help="Where to install the dependency headers (by default, in "
+    "a local 'deps_install' folder)",
+    default=_default_prefix_install_dir,
+)
+arg_parser.add_argument(
+    '--download-dir',
+    action='store',
+    help="Where to download and run build scripts for the dependencies (by default, in "
+    "a local 'deps_src' folder)",
+    default=_default_source_root_dir,
+)
+arg_parser.add_argument(
     '--local',
     action='store_true',
-    help="Perform \"local\" installation in deps_src & deps_install folders outside of the "
-    "klfengine tree (will use current working directory)",
+    help="Use this option when fetching the dependencies for your own project.  This option "
+    "disables the check that makes sure that this script is run from the root directory of "
+    "klfengine's source tree.  The deps_src & deps_install folders will be created "
+    "relative to the current working directory.",
     default=False
 )
 args = arg_parser.parse_args()
 
-
-#
-# Folders where dependencies will be downloaded, and where they will be
-# installed
-#
-DEPS_SRCDIR = 'deps_src'
-DEPS_INSTALLDIR = 'deps_install'
 
 
 #
@@ -275,7 +289,8 @@ DEPS_INSTALLDIR = 'deps_install'
 #
 if not os.path.exists('include/klfengine/klfengine') and not args.local:
 
-    print("Please run this script in the root directory of the klfengine sources (or use --local).",
+    print("Please run this script in the root directory of the klfengine "
+          "sources (or use --local).",
           file=sys.stderr)
     sys.exit(1)
     
@@ -284,13 +299,20 @@ if not os.path.exists('include/klfengine/klfengine') and not args.local:
 #
 # Ensure target directories exist
 #
-os.makedirs(os.path.realpath(DEPS_SRCDIR), exist_ok=True)
-os.makedirs(os.path.realpath(DEPS_INSTALLDIR), exist_ok=True)
+instenv = InstallationEnvironment(
+    source_root_dir=args.download_dir,
+    prefix_install_dir=args.prefix
+)
+logger.info("Downloading to %s and installing to %s",
+            instenv.source_root_dir, instenv.prefix_install_dir)
+os.makedirs(os.path.realpath(instenv.source_root_dir), exist_ok=True)
+os.makedirs(os.path.realpath(instenv.prefix_install_dir), exist_ok=True)
 
 #
 # Set up log file
 #
-logfilename = os.path.join(DEPS_SRCDIR, "fetch_and_setup_dependencies.log")
+logfilename = os.path.join(instenv.source_root_dir,
+                           "fetch_and_setup_dependencies.log")
 logfile = open(logfilename, 'w')
 
 print("*** Ran fetch_and_setup_dependencies on {}\n".format(datetime.datetime.now()),
@@ -304,7 +326,7 @@ print("*** Ran fetch_and_setup_dependencies on {}\n".format(datetime.datetime.no
 deplist = [x.strip() for x in args.deps.split(',')]
 
 depinstallers = [
-    get_dependency_installer(depname)
+    get_dependency_installer(depname, DEPS_INFO[depname], instenv)
     for depname in deplist
 ]
 
