@@ -60,11 +60,11 @@ endif()
 
 if(KLFENGINE_USE_LINKED_GHOSTSCRIPT)
   message(STATUS
-    "${_klfengine_msg}Will link against Ghostscript's C API library (KLFENGINE_USE_LINKED_GHOSTSCRIPT)")
+    "${_klfengine_msg}Will link against Ghostscript's C API library (KLFENGINE_USE_LINKED_GHOSTSCRIPT,KLFENGINE_USE_LOAD_GHOSTSCRIPT)")
 endif()
 if(KLFENGINE_USE_LOAD_GHOSTSCRIPT)
   message(STATUS
-    "${_klfengine_msg}Will prepare to load Ghostscript's libgs at runtime (KLFENGINE_USE_LOAD_GHOSTSCRIPT)")
+    "${_klfengine_msg}Will prepare to load Ghostscript's libgs at runtime (KLFENGINE_USE_LINKED_GHOSTSCRIPT,KLFENGINE_USE_LOAD_GHOSTSCRIPT)")
 endif()
 if(NOT KLFENGINE_USE_LINKED_GHOSTSCRIPT AND NOT KLFENGINE_USE_LOAD_GHOSTSCRIPT)
   message(STATUS
