@@ -11,7 +11,8 @@ run-time, `klfengine` requires a latex distribution as well as `Ghostscript`.
 Quick how to
 ------------
 
-- get all dependency headers and install them to a custom location:
+- Get all dependency headers, install them to a custom location, and install
+  `klfengine` there, too:
 
   .. code-block:: bash
 
@@ -21,7 +22,7 @@ Quick how to
                      -DCMAKE_INSTALL_PREFIX=/custom/location/prefix
      build> make install
 
-- generate the documentation:
+- Generate the documentation:
 
   .. code-block:: bash
 
