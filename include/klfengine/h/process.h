@@ -313,6 +313,8 @@ void run_process_impl(
  *
  * \todo The API might still change.  I'm thinking about having running
  *       processes and pipes, etc.
+ *
+ * \bug Missing implementation of klfengine::process for windows.
  */
 class process {
 public:
