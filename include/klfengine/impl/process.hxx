@@ -28,6 +28,7 @@
 
 #pragma once
 
+
 #include <exception>
 //#include <iostream> // DEBUG
 
@@ -128,12 +129,32 @@ environment parse_environment(char ** env_ptr)
 
 
 
-// -----------------------------------------------------------------------------
+
+
+//******************************************************************************
+//******************************************************************************
+//******************************************************************************
+//******************************************************************************
+//******************************************************************************
 
 
 
 
-#if 1
+
+#define _klfengine_process_impl_arun11299 1
+#define _klfengine_process_impl_sheredom 2
+#define _klfengine_process_impl_custom 3
+
+#define _klfengine_process_impl_use _klfengine_process_impl_arun11299
+//#define _klfengine_process_impl_use _klfengine_process_impl_custom
+
+
+
+
+
+
+
+#if _klfengine_process_impl_use == _klfengine_process_impl_arun11299
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
@@ -142,10 +163,14 @@ environment parse_environment(char ** env_ptr)
 //
 // LIMITATIONS:
 //
-//   -> poor subprocess environment handling, at least on UNIX (subprocess
-//      always inherits environment)
+//   -> subprocess environment handling is a bit awkward. (arun11299's
+//      subprocess lib always makes the child process inherit the parent's
+//      environment, so we need to manually un-set unwanted variables with a
+//      preexec-function in the child process)
 //
 //   [-> cannot set executable name != argv[0] (--> but this is not necessary)]
+
+#include <cstdlib>
 
 #include <subprocess/subprocess.hpp>
 #include <klfengine/h/detail/provide_fs.h>
@@ -186,13 +211,32 @@ void run_process_impl(
   };
   subprocess_argv[0] = executable;
 
-
+  // prepare environment argument
   std::map<std::string,std::string> env;
+  std::vector<std::string> clear_environment_vars;
   if (process_environment != nullptr) {
-    for (const auto & eit : *process_environment) {
-      env[eit.first] = eit.second;
+    //clear_environment = true;
+
+    for (const auto & ep : *process_environment) {
+      env[ep.first] = ep.second;
+    }
+    // schedule to un-set any environments not explicitly set
+    const environment curenv = current_environment();
+    for (const auto & curep : curenv) {
+      if ( env.find(curep.first) == env.end() ) {
+        // environment variable not set in subprocess -- clear it
+        clear_environment_vars.push_back(curep.first);
+      }
     }
   }
+  auto clear_env_fn = [clear_environment_vars]()
+  {
+    // remove all environment variables.
+    for (const auto & v : clear_environment_vars) {
+      using namespace std;
+      unsetenv(v.c_str());
+    }
+  };
 
   // // DEBUG
   // {
@@ -214,10 +258,12 @@ void run_process_impl(
     subprocess_argv,
     // sp::executable{executable},
     sp::cwd{run_cwd},
+    sp::shell{false},
     sp::environment{ env },
     sp::input{sp::PIPE}, //((stdin_data != nullptr) ? sp::input{sp::PIPE} : sp::input{0}),
     sp::output{sp::PIPE},//((capture_stdout != nullptr) ? sp::output{sp::PIPE} : sp::output{1}),
-    sp::error{sp::PIPE} //((capture_stderr != nullptr) ? sp::error{sp::PIPE} : sp::error{2})
+    sp::error{sp::PIPE}, //((capture_stderr != nullptr) ? sp::error{sp::PIPE} : sp::error{2})
+    sp::preexec_func{clear_env_fn}
   };
 
   //fprintf(stderr, "DEBUG: sp::Popen() done\n");
@@ -280,7 +326,7 @@ void run_process_impl(
 
 
 
-#if 0
+#if _klfengine_process_impl_use == _klfengine_process_impl_sheredom
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
@@ -477,7 +523,7 @@ void run_process_impl(
 
 
 
-#if 0
+#if _klfengine_process_impl_use == _klfengine_process_impl_custom
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
@@ -1104,7 +1150,7 @@ int SystemCapture(
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
-#endif // #if 0
+#endif
 
 
 

@@ -225,12 +225,14 @@ TEST_CASE( "can send process stdin", "[process]" )
 
 
 
-TEST_CASE( "can launch process with modified environment", "[process]" )
+TEST_CASE( "can launch process with inherited and modified environment", "[process]" )
 {
   klfengine::binary_data out;
 
+  setenv("PARENT_PROCESS_VARIABLE_A", "XXX", 1);
+
   klfengine::process::run_and_wait(
-      {"bash", "-c", "echo \"|$MY_VARIABLE|\""},
+      {"bash", "-c", "echo \"|$MY_VARIABLE|$PARENT_PROCESS_VARIABLE_A|\""},
       klfengine::process::executable{"/bin/bash"},
       klfengine::process::capture_stdout_data{&out},
       klfengine::set_environment_variables{ {
@@ -238,5 +240,24 @@ TEST_CASE( "can launch process with modified environment", "[process]" )
       } }
       );
 
-  REQUIRE( out == klfengine::binary_data{'|', 'Z', 'Z', 'Z', '|', '\n'} );
+  REQUIRE( out == klfengine::binary_data{'|', 'Z', 'Z', 'Z', '|', 'X', 'X', 'X', '|', '\n'} );
+}
+
+TEST_CASE( "can launch process while clearing the parent's environment", "[process]" )
+{
+  klfengine::binary_data out;
+
+  setenv("PARENT_PROCESS_VARIABLE_B", "here!", 1);
+
+  klfengine::process::run_and_wait(
+      {"bash", "-c", "echo \"|$MY_VARIABLE|$PARENT_PROCESS_VARIABLE_B|\""},
+      klfengine::process::executable{"/bin/bash"},
+      klfengine::process::capture_stdout_data{&out},
+      klfengine::process::clear_environment{},
+      klfengine::set_environment_variables{ {
+        {"MY_VARIABLE", "ZZZ"}
+      } }
+      );
+
+  REQUIRE( out == klfengine::binary_data{'|', 'Z', 'Z', 'Z', '|', '|', '\n'} );
 }
