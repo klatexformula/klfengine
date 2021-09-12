@@ -29,11 +29,10 @@
 #pragma once
 
 #include <exception>
-
 //#include <iostream> // DEBUG
 
-#include <klfengine/basedefs>
 
+#include <klfengine/basedefs>
 #include <klfengine/process>
 
 
@@ -125,11 +124,366 @@ environment parse_environment(char ** env_ptr)
   return env;
 }
 
-}
+} // namespace klfengine
 
 
 
 // -----------------------------------------------------------------------------
+
+
+
+
+#if 1
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
+// implementation using arun11299/cpp-subprocess -- subprocess/subprocess.hpp
+//
+// LIMITATIONS:
+//
+//   -> poor subprocess environment handling, at least on UNIX (subprocess
+//      always inherits environment)
+//
+//   [-> cannot set executable name != argv[0] (--> but this is not necessary)]
+
+#include <subprocess/subprocess.hpp>
+#include <klfengine/h/detail/provide_fs.h>
+
+
+namespace klfengine {
+namespace detail {
+
+_KLFENGINE_INLINE
+void run_process_impl(
+    const std::string & executable,
+    const std::vector<std::string> & argv,
+    const std::string & run_cwd,
+    const binary_data * stdin_data,
+    binary_data * capture_stdout,
+    binary_data * capture_stderr,
+    environment * process_environment,
+    int * capture_exit_code
+    )
+{
+  namespace sp = subprocess;
+
+  // In this implementation, we cannot have executable argv[0] differ from the
+  // executable name.  Check for mismatch and throw an error.
+  if (executable != argv[0]) {
+    // in case exectuable == "/path/to/exename" and argv[0] == "exename"
+    fs::path exepath = fs::path{executable};
+    if (exepath.filename().generic_string() != argv[0]) {
+      // mismatch
+      throw std::invalid_argument(
+        "klfengine::process: argv[0] cannot differ from executable name");
+    }
+  }
+  // remove argv[0] to pass on to sp::Popen()
+  std::vector<std::string> subprocess_argv{
+    argv.begin(),
+    argv.end()
+  };
+  subprocess_argv[0] = executable;
+
+
+  std::map<std::string,std::string> env;
+  if (process_environment != nullptr) {
+    for (const auto & eit : *process_environment) {
+      env[eit.first] = eit.second;
+    }
+  }
+
+  // // DEBUG
+  // {
+  //   std::string msg;
+  //   msg = "DEBUG: Running: ‘" + executable + "’.  argv = [";
+  //   for (const auto & arg : argv) {
+  //     msg += "“" + arg + "”, ";
+  //   }
+  //   msg += "]  in dir = " + run_cwd + "\n";
+  //   // msg += "subprocess_argv = [";
+  //   // for (const auto & arg : subprocess_argv) {
+  //   //   msg += "“" + arg + "”, ";
+  //   // }
+  //   // msg += "]\n";
+  //   std::fprintf(stderr, "%s", msg.c_str());
+  // }
+
+  sp::Popen pp{
+    subprocess_argv,
+    // sp::executable{executable},
+    sp::cwd{run_cwd},
+    sp::environment{ env },
+    sp::input{sp::PIPE}, //((stdin_data != nullptr) ? sp::input{sp::PIPE} : sp::input{0}),
+    sp::output{sp::PIPE},//((capture_stdout != nullptr) ? sp::output{sp::PIPE} : sp::output{1}),
+    sp::error{sp::PIPE} //((capture_stderr != nullptr) ? sp::error{sp::PIPE} : sp::error{2})
+  };
+
+  //fprintf(stderr, "DEBUG: sp::Popen() done\n");
+
+  const char * stdin_data_msg = nullptr;
+  std::size_t stdin_data_len = 0;
+
+  if (stdin_data != nullptr) {
+    stdin_data_msg = reinterpret_cast<const char*>(stdin_data->data());
+    stdin_data_len = stdin_data->size();
+  }
+
+  auto ppoutput = pp.communicate(stdin_data_msg, stdin_data_len);
+
+  //fprintf(stderr, "DEBUG: communicate()d data to Popen object\n");
+
+  if (capture_stdout != nullptr) {
+    auto dataptr = reinterpret_cast<const unsigned char *>(ppoutput.first.buf.data());
+    *capture_stdout = binary_data{
+      dataptr,
+      dataptr + ppoutput.first.buf.size()
+    };
+  }
+  if (capture_stderr != nullptr) {
+    auto dataptr = reinterpret_cast<const unsigned char *>(ppoutput.second.buf.data());
+    *capture_stderr = binary_data{
+      dataptr,
+      dataptr + ppoutput.second.buf.size()
+    };
+  }
+
+  //fprintf(stderr, "DEBUG: got output & error data\n");
+
+  *capture_exit_code = pp.retcode();
+
+  //fprintf(stderr, "DEBUG: done! exit code = %d\n", (int) *capture_exit_code);
+
+  return;
+}
+
+
+} // namespace detail
+} // namespace klfengine
+
+
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+#endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+#if 0
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
+// implementation using sheredom/subprocess.h --
+//
+// LIMITATIONS!
+//    -> cannot use custom CWD directory (PROBLEMATIC FOR US!)
+//    -> no threaded reading of data while process is running (potentially slower?)
+//    [-> cannot set executable name != argv[0] (--> not necessary)]
+
+
+// using sheredom/subprocess.h for spawning new processes
+#include <sheredom/subprocess.h>
+
+#include <klfengine/h/detail/provide_fs.h>
+
+
+namespace klfengine {
+
+namespace detail {
+
+inline void read_stream_to_binary_data(FILE * stream, binary_data * target)
+{
+  const std::size_t read_buffer_size = BUFSIZ;
+
+  assert(target != nullptr);
+
+  target->clear();
+
+  std::size_t sz = 0;
+
+  std::size_t cnt = 0;
+  for (;;) {
+    target->resize(sz + read_buffer_size);
+    cnt = std::fread(target->data() + sz,
+                     sizeof (*target)[0],
+                     read_buffer_size,
+                     stream);
+    target->resize(sz + cnt);
+    sz += cnt;
+    if (cnt < read_buffer_size) {
+      return;
+    }
+  }
+}
+
+
+_KLFENGINE_INLINE
+void run_process_impl(
+    const std::string & executable,
+    const std::vector<std::string> & argv,
+    const std::string & run_cwd,
+    const binary_data * stdin_data,
+    binary_data * capture_stdout,
+    binary_data * capture_stderr,
+    environment * process_environment,
+    int * capture_exit_code
+    )
+{
+  if (argv.size() < 1) {
+    throw std::invalid_argument("klfengine::process: argv cannot be empty!");
+  }
+
+  if (run_cwd.size()) {
+    throw std::invalid_argument(
+      "klfengine::process: this process implementation cannot use a custom CWD!");
+  }
+
+  // In this implementation, we cannot have executable argv[0] differ from the
+  // executable name.  Check for mismatch and throw an error.
+  if (executable != argv[0]) {
+    // in case exectuable == "/path/to/exename" and argv[0] == "exename"
+    fs::path exepath = fs::path{executable};
+    if (exepath.filename().generic_string() != argv[0]) {
+      // mismatch
+      throw std::invalid_argument(
+        "klfengine::process: argv[0] cannot differ from executable name");
+    }
+  }
+
+  // prepare char ** command_line
+  std::vector<char*> vc(argv.size() + 1, 0);
+  // copy executable name as argv[0] --
+  vc[0] = const_cast<char*>(executable.c_str());
+  for (std::size_t i = 1; i < argv.size(); ++i) {
+    vc[i] = const_cast<char*>(argv[i].c_str());
+  }
+
+  // prepare child environment
+  bool use_envp = false;
+  std::vector<std::string> env_vec;
+  if (process_environment != nullptr) {
+    use_envp = true;
+    for (const auto & item : *process_environment) {
+      env_vec.push_back(item.first + "=" + item.second);
+    }
+    // std::cerr << "will set child environment to:\n";
+    // for (const auto & item: env_vec) { std::cerr << "\t" << item << "\n"; }
+  }
+
+  std::vector<char *> envp_vc;
+  if (use_envp) {
+    envp_vc.resize(env_vec.size()+1, 0);
+    for (std::size_t i = 0; i < env_vec.size(); ++i) {
+      envp_vc[i] = const_cast<char*>(env_vec[i].c_str());
+    }
+  }
+
+  // now call sheredom/subprocess.h functions --
+
+  subprocess_s spobj{};
+  int sp_options = subprocess_option_no_window;
+  int sp_result = -1;
+
+  if (use_envp) {
+    sp_result = subprocess_create_ex(vc.data(),
+                                     sp_options,
+                                     envp_vc.data(),
+                                     &spobj);
+  } else {
+    sp_result = subprocess_create(vc.data(),
+                                  sp_options | subprocess_option_inherit_environment,
+                                  &spobj);
+  }
+  if (sp_result != 0) {
+    // An error occurred!  Unfortunately it does not appear we have any
+    // information about the nature of the error.
+    throw std::runtime_error("Failed to create subprocess ‘" + executable + "’");
+  }
+
+  // send any stdin, if any
+  if (stdin_data != nullptr) {
+    using namespace std;
+    FILE * sp_stdin = subprocess_stdin(&spobj);
+    std::size_t res_count =
+      std::fwrite(stdin_data->data(), sizeof (*stdin_data)[0], stdin_data->size(), sp_stdin);
+    if (res_count != stdin_data->size()) {
+      subprocess_destroy(&spobj);
+      throw std::runtime_error("Failed to write stdin data to process ‘" + executable + "’");
+    }
+  }
+
+  // wait for process to terminate
+  int sp_process_return = -1;
+  int sp_join_result = subprocess_join(&spobj, &sp_process_return);
+  if (sp_join_result != 0) {
+    subprocess_destroy(&spobj);
+    throw std::runtime_error("Subprocess failure, cannot join ‘" + executable + "’");
+  }
+  *capture_exit_code = sp_process_return;
+
+  // process terminated. Read its output and error streams --
+
+  if (capture_stdout != nullptr) {
+    std::FILE* sp_stdout = subprocess_stdout(&spobj);
+    detail::read_stream_to_binary_data(sp_stdout, capture_stdout);
+    if (std::ferror(sp_stdout) != 0) {
+      subprocess_destroy(&spobj);
+      throw std::runtime_error("Error reading stdout from ‘" + executable + "’");
+    }
+  }
+  if (capture_stderr != nullptr) {
+    std::FILE* sp_stderr = subprocess_stderr(&spobj);
+    detail::read_stream_to_binary_data(sp_stderr, capture_stderr);
+    if (std::ferror(sp_stderr) != 0) {
+      subprocess_destroy(&spobj);
+      throw std::runtime_error("Error reading stderr from ‘" + executable + "’");
+    }
+  }
+
+  // data fully acquired, now we can return.
+  subprocess_destroy(&spobj);
+
+  return;
+}
+
+
+} // namespace detail
+} // namespace klfengine
+
+
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+#endif
+
+
+
+
+
+
+
+
+
+
+#if 0
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
+// custom POSIX implementation --
+
 
 // my low-level implementation of executing a process, feeding input, and
 // getting output.  Separate implementations for POSIX and Windows.
@@ -589,7 +943,6 @@ void run_process_impl(
 }
 
 } // namespace detail
-
 } // namespace klfengine
 
 
@@ -746,3 +1099,12 @@ int SystemCapture(
 }
 
 #endif
+
+
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+#endif // #if 0
+
+
+

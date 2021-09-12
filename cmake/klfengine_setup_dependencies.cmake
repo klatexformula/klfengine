@@ -11,12 +11,52 @@ endif()
 #
 # nlohmannn/json
 #
-
 find_package(nlohmann_json REQUIRED
   CONFIG
   PATHS "${_klfengine_cmake_default_nlohmann_json_DIR}"
   )
-message(STATUS "${_klfengine_msg}Using nlohmann_json at ${nlohmann_json_DIR} (nlohmann_json_DIR)")
+message(STATUS
+  "${_klfengine_msg}Using nlohmann_json at ${nlohmann_json_DIR} (nlohmann_json_DIR)")
+
+
+#
+# arun11299/subprocess
+#
+find_path(
+  ARUN11299_SUBPROCESS_INCLUDE
+  NAMES subprocess/subprocess.hpp
+  REQUIRED
+  HINTS
+  "${_klfengine_cmake_default_ARUN11299_SUBPROCESS_INCLUDE}"
+  "${ARUN11299_SUBPROCESS_DIR}/include"
+  # search user project's source directory for subprocess/subprocess.hpp or
+  # include/subprocess/subprocess.hpp
+  "${CMAKE_SOURCE_DIR}"
+  "${CMAKE_SOURCE_DIR}/include"
+  )
+message(STATUS
+  "${_klfengine_msg}Using arun11299/subprocess.hpp at ${ARUN11299_SUBPROCESS_INCLUDE} (ARUN11299_SUBPROCESS_INCLUDE)")
+
+
+# #
+# # sheredom/subprocess.h
+# #
+#
+# find_path(
+#   SHEREDOM_SUBPROCESS_INCLUDE
+#   NAMES sheredom/subprocess.h
+#   REQUIRED
+#   HINTS
+#   "${_klfengine_cmake_default_SHEREDOM_SUBPROCESS_INCLUDE}"
+#   "${SHEREDOM_SUBPROCESS_DIR}/include"
+#   # search user project's source directory for sheredom/subprocess.h or
+#   # include/sheredom/subprocess.h
+#   "${CMAKE_SOURCE_DIR}"
+#   "${CMAKE_SOURCE_DIR}/include"
+#   )
+# message(STATUS
+#   "${_klfengine_msg}Using sheredom/subprocess.h at ${SHEREDOM_SUBPROCESS_INCLUDE} (SHEREDOM_SUBPROCESS_INCLUDE)")
+
 
 
 #
@@ -77,6 +117,7 @@ if(KLFENGINE_USE_LINKED_GHOSTSCRIPT OR KLFENGINE_USE_LOAD_GHOSTSCRIPT)
   find_path(
     GHOSTSCRIPT_INCLUDE
     NAMES ghostscript/iapi.h ghostscript/ierrors.h
+    REQUIRED
     HINTS
       "${_klfengine_cmake_default_GHOSTSCRIPT_INCLUDE}"
       "${GHOSTSCRIPT_ROOT_DIR}/include"
@@ -97,6 +138,7 @@ if(KLFENGINE_USE_LINKED_GHOSTSCRIPT)
   find_library(
     GHOSTSCRIPT_LIB
     NAMES gs libgs gsdll
+    REQUIRED
     HINTS
       "${_klfengine_cmake_default_GHOSTSCRIPT_LIB}"
       "${GHOSTSCRIPT_ROOT_DIR}/lib"

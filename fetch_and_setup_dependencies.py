@@ -45,13 +45,13 @@ DEPS_INFO = {
             GHC_FILESYSTEM_WITH_INSTALL='on',
         )),
     ),
-    # 'arun11299-cppsubprocess': dict(
-    #     giturl='https://github.com/arun11299/cpp-subprocess.git',
-    #     gittag='v2.0',
-    #     cmake=dict(vars=dict(
-    #         BUILD_TESTING='off',
-    #     )),
-    # ),
+    'arun11299-cppsubprocess': dict(
+        giturl='https://github.com/arun11299/cpp-subprocess.git',
+        gittag='v2.0',
+        cmake=dict(vars=dict(
+            BUILD_TESTING='off',
+        )),
+    ),
     # 'sheredom-subprocess': dict(
     #     giturl='https://github.com/sheredom/subprocess.h.git',
     #     gitcommit='9882bf9c0ed5f17c28497b5dd72ccd242bd18ef8', # Mar 22, 2021

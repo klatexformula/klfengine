@@ -39,6 +39,22 @@ set(_klfengine_interface_tgt_prop_link_libraries
   )
 
 #
+# arun11299/subprocess
+#
+set(_klfengine_interface_tgt_prop_include_directories
+  ${_klfengine_interface_tgt_prop_include_directories}
+  "${arun11299_subprocess_INCLUDE}"
+  )
+
+# #
+# # sheredom/subprocess.h
+# #
+# set(_klfengine_interface_tgt_prop_include_directories
+#   ${_klfengine_interface_tgt_prop_include_directories}
+#   "${SHEREDOM_SUBPROCESS_INCLUDE}"
+# )
+
+#
 # mpark/variant
 #
 if(KLFENGINE_USE_MPARK_VARIANT)

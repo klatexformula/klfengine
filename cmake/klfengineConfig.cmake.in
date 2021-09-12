@@ -29,6 +29,8 @@ if(NOT TARGET klfengine::klfengine)
     "klfengine: If set, user promises to include <klfengine/implementation> in a separate compilation unit")
 
   set(_klfengine_cmake_default_nlohmann_json_DIR "@nlohmann_json_DIR@")
+  set(_klfengine_cmake_default_ARUN11299_SUBPROCESS_INCLUDE "@ARUN11299_SUBPROCESS_INCLUDE@")
+  #set(_klfengine_cmake_default_SHEREDOM_SUBPROCESS_INCLUDE "@SHEREDOM_SUBPROCESS_INCLUDE@")
   set(_klfengine_cmake_default_mpark_variant_DIR "@mpark_variant_DIR@")
   set(_klfengine_cmake_default_ghcFilesystem_DIR "@ghcFilesystem_DIR@")
   set(_klfengine_cmake_default_GHOSTSCRIPT_LIB "@GHOSTSCRIPT_LIB@")
