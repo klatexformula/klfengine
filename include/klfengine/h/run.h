@@ -69,6 +69,11 @@ struct dont_call_compile_twice : klfengine::exception
  *
  * All members of this base class are thread-safe, protected by a
  * class-instance-wide mutex lock upon entry in each method.
+ *
+ * \note This class doesn't inherit from \ref klfengine::format_provider because
+ *       it relays calls directly to the engine_run_implementation instance
+ *       (with thread access protection).  Thus we don't need to duplicate the
+ *       default implementations for searching for formats, etc.
  */
 class run
 {

@@ -106,10 +106,10 @@ run_implementation::run_implementation(
 {
   auto * gs_iface_tool_ptr = gs_iface_tool_.get();
 
-  bool bg_is_transparent = (input().bg_color.alpha < 255);
+  bool bg_is_fully_transparent = (input().bg_color.alpha == 0);
 
   value::dict fmt_param_defaults_{
-    {"transparency", value{ bg_is_transparent }},
+    {"transparency", value{ bg_is_fully_transparent }},
     {"outline_fonts", value{input().outline_fonts}},
     {"dpi", value{input().dpi}},
     {"antialiasing", value{true}}
@@ -501,7 +501,7 @@ run_implementation::impl_produce_data(const klfengine::format_spec & format)
   // - outline fonts
   //
 
-  bool bg_is_transparent = (in.bg_color.alpha < 255);
+  bool bg_is_fully_transparent = (in.bg_color.alpha == 0);
 
   // don't use ghostscript STDOUT so that we can also use libgs-based methods in
   // ghostscript_interface
@@ -532,7 +532,15 @@ run_implementation::impl_produce_data(const klfengine::format_spec & format)
   gs_ps_cmds +=
     "<< /BeginPage { ";
 
-  if (!bg_is_transparent) {
+  if (!bg_is_fully_transparent) {
+
+    if (in.bg_color.alpha < 255) {
+      // no support for partially transparent background -- warn user
+      warn("latextoimage_engine::engine_run_implementation",
+           "This engine does not support a partially transparent background "
+           "color, alpha component is ignored.");
+    }
+
     gs_ps_cmds +=
       "newpath " +
       dbl_to_string(-bg_bleed_pt) +  " " + dbl_to_string(-bg_bleed_pt) + " moveto " +

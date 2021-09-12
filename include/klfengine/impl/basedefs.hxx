@@ -89,5 +89,29 @@ std::string get_type_name_impl(
 
 } // namespace detail
 
+
+
+_KLFENGINE_INLINE
+void warn(const std::string & what, const std::string & msg)
+{
+#ifdef KLFENGINE_HANDLE_WARNING
+  KLFENGINE_HANDLE_WARNING(what, msg) ;
+#else
+  fprintf(stderr, "WARNING: %s: %s\n", what.c_str(), msg.c_str());
+#endif
+}
+
+
+_KLFENGINE_INLINE
+void error(const std::string & what, const std::string & msg)
+{
+#ifdef KLFENGINE_HANDLE_ERROR
+  KLFENGINE_HANDLE_ERROR(what, msg) ;
+#else
+  fprintf(stderr, "ERROR: %s: %s\n", what.c_str(), msg.c_str());
+#endif
+}
+
+
 } // namespace klfengine
 

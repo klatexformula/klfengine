@@ -79,21 +79,12 @@ namespace klfengine {
 
 
 // simple WARNING / ERROR output handles with printf-like formatting
-inline void warn(std::string what, std::string msg) {
-#ifdef KLFENGINE_HANDLE_WARNING
-  KLFENGINE_HANDLE_WARNING(what, msg) ;
-#else
-  fprintf(stderr, "WARNING: %s: %s\n", what.c_str(), msg.c_str());
-#endif
-}
-inline void error(std::string what, std::string msg) {
-#ifdef KLFENGINE_HANDLE_ERROR
-  KLFENGINE_HANDLE_ERROR(what, msg) ;
-#else
-  fprintf(stderr, "ERROR: %s: %s\n", what.c_str(), msg.c_str());
-#endif
-}
-
+//
+// !!! Use out-of-line implementation so that if we use a separate
+// implementation, only that compilation unit needs the KLFENGINE_HANDLE_XXX
+// macros set and there are no differences in the implementation !!!
+void warn(const std::string & what, const std::string & msg);
+void error(const std::string & what, const std::string & msg);
 
 
 
