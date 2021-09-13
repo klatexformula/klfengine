@@ -139,22 +139,109 @@ environment parse_environment(char ** env_ptr)
 
 
 
+// only one of the following should be set to 1, the rest to 0.
+//
+// some of these implementations might require external header-only libraries
+
+#ifndef _klfengine_process_use_impl_arun11299
+#define _klfengine_process_use_impl_arun11299 1
+#endif
+
+#ifndef _klfengine_process_use_impl_sheredom
+#define _klfengine_process_use_impl_sheredom 0
+#endif
+
+#ifndef _klfengine_process_use_impl_customposix
+#define _klfengine_process_use_impl_customposix 0
+#endif
 
 
-#define _klfengine_process_impl_arun11299 1
-#define _klfengine_process_impl_sheredom 2
-#define _klfengine_process_impl_custom 3
-
-#define _klfengine_process_impl_use _klfengine_process_impl_arun11299
-//#define _klfengine_process_impl_use _klfengine_process_impl_custom
 
 
 
+#define _klfengine_process_define_impl_prototype(impl_name)             \
+  namespace klfengine { namespace detail {                              \
+  void run_process_impl_ ## impl_name(                                  \
+                                      const std::string & executable,   \
+                                      const std::vector<std::string> & argv, \
+                                      const std::string & run_cwd,      \
+                                      const binary_data * stdin_data,   \
+                                      binary_data * capture_stdout,     \
+                                      binary_data * capture_stderr,     \
+                                      environment * process_environment, \
+                                      int * capture_exit_code           \
+                                                                        ); \
+  } }
+
+
+
+#if _klfengine_process_use_impl_arun11299 != 0
+_klfengine_process_define_impl_prototype(arun11299)
+#endif
+#if _klfengine_process_use_impl_sheredom != 0
+_klfengine_process_define_impl_prototype(sheredom)
+#endif
+#if _klfengine_process_use_impl_customposix != 0
+_klfengine_process_define_impl_prototype(customposix)
+#endif
+
+
+
+namespace klfengine {
+namespace detail {
+_KLFENGINE_INLINE
+void run_process_impl(
+    const std::string & executable,
+    const std::vector<std::string> & argv,
+    const std::string & run_cwd,
+    const binary_data * stdin_data,
+    binary_data * capture_stdout,
+    binary_data * capture_stderr,
+    environment * process_environment,
+    int * capture_exit_code
+    )
+{
+#if _klfengine_process_use_impl_arun11299 != 0
+  run_process_impl_arun11299(
+      executable, argv, run_cwd,
+      stdin_data, capture_stdout, capture_stderr,
+      process_environment, capture_exit_code
+  );
+  return;
+#elif _klfengine_process_use_impl_customposix != 0
+  run_process_impl_customposix(
+      executable, argv, run_cwd,
+      stdin_data, capture_stdout, capture_stderr,
+      process_environment, capture_exit_code
+  );
+  return;
+#elif _klfengine_process_use_impl_sheredom != 0
+  run_process_impl_sheredom(
+      executable, argv, run_cwd,
+      stdin_data, capture_stdout, capture_stderr,
+      process_environment, capture_exit_code
+  );
+  return;
+#endif
+}
+
+} // namespace klfengine
+} // namespace detail
 
 
 
 
-#if _klfengine_process_impl_use == _klfengine_process_impl_arun11299
+//******************************************************************************
+//******************************************************************************
+//******************************************************************************
+
+
+
+
+
+
+
+#if _klfengine_process_use_impl_arun11299 != 0
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
@@ -180,7 +267,7 @@ namespace klfengine {
 namespace detail {
 
 _KLFENGINE_INLINE
-void run_process_impl(
+void run_process_impl_arun11299(
     const std::string & executable,
     const std::vector<std::string> & argv,
     const std::string & run_cwd,
@@ -326,16 +413,20 @@ void run_process_impl(
 
 
 
-#if _klfengine_process_impl_use == _klfengine_process_impl_sheredom
+#if _klfengine_process_use_impl_sheredom != 0
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
 // implementation using sheredom/subprocess.h --
 //
-// LIMITATIONS!
+// LIMITATIONS:
+//
 //    -> cannot use custom CWD directory (PROBLEMATIC FOR US!)
-//    -> no threaded reading of data while process is running (potentially slower?)
+//
+//    -> no threaded reading of data while process is running (potentially
+//       slower? or potentially better because fewer threads?)
+//
 //    [-> cannot set executable name != argv[0] (--> not necessary)]
 
 
@@ -376,7 +467,7 @@ inline void read_stream_to_binary_data(FILE * stream, binary_data * target)
 
 
 _KLFENGINE_INLINE
-void run_process_impl(
+void run_process_impl_sheredom(
     const std::string & executable,
     const std::vector<std::string> & argv,
     const std::string & run_cwd,
@@ -523,7 +614,7 @@ void run_process_impl(
 
 
 
-#if _klfengine_process_impl_use == _klfengine_process_impl_custom
+#if _klfengine_process_use_impl_customposix != 0
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
@@ -791,7 +882,7 @@ inline void setup_thread_capture_output(binary_data * buffer, int fd,
 
 
 _KLFENGINE_INLINE
-void run_process_impl(
+void run_process_impl_customposix(
     const std::string & executable,
     const std::vector<std::string> & argv,
     const std::string & run_cwd,
