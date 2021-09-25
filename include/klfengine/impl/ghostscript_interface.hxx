@@ -705,6 +705,9 @@ gs_device_args_format_provider::impl_available_formats()
     {"default", dict_get(_param_defaults, "transparency", value{true})}
   }};
 
+  // none of the devices used seem to be devices that aren't always installed,
+  // so there doesn't appear to be much use to check which GS devices are
+  // actually available.
   return std::vector<klfengine::format_description>{
     {
       {"PNG", png_format_spec},
@@ -715,7 +718,7 @@ gs_device_args_format_provider::impl_available_formats()
     {
       {"PDF", vector_format_spec},
       "PDF Document",
-      "Portable Document Format, a widely compatible vector drawing format"
+      "Portable Document Format, a widely compatible vector graphics format"
     },
     {
       {"JPEG", raster_format_spec},
