@@ -385,6 +385,7 @@ void ghostscript_interface_private::impl_run_gs_process(
 
 #if defined(KLFENGINE_USE_LINKED_GHOSTSCRIPT) || defined(KLFENGINE_USE_LOAD_GHOSTSCRIPT)
 
+namespace detail {
 
 // callbacks for gs' input and output
 struct GhostscriptCallbacks {
@@ -474,6 +475,8 @@ static int _klfengine_gs_callback_stderr_fn(void * caller_handle, const char * b
   //(void)caller_handle; (void)buf; return 0;
 }
 
+} // namespace detail
+
 #endif
 
 // -------------------------------------
@@ -523,7 +526,7 @@ void ghostscript_interface_private::impl_run_gs_linkedlibgs(
   }
 
   //  - prepare stdio callbacks
-  GhostscriptCallbacks gs_cb{stdin_data, capture_stdout, capture_stderr};
+  detail::GhostscriptCallbacks gs_cb{stdin_data, capture_stdout, capture_stderr};
 
   // see Example 1 at https://ghostscript.com/doc/current/API.htm#Example_usage
 
@@ -541,9 +544,9 @@ void ghostscript_interface_private::impl_run_gs_linkedlibgs(
   // gs stdio callbacks
   gsapi_set_stdio(
     gs_minst,
-    _klfengine_gs_callback_stdin_fn,
-    _klfengine_gs_callback_stdout_fn,
-    _klfengine_gs_callback_stderr_fn
+    detail::_klfengine_gs_callback_stdin_fn,
+    detail::_klfengine_gs_callback_stdout_fn,
+    detail::_klfengine_gs_callback_stderr_fn
   );
 
   //fprintf(stderr, "CALLBACKS HAVE BEEN SET!\n");
