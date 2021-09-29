@@ -459,6 +459,7 @@ klfengine::format_spec run_implementation::impl_make_canonical(
     format_spec gs_format{ format.format, param.take_remaining() };
     param.finished();
     canon_format = d->gs_args_provider.canonical_format( std::move(gs_format) );
+    // fix canonical format to have this key regardless of whether raw version is available
     canon_format.parameters["latex_raw"] = value{false};
     return canon_format;
   }
@@ -485,6 +486,28 @@ run_implementation::impl_produce_data(const klfengine::format_spec & format)
   const klfengine::input & in = input();
   //const klfengine::settings & sett = settings();
 
+
+  // -----
+  parameter_taker param{ format.parameters,
+    "klfengine::latextoimage_engine::impl_produce_data" };
+
+  // 
+  bool latex_raw = param.take("latex_raw", false);
+  if (latex_raw == true) {
+    // All available RAW formats have all been stored in the cache at
+    // compile-time.  If this function was called with a latex_raw=true
+    // parameter, it means that there is no corresponding raw data.
+    param.disable_check();
+    throw invalid_parameter{param.what(),
+        "No RAW format available for \"" + format.format + "\""};
+  }
+
+
+  auto param_remaining = param.take_remaining();
+  param.finished();
+  // -----
+
+
   const double bg_bleed_pt = 1.0; // draw bg rectangle extending 1 pt outside each margin side
 
   //
@@ -510,7 +533,9 @@ run_implementation::impl_produce_data(const klfengine::format_spec & format)
                         + to_lowercase(format.format));
 
   std::vector<std::string> gs_process_args{
-    d->gs_args_provider.get_device_args_for_format(format)
+    d->gs_args_provider.get_device_args_for_format(
+      format_spec{format.format, param_remaining}
+    )
   };
 
   gs_process_args.push_back("-sOutputFile="+outf.native());

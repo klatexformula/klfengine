@@ -207,11 +207,11 @@ std::string run_implementation::assemble_latex_template(
   });
   dict_do_if<double>(in.parameters, "x_align_coefficient",
                      [&pre_preamble](double x) {
-    pre_preamble += "\\klfSetXalignCoeff{" + dbl_to_string(x) + "}%\n";
+    pre_preamble += "\\klfSetXAlignCoeff{" + dbl_to_string(x) + "}%\n";
   });
   dict_do_if<double>(in.parameters, "y_align_coefficient",
                      [&pre_preamble](double x) {
-    pre_preamble += "\\klfSetYalignCoeff{" + dbl_to_string(x) + "}%\n";
+    pre_preamble += "\\klfSetYAlignCoeff{" + dbl_to_string(x) + "}%\n";
   });
 
   if (in.scale <= 0) {
@@ -528,6 +528,7 @@ klfengine::format_spec run_implementation::impl_make_canonical(
     format_spec gs_format{ format.format, param.take_remaining() };
     param.finished();
     canon_format = d->gs_args_provider.canonical_format( std::move(gs_format) );
+    // fix canonical format to have this key regardless of whether raw version is available
     canon_format.parameters["latex_raw"] = value{false};
     return canon_format;
   }
@@ -556,9 +557,24 @@ klfengine::binary_data run_implementation::impl_produce_data(
   const klfengine::input & in = input();
   //const klfengine::settings & sett = settings();
 
+  parameter_taker param{ format.parameters,
+    "klfengine::klfimplpkg_engine::impl_produce_data" };
+
+  // 
+  bool latex_raw = param.take("latex_raw", false);
+  if (latex_raw == true) {
+    // All available RAW formats have all been stored in the cache at
+    // compile-time.  If this function was called with a latex_raw=true
+    // parameter, it means that there is no corresponding raw data.
+    param.disable_check();
+    throw invalid_parameter{param.what(),
+        "No RAW format available for \"" + format.format + "\""};
+  }
+
   if ( format.format == "PDF" && ! in.outline_fonts ) {
     // no further processing is needed.  We can use the raw PDF directly.
-    auto raw_pdf_data = get_data_cref(format_spec{"PDF", value::dict{{"raw", value{true}}}});
+    auto raw_pdf_data = get_data_cref(format_spec{"PDF",
+                                                  value::dict{{"latex_raw", value{true}}}});
     return raw_pdf_data;
   }
 
@@ -570,8 +586,13 @@ klfengine::binary_data run_implementation::impl_produce_data(
   outf.replace_filename(d->fn_base.filename().generic_string() + "-gs."
                         + to_lowercase(format.format));
 
+  auto param_remaining = param.take_remaining();
+  param.finished();
+
   std::vector<std::string> gs_process_args{
-    d->gs_args_provider.get_device_args_for_format(format)
+    d->gs_args_provider.get_device_args_for_format(
+      format_spec{format.format, param_remaining}
+    )
   };
 
   gs_process_args.push_back("-sOutputFile="+outf.native());

@@ -759,7 +759,7 @@ format_spec gs_device_args_format_provider::impl_make_canonical(
 {
   parameter_taker param{
     format.parameters,
-    "klfengine::ghostscript_interface::gs_args_canonical_format_parameters"
+    "klfengine::ghostscript_interface::impl_make_canonical"
   };
 
   if (format.format == "PDF" || format.format == "PS" || format.format == "EPS") {
