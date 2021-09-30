@@ -9,7 +9,8 @@ import unittest
 
 
 class HelpersForKlfimplTests:
-    def __init__(self, *, klfimpl_sty_path):
+
+    def setup_helper(self, *, klfimpl_sty_path):
         # find kpsewhich
         self.latex_bin_dir = os.environ.get("LATEX_BIN_DIR")
         if self.latex_bin_dir is None:
@@ -58,7 +59,6 @@ class HelpersForKlfimplTests:
                     output_image_filename=output_image_filename,
                     latex_engine=latex_engine,
                     dpi=dpi,
-                    pngdevice="png16m",
                 )
 
                 # now, compare with reference image

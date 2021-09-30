@@ -26,7 +26,6 @@ example_use_klfimpl_sty
 #example.pdf
 #example_2_bg.pdf
 
-
 #
 # auto-generated style files
 #
@@ -34,4 +33,9 @@ example_use_klfimpl_sty
 #klfimpl.sty
 #klfimpl_sty_data.h
 
+
+#
+# Test case runner
+#
+test/__pycache__
 
