@@ -45,7 +45,7 @@ class HelpersForKlfimplTests:
             dir_copy_for_debug=None,
             ):
 
-        output_image_filename = "klfimpltest-gs-out.png"
+        output_image_filename = "out.png"
 
         with tempfile.TemporaryDirectory() as tempdirname:
             try:

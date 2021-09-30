@@ -1,0 +1,28 @@
+\documentclass{article}
+
+\usepackage[\XXXLATEXENGINEXXX]{klfimpl}
+
+\usepackage{xcolor}
+\usepackage{amsmath}
+
+\klfSetFixedWidth{4.5cm}
+\klfSetFixedHeight{6cm}
+
+\pagestyle{empty}
+\begin{document}
+\begin{klfcontent}{\hbox}{}%
+\begin{minipage}{\textwidth}\relax
+  \parskip=5pt\relax
+  \centering
+  This is a paragraph that might span multiple lines.
+  \emph{This is a paragraph that might span multiple lines.}
+  This is a paragraph that might span multiple lines.
+
+  This is another paragraph that might or might not span multiple lines.
+
+  \hrule width 4.5cm height 0.4pt\relax
+  \par\vspace{2pt}\par
+  \hrule width 4.45cm height 0.4pt\relax
+\end{minipage}%
+\end{klfcontent}
+\end{document}

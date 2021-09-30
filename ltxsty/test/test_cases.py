@@ -86,6 +86,7 @@ _make_case_test(TestRunCases, "inlinemathaligned")
 
 _make_case_test(TestRunCases, "inlinemathalignedcolor")
 
+_make_case_test(TestRunCases, "minipage_textwidth")
 
 
 print("Go!")
