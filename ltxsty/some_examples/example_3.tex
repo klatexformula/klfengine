@@ -1,0 +1,51 @@
+\documentclass{article}
+
+%
+% Use option pdflatex|latex|lualatex|xelatex depending on which engine you're using
+%
+\usepackage[pdflatex]{klfimpl}
+
+\usepackage{xcolor}
+\usepackage{amsmath}
+
+%\klfSetTopMargin{0pt}
+%\klfSetRightMargin{0pt}
+%\klfSetBottomMargin{0pt}
+%\klfSetLeftMargin{0pt}
+
+\klfSetFixedWidth{6cm}
+\klfSetFixedHeight{3cm}
+
+%\klfSetScale{5}
+%\klfSetXScale{5}
+%\klfSetYScale{5}
+
+\klfSetXAlignCoeff{0.25}
+\klfSetYAlignCoeff{0.8}
+
+%\klfSetBottomAlignment{bbox} % default
+%\klfSetBottomAlignment{baseline}
+%\klfSetTopAlignment{bbox} % default
+%\klfSetTopAlignment{Xheight}
+
+%\klfSetBaselineRuleType{line}
+%\renewcommand\klfBaselineRuleLineSetup{\color{blue}}
+%\renewcommand\klfBaselineRuleLineThickness{0.2pt}
+
+\klfSetBackgroundColor{220,200,255}
+
+\klfSetBackgroundFrameThickness{3pt}
+%\klfSetBackgroundFrameOffset{3pt}
+\klfSetBackgroundFrameXOffset{3pt}
+% \klfSetBackgroundFrameYOffset{0pt}
+\klfSetBackgroundFrameColor{127,0,38}
+
+\pagestyle{empty}
+\begin{document}
+\begin{klfcontent}{\hbox}{}%
+\begin{minipage}{\textwidth}\relax
+This is some paragraph text that will hopefully reflow as necessary
+to the predefined fixed width of the box.  Will this work?
+\end{minipage}%
+\end{klfcontent}
+\end{document}
