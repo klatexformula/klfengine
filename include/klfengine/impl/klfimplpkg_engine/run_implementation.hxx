@@ -311,6 +311,18 @@ std::string run_implementation::assemble_latex_template(
     }
   });
 
+  // one of "\\hbox", "\\vbox", "\\vtop", "\\vcenter", possibly followed by
+  // TeX attribute such as "\\hbox to 2em"
+  //
+  // You CANNOT add arbitrary other TeX commands here, this will break the
+  // template. (The contents of `content_tex_box_primitive` being inserted in a
+  // construct like "\setbox\mybox=#1{content}")
+  //
+  // if you use one of the \vbox'es, it's up to you to make sure it has the
+  // right width (set \hsize)
+  bool content_tex_box_primitive =
+    dict_get<std::string>(in.parameters, "content_tex_box_primitive", "\\hbox");
+
   // ---
 
   std::string latex_str;
@@ -343,7 +355,8 @@ std::string run_implementation::assemble_latex_template(
     "\\pagestyle{empty}\n"
     "\\begin{document}%\n";
 
-  latex_str += "\\begin{klfcontent}{\\hbox}{" + font_cmds + "}%\n";
+  latex_str += "\\begin{klfcontent}{" + content_tex_box_primitive
+    + "}{" + font_cmds + "}%\n";
 
   latex_str += "%%% --- begin user math_mode and latex ---\n";
   latex_str += in.math_mode.first;

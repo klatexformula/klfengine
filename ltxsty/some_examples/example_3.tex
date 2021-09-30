@@ -8,12 +8,12 @@
 \usepackage{xcolor}
 \usepackage{amsmath}
 
-%\klfSetTopMargin{0pt}
-%\klfSetRightMargin{0pt}
-%\klfSetBottomMargin{0pt}
-%\klfSetLeftMargin{0pt}
+\klfSetTopMargin{5pt}
+\klfSetRightMargin{5pt}
+\klfSetBottomMargin{5pt}
+\klfSetLeftMargin{5pt}
 
-\klfSetFixedWidth{6cm}
+\klfSetFixedWidth{7cm}
 \klfSetFixedHeight{3cm}
 
 %\klfSetScale{5}
@@ -34,9 +34,9 @@
 
 \klfSetBackgroundColor{220,200,255}
 
-\klfSetBackgroundFrameThickness{3pt}
+\klfSetBackgroundFrameThickness{1pt}
 %\klfSetBackgroundFrameOffset{3pt}
-\klfSetBackgroundFrameXOffset{3pt}
+\klfSetBackgroundFrameXOffset{0pt}
 % \klfSetBackgroundFrameYOffset{0pt}
 \klfSetBackgroundFrameColor{127,0,38}
 
@@ -44,8 +44,9 @@
 \begin{document}
 \begin{klfcontent}{\hbox}{}%
 \begin{minipage}{\textwidth}\relax
-This is some paragraph text that will hopefully reflow as necessary
-to the predefined fixed width of the box.  Will this work?
+  This is some paragraph text that will hopefully reflow as necessary to the
+  predefined fixed width of the box, leaving the specified 5pt margins on all
+  edges.  Will this work?
 \end{minipage}%
 \end{klfcontent}
 \end{document}
