@@ -36,6 +36,47 @@
 
 namespace klfengine {
 
+_KLFENGINE_INLINE
+bool parse_boolean(std::string str)
+{
+  std::size_t i = 0;
+  while (i < str.size() && std::isspace(str[i])) {
+    ++i;
+  }
+  str.erase( str.begin(), str.begin() + i );
+  std::size_t j = str.size();
+  while (j > 0 && std::isspace(str[j-1])) {
+    --j;
+  }
+  str.erase( str.begin() + j, str.end() );
+
+  std::transform(str.begin(), str.end(), str.begin(), ::tolower);
+
+  if (str == "t" || str == "true" || str == "y" || str == "yes" || str == "on") {
+    return true;
+  }
+  if (str == "f" || str == "false" || str == "n" || str == "no" || str == "off") {
+    return false;
+  }
+
+  // try to parse an integer
+  try {
+
+    int result = std::stoi(str, &i);
+    if (i == str.size()) {
+      // consumed entire string -> got integer
+      return static_cast<bool>(result);
+    }
+
+  } catch (std::invalid_argument & e) {
+    // ignore this exception, we'll throw our own exception
+  }
+
+  throw std::invalid_argument("Invalid boolean value: `" + str + "'");
+}
+
+
+
 namespace detail {
 
 // !!: The to/from_json() functions need to be in the detail namespace, because

@@ -10,6 +10,10 @@ File ``<klfengine/basedefs>``
 
 .. doxygenclass:: klfengine::invalid_json_value
 
+.. doxygenclass:: klfengine::invalid_parameter
+
+.. doxygenclass:: klfengine::invalid_value
+
 
 File ``<klfengine/value>``
 --------------------------

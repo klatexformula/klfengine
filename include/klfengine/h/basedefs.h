@@ -176,6 +176,21 @@ public:
   {}
 };
 
+/** \brief Invalid value
+ *
+ * This exception is thrown when an invalid value is encountered, though not
+ * necessarily given as an argument.  This is used, e.g., to report invalid
+ * casts in \ref klfengine::value::get_cast().
+ */
+class invalid_value : public klfengine::exception
+{
+public:
+  invalid_value(std::string msg) : klfengine::exception{msg}
+  {}
+};
+
+
+
 
 
 

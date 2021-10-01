@@ -56,6 +56,19 @@
 
 namespace klfengine {
 
+
+/** \brief String to boolean parser
+ *
+ * Recognizes values such as "T" or "1" or "on" for true and "F", "false", "0",
+ * etc. for false.  Whitespace is stripped.
+ *
+ * Throws \ref std::invalid_argument if a clean boolean couldn't be parsed.
+ */
+bool parse_boolean(std::string str);
+
+
+
+
 namespace detail {
 
 #ifdef KLFENGINE_USE_MPARK_VARIANT
@@ -73,6 +86,176 @@ using variant_type = std::variant<Args...>;
 #define _KLFENGINE_VARIANT_VISIT std::visit
 #endif
 
+
+// -- helpers for casting variant types --
+
+struct dummy_type {};
+
+template<typename ToType>
+struct variant_cast_helper
+{
+  // provide at least one operator() so that "using Base::operator()" works
+  inline void operator()(dummy_type, dummy_type) {}
+};
+template<>
+struct variant_cast_helper<int>
+{
+  inline int operator()(const std::string & value_s)
+  {
+    std::size_t ppos;
+    int value = std::stoi(value_s, &ppos);
+    while (ppos < value_s.size() && std::isspace(value_s[ppos])) {
+      ++ppos;
+    }
+    if (ppos < value_s.size()) {
+      throw std::invalid_argument{ "Invalid integer: `" + value_s + "'" };
+    }
+    return value;
+  }
+};
+template<>
+struct variant_cast_helper<double>
+{
+  inline double operator()(int value) { return static_cast<double>(value); }
+  inline double operator()(const std::string & value_s)
+  {
+    std::size_t ppos;
+    double value = std::stod(value_s, &ppos);
+    while (ppos < value_s.size() && std::isspace(value_s[ppos])) {
+      ++ppos;
+    }
+    if (ppos < value_s.size()) {
+      throw std::invalid_argument{ "Invalid real number: `" + value_s + "'" };
+    }
+    return value;
+  }
+};
+template<>
+struct variant_cast_helper<bool>
+{
+  inline bool operator()(int value) { return static_cast<bool>(value); }
+  inline bool operator()(std::string str) { return parse_boolean(std::move(str)); }
+};
+
+
+// -- helpers for the helpers for casting variant types --
+
+
+template<typename X>
+struct dummy_internal_int { using dummy_type = int; };
+
+template<typename ToType>
+struct variant_has_castable_helper_visitor
+{
+private:
+  // adapted from https://stackoverflow.com/a/31539364/1694896
+  template<typename FromTypeNoQual, typename T>
+  static std::true_type test_signature(ToType (T::*)(FromTypeNoQual) );
+  template<typename FromTypeNoQual, typename T>
+  static std::true_type test_signature(ToType (T::*)(const FromTypeNoQual &) );
+
+  template<typename FromTypeNoQual, typename T>
+  static auto test(std::nullptr_t)
+    -> decltype(test_signature<FromTypeNoQual, variant_cast_helper<ToType> >(&T::operator()));
+
+  template<typename FromTypeNoQual, typename T>
+  static std::false_type test(...);
+
+  template<typename FromTypeNoQual>
+  using _is_castable_type =
+    decltype(test<FromTypeNoQual, variant_cast_helper<ToType> >(nullptr));
+
+public:
+  template<typename FromTypeNoQual>
+  using is_castable_type = _is_castable_type<FromTypeNoQual>;
+
+  template<typename FromType>
+  inline bool operator()(FromType && )
+  {
+    using FromTypeNoQual =
+      typename std::remove_cv<
+        typename std::remove_reference<FromType>::type
+      >::type
+      ;
+    // fprintf(stderr, "DEBUG!!! can cast '%s' to '%s' ? -> same=%d, castable=%d\n",
+    //         get_type_name<FromTypeNoQual>().c_str(),
+    //         get_type_name<ToType>().c_str(),
+    //         (int)std::is_same<FromTypeNoQual, ToType>::value,
+    //         (int)is_castable_type<FromTypeNoQual>::value);
+            
+    return
+      std::is_same<FromTypeNoQual, ToType>::value ||
+      is_castable_type<FromTypeNoQual>::value;
+  }
+
+  // template<typename FromType,
+  //          typename std::enable_if<decltype(is_castable_type<FromType>())::value, int>::type* = nullptr
+  //          >
+  // bool operator()(FromType && )
+  // {
+  //   return true;
+  // }
+  // template<typename FromType,
+  //          typename std::enable_if<! decltype(is_castable_type<FromType>())::value, int>::type* = nullptr
+  //          >
+  // bool operator()(FromType && )
+  // {
+  //   return false;
+  // }
+};
+
+// // DEBUGGGGG
+// static_assert(
+// //  decltype(variant_has_castable_helper_visitor<nullptr_t>::is_castable_type<nullptr_t>())::value
+//   std::is_same<
+//     decltype(variant_has_castable_helper_visitor<nullptr_t>().operator()(nullptr)),
+//     int
+//   >::value
+// ,
+// "");
+//static_assert( std::is_same<std::nullptr_t, std::nullptr_t>::value , "");
+// static_assert(
+//   decltype(variant_has_castable_helper_visitor<double>::test_signature<int, variant_cast_helper<double> >(&variant_cast_helper<double>::operator()))
+// ,
+// ""
+// )
+
+template<typename ToType>
+struct variant_cast_helper_full_visitor
+  : public variant_cast_helper<ToType>
+{
+  inline ToType operator()(ToType value) { return std::move(value); }
+
+  using variant_cast_helper<ToType>::operator();
+
+  // template<
+  //   typename FromType,
+  //   typename std::enable_if<
+  //     variant_has_castable_helper_visitor<FromType>::template is_castable_type<ToType>::value,
+  //     int
+  //   > = 1
+  // >
+  // inline ToType operator()(FromType && value) {
+  //   return variant_cast_helper<ToType>()(std::forward<FromType>(value));
+  // }
+
+  template<
+    typename FromType
+    //,
+    // typename std::enable_if<
+    //   ! variant_has_castable_helper_visitor<FromType>::template is_castable_type<ToType>::value,
+    //   int
+    // > = 1
+  >
+  inline ToType operator()(FromType &&) {
+    throw invalid_value{
+      "Cannot convert klfengine::value from `" + get_type_name<FromType>() + "' "
+      "to `" + get_type_name<ToType>() + "'"
+    };
+  }
+};
+
+// --
 
 // see https://stackoverflow.com/a/43309497/1694896
 template<typename... PrimaryDataTypes>
@@ -124,17 +307,53 @@ struct recursive_variant_with_vector_and_map
     return _KLFENGINE_VARIANT_HOLDS_ALTERNATIVE<GetValueType>(_data);
   }
 
+  // template<typename FnVisitor>
+  // inline void visit(FnVisitor && fn) const
+  // {
+  //   _KLFENGINE_VARIANT_VISIT(fn, _data);
+  // }
   template<typename FnVisitor>
-  inline void visit(FnVisitor && fn) const
+  inline auto visit(FnVisitor && fn) const ->
+    typename std::enable_if<
+        std::is_same<decltype(_KLFENGINE_VARIANT_VISIT(fn, _data)),void>::value,
+        decltype(_KLFENGINE_VARIANT_VISIT(fn, _data))
+    >::type
   {
     _KLFENGINE_VARIANT_VISIT(fn, _data);
   }
+
   template<typename FnVisitor>
-  inline auto transform(FnVisitor && fn) const
-    -> decltype( _KLFENGINE_VARIANT_VISIT(fn, _data) )
+  inline auto visit(FnVisitor && fn) const ->
+    typename std::enable_if<
+        ! std::is_same<decltype(_KLFENGINE_VARIANT_VISIT(fn, _data)),void>::value,
+        decltype(_KLFENGINE_VARIANT_VISIT(fn, _data))
+    >::type
   {
     return _KLFENGINE_VARIANT_VISIT(fn, _data);
   }
+
+  // template<typename FnVisitor>
+  // inline auto transform(FnVisitor && fn) const
+  //   -> decltype( _KLFENGINE_VARIANT_VISIT(fn, _data) )
+  // {
+  //   return _KLFENGINE_VARIANT_VISIT(fn, _data);
+  // }
+
+
+  // like get() but with cast between certain compatible types
+  
+  template<typename GetValueType>
+  GetValueType get_cast() const
+  {
+    return visit(variant_cast_helper_full_visitor<GetValueType>());
+  }
+
+  template<typename GetValueType>
+  inline bool has_castable_to() const
+  {
+    return visit(variant_has_castable_helper_visitor<GetValueType>());
+  }
+
 
   // template<typename RhsType>
   // inline recursive_variant_with_vector_and_map
@@ -465,7 +684,8 @@ public:
   /** \brief Don't worry about remaining parameters
    *
    * Call this if you want the parameter_taker not to warn about un-take()-en
-   * parameters in its destructor.
+   * parameters in its destructor.  For instance, you could call this
+   * immediately before throwing an exception to report another error.
    */
   void disable_check()
   {
@@ -479,14 +699,32 @@ public:
   parameter_taker & operator=(const parameter_taker & copy) = delete;
   parameter_taker & operator=(parameter_taker && move) = delete;
 
-  inline bool has(std::string key)
+  inline bool has(const std::string & key)
   {
     auto it = _paramdict.find(key);
     return (it != _paramdict.end());
   }
+  template<typename X>
+  inline bool has(const std::string & key)
+  {
+    auto it = _paramdict.find(key);
+    if (it == _paramdict.end()) {
+      return false;
+    }
+    return it->second->has_type<X>();
+  }
+  template<typename X>
+  inline bool has_castable_to(const std::string & key)
+  {
+    auto it = _paramdict.find(key);
+    if (it == _paramdict.end()) {
+      return false;
+    }
+    return it->second->has_castable_to<X>();
+  }
 
   template<typename X = value>
-  const X & take(std::string key) {
+  const X & take(const std::string & key) {
     auto it = _paramdict.find(key);
     if (it == _paramdict.end()) {
       throw std::out_of_range("No such key in dictionary: " + key);
@@ -496,8 +734,13 @@ public:
     return val->get<X>();
   }
 
+  template<typename X = value>
+  X take_cast(const std::string & key) {
+    return take<value>(key).get_cast<X>();
+  }
+
   template<typename X>
-  const X & take(std::string key, const X & dflt) {
+  const X & take(const std::string & key, const X & dflt) {
     auto it = _paramdict.find(key);
     if (it == _paramdict.end()) {
       return dflt;
@@ -506,6 +749,32 @@ public:
     _paramdict.erase(it);
     return val->get<X>();
   }
+
+  template<typename X>
+  X take_cast(const std::string & key, const X & dflt) {
+    auto it = _paramdict.find(key);
+    if (it == _paramdict.end()) {
+      return dflt;
+    }
+    const value * val = it->second;
+    _paramdict.erase(it);
+    return val->get_cast<X>();
+  }
+
+  template<typename X = value>
+  inline bool do_if(const std::string & key,
+                    std::function<void(const X&)> fn)
+  {
+    auto it = _paramdict.find(key);
+    if (it == _paramdict.end()) {
+      return false;
+    }
+    const value * val = it->second;
+    _paramdict.erase(it);
+    fn(val->get<X>());
+    return true;
+  }
+
 
   value::dict get_remaining() const
   {
@@ -535,6 +804,7 @@ private:
       for ( const std::pair<std::string, const value *> & p : _paramdict ) {
         if (!first) {
           msg += ",";
+        } else {
           first = false;
         }
         msg += "\""+p.first+"\"";

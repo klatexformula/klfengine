@@ -38,6 +38,53 @@
 #include <catch2/catch.hpp>
 
 
+
+TEST_CASE( "parse_boolean can parse a valid boolean", "[value]" )
+{
+  REQUIRE( klfengine::parse_boolean("true") );
+  REQUIRE( klfengine::parse_boolean("True") );
+  REQUIRE( klfengine::parse_boolean("T") );
+  REQUIRE( klfengine::parse_boolean("Y") );
+  REQUIRE( klfengine::parse_boolean("y") );
+  REQUIRE( klfengine::parse_boolean("yes") );
+  REQUIRE( klfengine::parse_boolean("on") );
+  REQUIRE( klfengine::parse_boolean("1") );
+  REQUIRE( klfengine::parse_boolean("+2") );
+  REQUIRE( klfengine::parse_boolean("-3849") );
+
+  REQUIRE( klfengine::parse_boolean(" T") );
+  REQUIRE( klfengine::parse_boolean("T  ") );
+  REQUIRE( klfengine::parse_boolean("\t\ntrUe  \r\f\n\v") );
+  REQUIRE( klfengine::parse_boolean("\n  \r+134  ") );
+
+  REQUIRE( ! klfengine::parse_boolean("false") );
+  REQUIRE( ! klfengine::parse_boolean("faLsE") );
+  REQUIRE( ! klfengine::parse_boolean("f") );
+  REQUIRE( ! klfengine::parse_boolean("F") );
+  REQUIRE( ! klfengine::parse_boolean("N") );
+  REQUIRE( ! klfengine::parse_boolean("n") );
+  REQUIRE( ! klfengine::parse_boolean("no") );
+  REQUIRE( ! klfengine::parse_boolean("off") );
+  REQUIRE( ! klfengine::parse_boolean("0") );
+  REQUIRE( ! klfengine::parse_boolean("+0") );
+
+  REQUIRE( ! klfengine::parse_boolean(" F") );
+  REQUIRE( ! klfengine::parse_boolean("f  ") );
+  REQUIRE( ! klfengine::parse_boolean("\t\nFalse  \r\f\n\v") );
+  REQUIRE( ! klfengine::parse_boolean("\n  \r 000  ") );
+
+  REQUIRE_THROWS_AS( klfengine::parse_boolean(" invalid") , std::invalid_argument);
+  REQUIRE_THROWS_AS( klfengine::parse_boolean("1invalid") , std::invalid_argument);
+  REQUIRE_THROWS_AS( klfengine::parse_boolean("0  blabla") , std::invalid_argument);
+
+  REQUIRE_THROWS_AS( klfengine::parse_boolean("tru") , std::invalid_argument);
+  REQUIRE_THROWS_AS( klfengine::parse_boolean("fa") , std::invalid_argument);
+  REQUIRE_THROWS_AS( klfengine::parse_boolean("ye") , std::invalid_argument);
+
+  REQUIRE_THROWS_AS( klfengine::parse_boolean("o") , std::invalid_argument);
+}
+
+
 TEST_CASE( "variant_type can store an int or a string", "[value]" )
 {
 
@@ -102,22 +149,22 @@ TEST_CASE( "value can store different data types recursively", "[value]" )
         );
   }
 
-#if defined(__cpp_lib_string_udls) && __cpp_lib_string_udls >= 201304L
   {
     using namespace std::literals; // "xxx"s -> std::string  (C++ >= 14)
 
     klfengine::value d{
       klfengine::value::array{
-        klfengine::value{"one"s},
-        klfengine::value{"two"s},
+        klfengine::value{std::string{"one"}},
+        klfengine::value{std::string{"two"}},
         klfengine::value{klfengine::value::array{klfengine::value{3}, klfengine::value{4},
                                                  klfengine::value{5}}},
-        klfengine::value{klfengine::value::dict{{"key1", klfengine::value{"value1"s}},
+        klfengine::value{klfengine::value::dict{{"key1",
+                                                 klfengine::value{std::string{"value1"}}},
                                                 {"key2", klfengine::value{222}}}}
       }
     };
     REQUIRE(
-        d.get<klfengine::value::array>()[0].get<std::string>() == std::string("one")
+        d.get<klfengine::value::array>()[0].get<std::string>() == std::string{"one"}
         );
     REQUIRE(
         d.get<klfengine::value::array>()[2].get<klfengine::value::array>()[1].get<int>()
@@ -128,7 +175,6 @@ TEST_CASE( "value can store different data types recursively", "[value]" )
         == 222
         );
   }
-#endif
 }
 
 
@@ -190,6 +236,9 @@ TEST_CASE( "value offers has_type", "[value]" )
 
 
 
+
+
+
 struct simple_visitor
 {
   std::string result;
@@ -214,6 +263,31 @@ struct simple_visitor
   }
   void operator()(klfengine::value::dict) {
     result = "dict";
+  }
+};
+
+struct simple_visitor_with_return_value
+{
+  std::string operator()(std::nullptr_t) {
+    return "null";
+  }
+  std::string operator()(bool) {
+    return "bool";
+  }
+  std::string operator()(int) {
+    return "int";
+  }
+  std::string operator()(double) {
+    return "double";
+  }
+  std::string operator()(std::string) {
+    return "string";
+  }
+  std::string operator()(klfengine::value::array) {
+    return "array";
+  }
+  std::string operator()(klfengine::value::dict) {
+    return "dict";
   }
 };
 
@@ -267,48 +341,22 @@ TEST_CASE( "value can be visited", "[value]" )
 }
 
 
-struct simple_visit_transformer
-{
-  std::string operator()(std::nullptr_t) {
-    return "null";
-  }
-  std::string operator()(bool) {
-    return "bool";
-  }
-  std::string operator()(int) {
-    return "int";
-  }
-  std::string operator()(double) {
-    return "double";
-  }
-  std::string operator()(std::string) {
-    return "string";
-  }
-  std::string operator()(klfengine::value::array) {
-    return "array";
-  }
-  std::string operator()(klfengine::value::dict) {
-    return "dict";
-  }
-};
-
-
-TEST_CASE( "value can be transformed", "[value]" )
+TEST_CASE( "value can be visited with return value", "[value]" )
 {
   { auto v = klfengine::value{nullptr};
-    REQUIRE( v.transform(simple_visit_transformer()) == "null" ); }
+    REQUIRE( v.visit(simple_visitor_with_return_value()) == "null" ); }
 
   { auto v = klfengine::value{true};
-    REQUIRE( v.transform(simple_visit_transformer()) == "bool" ); }
+    REQUIRE( v.visit(simple_visitor_with_return_value()) == "bool" ); }
 
   { auto v = klfengine::value{3};
-    REQUIRE( v.transform(simple_visit_transformer()) == "int" ); }
+    REQUIRE( v.visit(simple_visitor_with_return_value()) == "int" ); }
 
   { auto v = klfengine::value{42.5};
-    REQUIRE( v.transform(simple_visit_transformer()) == "double" ); }
+    REQUIRE( v.visit(simple_visitor_with_return_value()) == "double" ); }
 
   { auto v = klfengine::value{std::string{"hello"}};
-    REQUIRE( v.transform(simple_visit_transformer()) == "string" ); }
+    REQUIRE( v.visit(simple_visitor_with_return_value()) == "string" ); }
 
   { auto v = klfengine::value{
       klfengine::value::array{
@@ -316,7 +364,7 @@ TEST_CASE( "value can be transformed", "[value]" )
         klfengine::value{std::string("two")}
       }
     };
-    REQUIRE( v.transform(simple_visit_transformer()) == "array" ); }
+    REQUIRE( v.visit(simple_visitor_with_return_value()) == "array" ); }
 
   { auto v = klfengine::value{klfengine::value::dict{
       {"key1",
@@ -324,8 +372,71 @@ TEST_CASE( "value can be transformed", "[value]" )
       {"key2",
        klfengine::value{222}}
     }};
-    REQUIRE( v.transform(simple_visit_transformer()) == "dict" ); }
+    REQUIRE( v.visit(simple_visitor_with_return_value()) == "dict" ); }
 }
+
+
+
+
+// struct simple_visit_transformer
+// {
+//   std::string operator()(std::nullptr_t) {
+//     return "null";
+//   }
+//   std::string operator()(bool) {
+//     return "bool";
+//   }
+//   std::string operator()(int) {
+//     return "int";
+//   }
+//   std::string operator()(double) {
+//     return "double";
+//   }
+//   std::string operator()(std::string) {
+//     return "string";
+//   }
+//   std::string operator()(klfengine::value::array) {
+//     return "array";
+//   }
+//   std::string operator()(klfengine::value::dict) {
+//     return "dict";
+//   }
+// };
+
+
+// TEST_CASE( "value can be transformed", "[value]" )
+// {
+//   { auto v = klfengine::value{nullptr};
+//     REQUIRE( v.transform(simple_visit_transformer()) == "null" ); }
+
+//   { auto v = klfengine::value{true};
+//     REQUIRE( v.transform(simple_visit_transformer()) == "bool" ); }
+
+//   { auto v = klfengine::value{3};
+//     REQUIRE( v.transform(simple_visit_transformer()) == "int" ); }
+
+//   { auto v = klfengine::value{42.5};
+//     REQUIRE( v.transform(simple_visit_transformer()) == "double" ); }
+
+//   { auto v = klfengine::value{std::string{"hello"}};
+//     REQUIRE( v.transform(simple_visit_transformer()) == "string" ); }
+
+//   { auto v = klfengine::value{
+//       klfengine::value::array{
+//         klfengine::value{std::string("one")},
+//         klfengine::value{std::string("two")}
+//       }
+//     };
+//     REQUIRE( v.transform(simple_visit_transformer()) == "array" ); }
+
+//   { auto v = klfengine::value{klfengine::value::dict{
+//       {"key1",
+//        klfengine::value{std::string("value1")}},
+//       {"key2",
+//        klfengine::value{222}}
+//     }};
+//     REQUIRE( v.transform(simple_visit_transformer()) == "dict" ); }
+// }
 
 
 
@@ -360,6 +471,104 @@ TEST_CASE( "value supports equality comparision", "[value]" )
   REQUIRE( x != y );
   REQUIRE( x != z );
 }
+
+
+
+
+TEST_CASE( "value offers has_castable_to", "[value]" )
+{
+  REQUIRE( ! klfengine::value{nullptr}.has_castable_to<int>() );
+  REQUIRE( ! klfengine::value{nullptr}.has_castable_to<double>() );
+  REQUIRE( ! klfengine::value{nullptr}.has_castable_to<bool>() );
+  REQUIRE( ! klfengine::value{nullptr}.has_castable_to<std::string>() );
+  REQUIRE( ! klfengine::value{nullptr}.has_castable_to<klfengine::value::array>() );
+  REQUIRE( ! klfengine::value{nullptr}.has_castable_to<klfengine::value::dict>() );
+  REQUIRE( klfengine::value{nullptr}.has_castable_to<std::nullptr_t>() );
+
+  REQUIRE( klfengine::value{true}.has_castable_to<bool>() );
+  REQUIRE( ! klfengine::value{true}.has_castable_to<int>() );
+  REQUIRE( ! klfengine::value{true}.has_castable_to<double>() );
+  REQUIRE( ! klfengine::value{true}.has_castable_to<std::string>() );
+  REQUIRE( ! klfengine::value{true}.has_castable_to<std::nullptr_t>() );
+  REQUIRE( ! klfengine::value{true}.has_castable_to<klfengine::value::array>() );
+  REQUIRE( ! klfengine::value{true}.has_castable_to<klfengine::value::dict>() );
+
+  REQUIRE( klfengine::value{3}.has_castable_to<int>() );
+  REQUIRE( klfengine::value{3}.has_castable_to<double>() );
+  REQUIRE( klfengine::value{3}.has_castable_to<bool>() );
+  REQUIRE( ! klfengine::value{3}.has_castable_to<std::nullptr_t>() );
+  REQUIRE( ! klfengine::value{3}.has_castable_to<std::string>() );
+  REQUIRE( ! klfengine::value{3}.has_castable_to<klfengine::value::array>() );
+  REQUIRE( ! klfengine::value{3}.has_castable_to<klfengine::value::dict>() );
+
+  REQUIRE( klfengine::value{42.5}.has_castable_to<double>() );
+  REQUIRE( ! klfengine::value{42.5}.has_castable_to<int>() );
+  REQUIRE( ! klfengine::value{42.5}.has_castable_to<bool>() );
+  REQUIRE( ! klfengine::value{42.5}.has_castable_to<std::nullptr_t>() );
+  REQUIRE( ! klfengine::value{42.5}.has_castable_to<std::string>() );
+  REQUIRE( ! klfengine::value{42.5}.has_castable_to<klfengine::value::array>() );
+  REQUIRE( ! klfengine::value{42.5}.has_castable_to<klfengine::value::dict>() );
+
+  // strings are in principle convertible to bool, int, and double, regardless
+  // of actual value.
+  REQUIRE( klfengine::value{std::string("yo")}.has_castable_to<bool>() );
+  REQUIRE( klfengine::value{std::string("yo")}.has_castable_to<int>() );
+  REQUIRE( klfengine::value{std::string("yo")}.has_castable_to<double>() );
+  REQUIRE( ! klfengine::value{std::string("yo")}.has_castable_to<std::nullptr_t>() );
+  REQUIRE( klfengine::value{std::string("yo")}.has_castable_to<std::string>() );
+  REQUIRE( ! klfengine::value{std::string("yo")}.has_castable_to<klfengine::value::array>() );
+  REQUIRE( ! klfengine::value{std::string("yo")}.has_castable_to<klfengine::value::dict>() );
+
+  auto va = klfengine::value{
+      klfengine::value::array{
+        klfengine::value{std::string("one")},
+        klfengine::value{std::string("two")}
+      }
+    };
+
+  REQUIRE( va.has_castable_to<klfengine::value::array>() );
+  REQUIRE( ! va.has_castable_to<klfengine::value::dict>() );
+  REQUIRE( ! va.has_castable_to<std::nullptr_t>() );
+  REQUIRE( ! va.has_castable_to<int>() );
+  REQUIRE( ! va.has_castable_to<bool>() );
+
+
+  auto vd = klfengine::value{klfengine::value::dict{
+    {"key1",
+     klfengine::value{std::string("value1")}},
+    {"key2",
+     klfengine::value{222}}
+  }};
+
+
+  REQUIRE( vd.has_castable_to<klfengine::value::dict>() );
+  REQUIRE( ! vd.has_castable_to<klfengine::value::array>() );
+  REQUIRE( ! vd.has_castable_to<std::nullptr_t>() );
+  REQUIRE( ! vd.has_castable_to<int>() );
+  REQUIRE( ! vd.has_castable_to<bool>() );
+}
+
+
+TEST_CASE( "value can get_cast()", "[value]" )
+{
+  REQUIRE( klfengine::value{true}.get_cast<bool>() == true );
+  REQUIRE( klfengine::value{1}.get_cast<int>() == 1 );
+  REQUIRE( klfengine::value{2.0}.get_cast<double>() == 2.0 );
+  REQUIRE( klfengine::value{std::string{"xyZ"}}.get_cast<std::string>()
+           == std::string{"xyZ"} );
+  REQUIRE( klfengine::value{nullptr}.get_cast<nullptr_t>() == nullptr );
+
+  // castable types
+  REQUIRE( klfengine::value{1}.get_cast<bool>() == true );
+  REQUIRE( klfengine::value{1}.get_cast<double>() == 1.0 );
+  REQUIRE( klfengine::value{std::string{"2.0"}}.get_cast<double>() == 2.0 );
+  REQUIRE( klfengine::value{std::string{"+3"}}.get_cast<int>() == 3 );
+  REQUIRE( klfengine::value{std::string{"FaLsE"}}.get_cast<bool>() == false );
+
+  // check that we throw an std::invalid_argument if necessary
+  REQUIRE_THROWS_AS( klfengine::value{nullptr}.get_cast<bool>(), std::exception );
+}
+
 
 
 
@@ -633,7 +842,31 @@ TEST_CASE("dict_take returns default value on nonexistent key in dict", "[value]
   } );
 }
 
+
 // --
+
+
+TEST_CASE("parameter_taker finds fields", "[value]")
+{
+  const klfengine::value::dict d{
+    {"A", klfengine::value{1}},
+    {"B", klfengine::value{std::string{"value of B"}}},
+    {"C", klfengine::value{std::string{"value of C"}}}
+  };
+
+  // keep param within a C++ block scope
+  {
+    klfengine::parameter_taker param(d, "phase 1");
+    param.disable_check();
+
+    REQUIRE( param.has<int>("A") );
+    REQUIRE( ! param.has<std::string>("A") );
+    REQUIRE( param.has_castable_to<int>("A") );
+    REQUIRE( param.has_castable_to<double>("A") );
+    REQUIRE( ! param.has_castable_to<klfengine::value::dict>("A") );
+  }
+
+}
 
 TEST_CASE("parameter_taker parses parameters as expected", "[value]")
 {
@@ -658,6 +891,73 @@ TEST_CASE("parameter_taker parses parameters as expected", "[value]")
   }
 
 }
+
+TEST_CASE("parameter_taker can get parameters with casting", "[value]")
+{
+  const klfengine::value::dict d{
+    {"A", klfengine::value{std::string{"True"}}},
+    {"B", klfengine::value{std::string{"+1.60e+001"}}},
+    {"C", klfengine::value{std::string{"value of C"}}}
+  };
+
+  // keep param within a C++ block scope
+  {
+    klfengine::parameter_taker param(d, "phase 1");
+
+    bool value_A = param.take_cast<bool>("A", false);
+    double value_B = param.take_cast<double>("B");
+    std::string value_C = param.take_cast<std::string>("C");
+    param.finished();
+
+    REQUIRE(value_A == true);
+    REQUIRE(value_B == 16.0);
+    REQUIRE(value_C == std::string{"value of C"});
+  }
+
+}
+
+
+TEST_CASE("parameter_taker can do_if", "[value]")
+{
+  const klfengine::value::dict d{
+    {"A", klfengine::value{true}},
+    {"B", klfengine::value{std::string{"+1.60e+001"}}},
+    {"C", klfengine::value{std::string{"value of C"}}}
+  };
+
+  // keep param within a C++ block scope
+  {
+    klfengine::parameter_taker param(d, "phase 1");
+
+    bool called_A = false;
+    bool have_A = param.do_if<bool>("A", [&called_A](bool val) {
+      REQUIRE(val == true);
+      called_A = true;
+    });
+    REQUIRE(have_A);
+    REQUIRE(called_A);
+
+    bool have_D = param.do_if<klfengine::value>("D", [](const klfengine::value & ) { });
+    REQUIRE(!have_D);
+
+    bool have_E = param.do_if<int>("E", [](int) { });
+    REQUIRE(!have_E);
+
+    bool called_B = false;
+    bool have_B = param.do_if<klfengine::value>("B", [&](const klfengine::value & val) {
+      REQUIRE( val.get_cast<double>() == 16.0 );
+      called_B = true;
+    });
+    REQUIRE(have_B);
+    REQUIRE(called_B);
+
+    (void) param.take_cast<std::string>("C");
+
+    param.finished();
+  }
+
+}
+
 
 TEST_CASE("parameter_taker.finished() checks that all parameters were take()en", "[value]")
 {
