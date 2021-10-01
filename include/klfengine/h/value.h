@@ -255,6 +255,50 @@ struct variant_cast_helper_full_visitor
   }
 };
 
+template<typename T>
+struct simplified_type_name
+{
+  static inline std::string the_name() { return get_type_name<T>(); }
+};
+// some simplified types, too
+template<>
+struct simplified_type_name<std::nullptr_t>
+{
+  static inline std::string the_name() {
+    return "null";
+  }
+};
+template<>
+struct simplified_type_name<std::string>
+{
+  static inline std::string the_name() {
+    return "string";
+  }
+};
+template<typename... T>
+struct simplified_type_name<std::vector<T...> >
+{
+  static inline std::string the_name() {
+    return "array";
+  }
+};
+template<typename... T>
+struct simplified_type_name<std::map<T...> >
+{
+  static inline std::string the_name() {
+    return "dict";
+  }
+};
+
+struct simplified_type_name_visitor
+{
+  template<typename HeldType>
+  inline std::string operator()(const HeldType &)
+  {
+    return simplified_type_name<HeldType>::the_name();
+  }
+};
+
 // --
 
 // see https://stackoverflow.com/a/43309497/1694896
@@ -273,20 +317,42 @@ struct recursive_variant_with_vector_and_map
 
   // --
 
+  inline std::string get_type_name() const
+  {
+    return _KLFENGINE_VARIANT_VISIT(simplified_type_name_visitor(), _data);
+  }
+
+  // get(), const version
   template<typename GetValueType,
            typename std::enable_if<!std::is_same<GetValueType, this_type>::value,
                                    int>::type = 0 >
   inline const GetValueType & get() const {
-    return _KLFENGINE_VARIANT_GET<GetValueType>(_data);
+    try {
+      return _KLFENGINE_VARIANT_GET<GetValueType>(_data);
+    } catch (exception & e) {
+      throw invalid_value{
+        "Requested `" + klfengine::detail::get_type_name<GetValueType>()
+        + "' but value contains a `"
+        + get_type_name() + "'"
+      };
+    }
   }
+  // get(), non-const version
   template<typename GetValueType,
            typename std::enable_if<!std::is_same<GetValueType, this_type>::value,
                                    int>::type = 0>
   inline GetValueType & get() {
-    return _KLFENGINE_VARIANT_GET<GetValueType>(_data);
+    try {
+      return _KLFENGINE_VARIANT_GET<GetValueType>(_data);
+    } catch (exception & e) {
+      throw invalid_value{
+        "Requested `" + klfengine::detail::get_type_name<GetValueType>()
+        + "' but value contains a `"
+        + get_type_name() + "'"
+      };
+    }
   }
-
-  // helper access function .get<value>() for dict_get, dict_take, parameter_taker, etc.
+  // get<value>(), helper access function for dict_get, parameter_taker, etc.
   template<typename GetValueType,
            typename std::enable_if<std::is_same<GetValueType, this_type>::value,
                                    int>::type = 0>
@@ -762,8 +828,8 @@ public:
   }
 
   template<typename X = value>
-  inline bool do_if(const std::string & key,
-                    std::function<void(const X&)> fn)
+  inline bool take_and_do_if(const std::string & key,
+                             std::function<void(const X&)> fn)
   {
     auto it = _paramdict.find(key);
     if (it == _paramdict.end()) {

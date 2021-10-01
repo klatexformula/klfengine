@@ -126,10 +126,13 @@ std::string run_implementation::assemble_latex_template(
 {
   using namespace klfengine::detail::utils;
 
-  bool use_latex_template = dict_get<bool>(in.parameters, "use_latex_template", true);
+  parameter_taker param{ in.parameters, "klfengine::klfimplpkg_engine (input)" };
+
+  bool use_latex_template = param.take_cast<bool>("use_latex_template", true);
 
   if ( ! use_latex_template ) {
     // no need to go further, the user has prepared everything for us already
+    param.finished();
     return in.latex;
   }
 
@@ -138,9 +141,9 @@ std::string run_implementation::assemble_latex_template(
   std::string pre_preamble;
   std::string klf_preamble;
 
-  std::string docclass{ dict_get<std::string>(in.parameters, "document_class", "article") };
+  std::string docclass{ param.take<std::string>("document_class", "article") };
   // note, docoptions don't include [] argument wrapper
-  std::string docoptions{ dict_get<std::string>(in.parameters, "document_class_options", "") };
+  std::string docoptions{ param.take<std::string>("document_class_options", "") };
 
   std::string font_cmds;
 
@@ -164,24 +167,31 @@ std::string run_implementation::assemble_latex_template(
   std::string baseline_rule_type{"line"};
   std::string baseline_rule_setup{"\\color{blue}"};
   std::string baseline_rule_thickness{"0.2pt"};
-  dict_do_if<value>(in.parameters, "baseline_rule",
-                    [&need_latex_color_package,&baseline_rule,&baseline_rule_type,
-                     &baseline_rule_setup,&baseline_rule_thickness](const value& br) {
-    // specify baseline rule.
-    if (br.has_type<bool>()) {
-      baseline_rule = br.get<bool>();
-      if (baseline_rule) {
-        need_latex_color_package = true; // the default baseline_rule_setup uses \color{...}
+  param.take_and_do_if<value>(
+    "baseline_rule",
+    [&need_latex_color_package,&baseline_rule,&baseline_rule_type,
+     &baseline_rule_setup,&baseline_rule_thickness](const value& br) {
+      // specify baseline rule.
+      if (br.has_type<bool>()) {
+        baseline_rule = br.get<bool>();
+        if (baseline_rule) {
+          need_latex_color_package = true; // the default baseline_rule_setup uses \color{...}
+        }
+      } else {
+        // it's a dict with values
+        baseline_rule = true;
+        auto d = br.get<value::dict>();
+        parameter_taker param_blr{ d, "klfengine::klfimplpkg_engine (input.baseline_rule)" };
+        baseline_rule_type =
+          param_blr.take<std::string>("type", baseline_rule_type);
+        baseline_rule_setup =
+          param_blr.take<std::string>("setup", baseline_rule_setup);
+        baseline_rule_thickness =
+          param_blr.take<std::string>("thickness", baseline_rule_thickness);
+        param_blr.finished();
       }
-    } else {
-      // it's a dict with values
-      baseline_rule = true;
-      auto d = br.get<value::dict>();
-      baseline_rule_type = dict_get<std::string>(d, "type", baseline_rule_type);
-      baseline_rule_setup = dict_get<std::string>(d, "setup", baseline_rule_setup);
-      baseline_rule_thickness = dict_get<std::string>(d, "thickness", baseline_rule_thickness);
     }
-  });
+  );
 
   if (baseline_rule) {
     pre_preamble += 
@@ -199,18 +209,20 @@ std::string run_implementation::assemble_latex_template(
   //\klfSetXAlignCoeff{0.1}
   //\klfSetYAlignCoeff{0.8}
 
-  dict_do_if<std::string>(in.parameters, "fixed_width", [&pre_preamble](const std::string & x) {
+  param.take_and_do_if<std::string>("fixed_width",
+                                    [&pre_preamble](const std::string & x) {
     pre_preamble += "\\klfSetFixedWidth{" + x + "}%\n";
   });
-  dict_do_if<std::string>(in.parameters, "fixed_height", [&pre_preamble](const std::string & x) {
+  param.take_and_do_if<std::string>("fixed_height",
+                                    [&pre_preamble](const std::string & x) {
     pre_preamble += "\\klfSetFixedHeight{" + x + "}%\n";
   });
-  dict_do_if<double>(in.parameters, "x_align_coefficient",
-                     [&pre_preamble](double x) {
+  param.take_and_do_if<double>("x_align_coefficient",
+                               [&pre_preamble](double x) {
     pre_preamble += "\\klfSetXAlignCoeff{" + dbl_to_string(x) + "}%\n";
   });
-  dict_do_if<double>(in.parameters, "y_align_coefficient",
-                     [&pre_preamble](double x) {
+  param.take_and_do_if<double>("y_align_coefficient",
+                               [&pre_preamble](double x) {
     pre_preamble += "\\klfSetYAlignCoeff{" + dbl_to_string(x) + "}%\n";
   });
 
@@ -221,13 +233,13 @@ std::string run_implementation::assemble_latex_template(
 
   //\klfSetXScale{5}, \klfSetYScale{5}, \klfSetScale{5}
   bool set_xy_scale = false;
-  dict_do_if<double>(in.parameters, "x_scale",
-                     [&pre_preamble,&set_xy_scale](double x) {
+  param.take_and_do_if<double>("x_scale",
+                               [&pre_preamble,&set_xy_scale](double x) {
     pre_preamble += "\\klfSetXScale{" + dbl_to_string(x) + "}%\n";
     set_xy_scale = true;
   });
-  dict_do_if<double>(in.parameters, "y_scale",
-                     [&pre_preamble,&set_xy_scale](double x) {
+  param.take_and_do_if<double>("y_scale",
+                               [&pre_preamble,&set_xy_scale](double x) {
     pre_preamble += "\\klfSetYScale{" + dbl_to_string(x) + "}%\n";
     set_xy_scale = true;
   });
@@ -247,12 +259,12 @@ std::string run_implementation::assemble_latex_template(
   //\klfSetTopAlignment{bbox} % default
   //\klfSetTopAlignment{Xheight}
 
-  dict_do_if<std::string>(in.parameters, "top_alignment",
-                          [&pre_preamble](const std::string & x) {
+  param.take_and_do_if<std::string>("top_alignment",
+                                    [&pre_preamble](const std::string & x) {
     pre_preamble += "\\klfSetTopAlignment{" + x + "}%\n"; // one of 'bbox' or 'Xheight'
   });
-  dict_do_if<std::string>(in.parameters, "bottom_alignment",
-                          [&pre_preamble](const std::string & x) {
+  param.take_and_do_if<std::string>("bottom_alignment",
+                                    [&pre_preamble](const std::string & x) {
     pre_preamble += "\\klfSetBottomAlignment{" + x + "}%\n"; // one of 'bbox' or 'baseline'
   });
 
@@ -275,39 +287,41 @@ std::string run_implementation::assemble_latex_template(
       dbl_to_string(in.bg_color.alpha/255.0) + "}%\n";
   }
 
-  dict_do_if<value>(in.parameters, "bg_frame",
-                    [&pre_preamble](const value& bgf_v) {
+  param.take_and_do_if<value>("bg_frame",
+                              [&pre_preamble](const value& bgf_v) {
     if (bgf_v.has_type<bool>()) {
       pre_preamble += "\\klfSetBackgroundFrameThickness{0.4pt}%\n";
       pre_preamble += "\\klfSetBackgroundFrameOffset{1pt}%\n";
     } else {
       value::dict bgfd = bgf_v.get<value::dict>();
+      parameter_taker param_bgf{ bgfd, "klfengine::klfimplpkg_engine (input.bg_frame)" };
       bool bg_frame_on = false;
       bool need_set_default_thickness = true;
-      dict_do_if<std::string>(bgfd, "thickness", [&](const std::string & t) {
+      param_bgf.take_and_do_if<std::string>("thickness", [&](const std::string & t) {
         pre_preamble += "\\klfSetBackgroundFrameThickness{" + t + "}%\n";
         bg_frame_on = true;
         need_set_default_thickness = false;
       });
-      dict_do_if<std::string>(bgfd, "color", [&](const std::string & t) {
+      param_bgf.take_and_do_if<std::string>("color", [&](const std::string & t) {
         pre_preamble += "\\klfSetBackgroundFrameColor{" + t + "}%\n";
         bg_frame_on = true;
       });
-      dict_do_if<std::string>(bgfd, "x_offset", [&](const std::string & t) {
+      param_bgf.take_and_do_if<std::string>("x_offset", [&](const std::string & t) {
         pre_preamble += "\\klfSetBackgroundFrameXOffset{" + t + "}%\n";
         bg_frame_on = true;
       });
-      dict_do_if<std::string>(bgfd, "y_offset", [&](const std::string & t) {
+      param_bgf.take_and_do_if<std::string>("y_offset", [&](const std::string & t) {
         pre_preamble += "\\klfSetBackgroundFrameYOffset{" + t + "}%\n";
         bg_frame_on = true;
       });
-      dict_do_if<std::string>(bgfd, "offset", [&](const std::string & t) {
+      param_bgf.take_and_do_if<std::string>("offset", [&](const std::string & t) {
         pre_preamble += "\\klfSetBackgroundFrameOffset{" + t + "}%\n";
         bg_frame_on = true;
       });
       if (bg_frame_on && need_set_default_thickness) {
         pre_preamble += "\\klfSetBackgroundFrameThickness{0.4pt}%\n";
       }
+      param_bgf.finished();
     }
   });
 
@@ -320,8 +334,10 @@ std::string run_implementation::assemble_latex_template(
   //
   // if you use one of the \vbox'es, it's up to you to make sure it has the
   // right width (set \hsize)
-  bool content_tex_box_primitive =
-    dict_get<std::string>(in.parameters, "content_tex_box_primitive", "\\hbox");
+  std::string content_tex_box_primitive =
+    param.take<std::string>("content_tex_box_primitive", "\\hbox");
+
+  param.finished();
 
   // ---
 

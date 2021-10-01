@@ -85,6 +85,9 @@ TEST_CASE( "parse_boolean can parse a valid boolean", "[value]" )
 }
 
 
+// -------
+
+
 TEST_CASE( "variant_type can store an int or a string", "[value]" )
 {
 
@@ -177,6 +180,14 @@ TEST_CASE( "value can store different data types recursively", "[value]" )
   }
 }
 
+
+TEST_CASE( "value offers get_type_name", "[value]" )
+{
+  REQUIRE( klfengine::value{true}.get_type_name() == "bool" );
+  REQUIRE( klfengine::value{1}.get_type_name() == "int" );
+  REQUIRE( klfengine::value{1.5}.get_type_name() == "double" );
+  REQUIRE( klfengine::value{nullptr}.get_type_name() == "null" );
+}
 
 
 TEST_CASE( "value offers has_type", "[value]" )
@@ -556,7 +567,7 @@ TEST_CASE( "value can get_cast()", "[value]" )
   REQUIRE( klfengine::value{2.0}.get_cast<double>() == 2.0 );
   REQUIRE( klfengine::value{std::string{"xyZ"}}.get_cast<std::string>()
            == std::string{"xyZ"} );
-  REQUIRE( klfengine::value{nullptr}.get_cast<nullptr_t>() == nullptr );
+  REQUIRE( klfengine::value{nullptr}.get_cast<std::nullptr_t>() == nullptr );
 
   // castable types
   REQUIRE( klfengine::value{1}.get_cast<bool>() == true );
@@ -930,24 +941,30 @@ TEST_CASE("parameter_taker can do_if", "[value]")
     klfengine::parameter_taker param(d, "phase 1");
 
     bool called_A = false;
-    bool have_A = param.do_if<bool>("A", [&called_A](bool val) {
+    bool have_A = param.take_and_do_if<bool>("A", [&called_A](bool val) {
       REQUIRE(val == true);
       called_A = true;
     });
     REQUIRE(have_A);
     REQUIRE(called_A);
 
-    bool have_D = param.do_if<klfengine::value>("D", [](const klfengine::value & ) { });
+    bool have_D = param.take_and_do_if<klfengine::value>(
+        "D",
+        [](const klfengine::value & ) { }
+    );
     REQUIRE(!have_D);
 
-    bool have_E = param.do_if<int>("E", [](int) { });
+    bool have_E = param.take_and_do_if<int>("E", [](int) { });
     REQUIRE(!have_E);
 
     bool called_B = false;
-    bool have_B = param.do_if<klfengine::value>("B", [&](const klfengine::value & val) {
-      REQUIRE( val.get_cast<double>() == 16.0 );
-      called_B = true;
-    });
+    bool have_B = param.take_and_do_if<klfengine::value>(
+        "B",
+        [&](const klfengine::value & val) {
+          REQUIRE( val.get_cast<double>() == 16.0 );
+          called_B = true;
+        }
+    );
     REQUIRE(have_B);
     REQUIRE(called_B);
 

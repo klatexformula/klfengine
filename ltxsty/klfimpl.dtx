@@ -584,19 +584,22 @@
 %    \begin{macrocode}
       \klf@DrawBackground
 %    \end{macrocode}
-% Draw the baseline rule and contents.
+% Draw the baseline rule and contents.  First, we test the baseline rule type is
+% empty, in which case we skip the baseline rule entirely.
 %    \begin{macrocode}
-      \vbox to \z@{%
-        \hrule \@height\z@\nobreak
-        \vskip \klf@vshift\relax\nobreak
-        \hbox{\vrule \@width\z@ \relax
-          \raise \klf@d \hbox to \z@{%
-            \csname klf@baseline@rule@@\klf@set@baselineruletype\endcsname
+      \ifx\klf@set@baselineruletype\@empty\else
+        \vbox to \z@{%
+          \hrule \@height\z@\nobreak
+          \vskip \klf@vshift\relax\nobreak
+          \hbox{\vrule \@width\z@ \relax
+            \raise \klf@d \hbox to \z@{%
+              \csname klf@baseline@rule@@\klf@set@baselineruletype\endcsname
+            }%
+            \hskip \klf@hshift\relax
+            \raise \klf@d \box\klf@eqnbox
           }%
-          \hskip \klf@hshift\relax
-          \raise \klf@d \box\klf@eqnbox
         }%
-      }%
+      \fi
     }%
   }}%
   \c@page=\z@
@@ -880,7 +883,7 @@
 \def\klf@baseline@rule@@line{%
   \begingroup
     \klfBaselineRuleLineSetup
-    \vrule width\klf@ppw height\z@ depth\klfBaselineRuleLineThickness\relax
+    {\vrule width\klf@ppw height\z@ depth\klfBaselineRuleLineThickness\relax}
   \endgroup
 }
 %    \end{macrocode}
