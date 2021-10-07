@@ -237,17 +237,19 @@ const char * klfimpl_sty_data =
   \setbox\klf@final@box=\vbox{\hbox to \z@{%
     \klf@next{%
       \klf@DrawBackground
-      \vbox to \z@{%
-        \hrule \@height\z@\nobreak
-        \vskip \klf@vshift\relax\nobreak
-        \hbox{\vrule \@width\z@ \relax
-          \raise \klf@d \hbox to \z@{%
-            \csname klf@baseline@rule@@\klf@set@baselineruletype\endcsname
+      \ifx\klf@set@baselineruletype\@empty\else
+        \vbox to \z@{%
+          \hrule \@height\z@\nobreak
+          \vskip \klf@vshift\relax\nobreak
+          \hbox{\vrule \@width\z@ \relax
+            \raise \klf@d \hbox to \z@{%
+              \csname klf@baseline@rule@@\klf@set@baselineruletype\endcsname
+            }%
+            \hskip \klf@hshift\relax
+            \raise \klf@d \box\klf@eqnbox
           }%
-          \hskip \klf@hshift\relax
-          \raise \klf@d \box\klf@eqnbox
         }%
-      }%
+      \fi
     }%
   }}%
   \c@page=\z@
@@ -397,7 +399,7 @@ const char * klfimpl_sty_data =
 \def\klf@baseline@rule@@line{%
   \begingroup
     \klfBaselineRuleLineSetup
-    \vrule width\klf@ppw height\z@ depth\klfBaselineRuleLineThickness\relax
+    {\vrule width\klf@ppw height\z@ depth\klfBaselineRuleLineThickness\relax}%
   \endgroup
 }
 \def\klfDumpMetaInfo{%
