@@ -30,7 +30,7 @@
 
 #include <regex>
 
-#include <klfengine/latextoimage_engine>
+#include <klfengine/engines/latextoimage>
 #include <klfengine/temporary_directory>
 #include <klfengine/h/detail/utils.h>
 #include <klfengine/ghostscript_interface>
@@ -38,7 +38,8 @@
 
 
 namespace klfengine {
-namespace latextoimage_engine {
+namespace engines {
+namespace latextoimage {
 
 namespace detail {
 
@@ -396,7 +397,7 @@ klfengine::format_spec run_implementation::impl_make_canonical(
     )
 {
   klfengine::format_spec canon_format;
-  parameter_taker param{ format.parameters, "klfengine::latextoimage_engine" };
+  parameter_taker param{ format.parameters, "klfengine::engines::latextoimage" };
 
   if (format.format == "LATEX") {
     bool latex_raw = param.take("latex_raw", true);
@@ -489,7 +490,7 @@ run_implementation::impl_produce_data(const klfengine::format_spec & format)
 
   // -----
   parameter_taker param{ format.parameters,
-    "klfengine::latextoimage_engine::impl_produce_data" };
+    "klfengine::engines::latextoimage::impl_produce_data" };
 
   // 
   bool latex_raw = param.take("latex_raw", false);
@@ -617,4 +618,5 @@ run_implementation::impl_produce_data(const klfengine::format_spec & format)
 
 
 } // namespace latextoimage_engine
+} // namespace engines
 } // namespace klfengine

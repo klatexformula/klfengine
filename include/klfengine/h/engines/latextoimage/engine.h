@@ -5,7 +5,7 @@
  *
  * The MIT License (MIT)
  *
- * Copyright 2020 Philippe Faist
+ * Copyright 2021 Philippe Faist
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,44 +28,43 @@
 
 #pragma once
 
-#include <klfengine/latextoimage_engine>
-#include <klfengine/ghostscript_interface>
+#include <klfengine/basedefs>
+
+#include <klfengine/engine>
+#include <klfengine/run>
+#include <klfengine/engine_run_implementation>
+
 
 
 namespace klfengine {
-namespace latextoimage_engine {
 
-_KLFENGINE_INLINE
-engine::engine()
-  : klfengine::engine("latextoimage_engine")
-{
-  _gs_iface_tool = std::shared_ptr<klfengine::ghostscript_interface_engine_tool>{
-    new klfengine::ghostscript_interface_engine_tool{}
-  };
-}
+class ghostscript_interface_engine_tool;
 
-_KLFENGINE_INLINE
-engine::~engine()
-{
-}
+namespace engines {
+namespace latextoimage {
 
-_KLFENGINE_INLINE
-void engine::adjust_for_new_settings(klfengine::settings & settings_)
-{
-  _gs_iface_tool->set_settings(settings_);
-}
+class engine : public klfengine::engine {
+public:
+  engine();
+  virtual ~engine();
 
-// reimplemented from klfengine::engine
-_KLFENGINE_INLINE
-klfengine::engine_run_implementation *
-engine::impl_create_engine_run_implementation( klfengine::input input_,
-                                               klfengine::settings settings_ )
-{
-  return new run_implementation(_gs_iface_tool, std::move(input_), std::move(settings_));
-}
+private:
+  // reimplemented from klfengine::engine
+  void adjust_for_new_settings(klfengine::settings & settings);
+  klfengine::engine_run_implementation *
+  impl_create_engine_run_implementation( klfengine::input input_,
+                                         klfengine::settings settings_ );
+
+  std::shared_ptr<klfengine::ghostscript_interface_engine_tool> _gs_iface_tool;
+};
 
 
 
-
-} // namespace latextoimage_engine
+} // namespace latextoimage
+} // namespace engines
 } // namespace klfengine
+
+
+#ifndef _KLFENGINE_DONT_INCLUDE_IMPL_HXX
+#include <klfengine/impl/engines/latextoimage/engine.hxx>
+#endif

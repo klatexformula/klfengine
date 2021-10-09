@@ -27,19 +27,20 @@
  */
 
 // header we are testing gets included first (helps detect missing #include's)
-#include <klfengine/h/klfimplpkg_engine/run_implementation.h>
+#include <klfengine/h/engines/klflatexpackage/run_implementation.h>
 
-#include <klfengine/h/klfimplpkg_engine/engine.h>
+#include <klfengine/engines/klflatexpackage>
+#include <klfengine/h/engines/klflatexpackage/engine.h>
 
 #include <catch2/catch.hpp>
 
 #include "testutils.hxx"
 
 
-TEST_CASE( "simple compilation with klfimplpkg_engine produces correct equation image",
-           "[klfimplpkg_engine-run_implementation]" )
+TEST_CASE( "simple compilation with engines::klflatexpackage produces correct equation image",
+           "[engines-klflatexpackage-run_implementation]" )
 {
-  klfengine::klfimplpkg_engine::engine e;
+  klfengine::engines::klflatexpackage::engine e;
 
   e.set_settings(klfengine::settings::detect_settings());
 
@@ -84,14 +85,14 @@ TEST_CASE( "simple compilation with klfimplpkg_engine produces correct equation 
 
   require_images_similar("testoutf_xyz123.png",
                          //KLFENGINE_TEST_DATA_DIR "testoutf_xyz123.png");
-                         KLFENGINE_TEST_DATA_DIR "klfimplpkg_engine_run_implementation_1.png");
+                         KLFENGINE_TEST_DATA_DIR "engines_klflatexpackage_run_implementation_1.png");
 
 }
 
-TEST_CASE( "can get correct PNG image with klfimplpkg_engine",
-           "[klfimplpkg_engine-run_implementation]" )
+TEST_CASE( "can get correct PNG image with engines::klflatexpackage",
+           "[engines-klflatexpackage-run_implementation]" )
 {
-  klfengine::klfimplpkg_engine::engine e;
+  klfengine::engines::klflatexpackage::engine e;
 
   e.set_settings(klfengine::settings::detect_settings());
 
@@ -126,6 +127,6 @@ TEST_CASE( "can get correct PNG image with klfimplpkg_engine",
   klfengine::detail::utils::dump_binary_data_to_file("test39ioebjfdkslslaksd.png", pngdata);
 
   require_images_similar("test39ioebjfdkslslaksd.png",
-                         KLFENGINE_TEST_DATA_DIR "klfimplpkg_engine_run_implementation_2.png");
+                         KLFENGINE_TEST_DATA_DIR "engines_klflatexpackage_run_implementation_2.png");
 
 }

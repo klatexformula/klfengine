@@ -28,7 +28,7 @@
 
 #pragma once
 
-#include <klfengine/klfimplpkg_engine>
+#include <klfengine/engines/klflatexpackage>
 #include <klfengine/temporary_directory>
 #include <klfengine/h/detail/utils.h>
 #include <klfengine/ghostscript_interface>
@@ -36,16 +36,17 @@
 
 
 namespace klfengine {
-namespace klfimplpkg_engine {
+namespace engines {
+namespace klflatexpackage {
 
 
 namespace detail {
 
 // klfimpl_sty_data.h expands to ` const char * klfimpl_sty_data = R"(...)"; '
 // make the declaration 'static' to avoid errors if this file was included
-// multiple times
+// in multiple different source files
 static
-#include <klfengine/impl/klfimplpkg_engine/klfimpl_sty_data.h>
+#include <klfengine/impl/engines/klflatexpackage/klfimpl_sty_data.h>
 } // namespace detail
 
 
@@ -126,7 +127,7 @@ std::string run_implementation::assemble_latex_template(
 {
   using namespace klfengine::detail::utils;
 
-  parameter_taker param{ in.parameters, "klfengine::klfimplpkg_engine (input)" };
+  parameter_taker param{ in.parameters, "klfengine::engines::klflatexpackage (input)" };
 
   bool use_latex_template = param.take_cast<bool>("use_latex_template", true);
 
@@ -181,7 +182,7 @@ std::string run_implementation::assemble_latex_template(
         // it's a dict with values
         baseline_rule = true;
         auto d = br.get<value::dict>();
-        parameter_taker param_blr{ d, "klfengine::klfimplpkg_engine (input.baseline_rule)" };
+        parameter_taker param_blr{ d, "klfengine::engines::klflatexpackage (input.baseline_rule)" };
         baseline_rule_type =
           param_blr.take<std::string>("type", baseline_rule_type);
         baseline_rule_setup =
@@ -245,7 +246,7 @@ std::string run_implementation::assemble_latex_template(
   });
   if (in.scale != 1) {
     if (set_xy_scale) {
-      warn("klfengine::klfimplpkg_engine::run_implementation",
+      warn("klfengine::engines::klflatexpackage::run_implementation",
            "Scaling must be set either with the 'input.scale' property or using the "
            "'input.parameters[\"x_scale\"]'/'input.parameters[\"y_scale\"]' parameters, "
            "you can't mix.");
@@ -294,7 +295,7 @@ std::string run_implementation::assemble_latex_template(
       pre_preamble += "\\klfSetBackgroundFrameOffset{1pt}%\n";
     } else {
       value::dict bgfd = bgf_v.get<value::dict>();
-      parameter_taker param_bgf{ bgfd, "klfengine::klfimplpkg_engine (input.bg_frame)" };
+      parameter_taker param_bgf{ bgfd, "klfengine::engines::klflatexpackage (input.bg_frame)" };
       bool bg_frame_on = false;
       bool need_set_default_thickness = true;
       param_bgf.take_and_do_if<std::string>("thickness", [&](const std::string & t) {
@@ -402,7 +403,7 @@ void run_implementation::impl_compile()
   // a latex->dvi workflow they can use latextoimage_engine)
   if ( d->via_dvi ) {
     throw std::runtime_error(
-        "Running latex->DVI with klfimplpkg engine is not yet implemented!");
+        "Running latex->DVI with klflatexpackage engine is not yet implemented!");
   }
 
   // write our style file into the temp dir (TODO: maybe we could have a fixed
@@ -493,7 +494,7 @@ klfengine::format_spec run_implementation::impl_make_canonical(
     )
 {
   klfengine::format_spec canon_format;
-  parameter_taker param{ format.parameters, "klfengine::klfimplpkg_engine" };
+  parameter_taker param{ format.parameters, "klfengine::engines::klflatexpackage" };
 
   if (format.format == "LATEX") {
     bool latex_raw = param.take("latex_raw", true);
@@ -587,7 +588,7 @@ klfengine::binary_data run_implementation::impl_produce_data(
   //const klfengine::settings & sett = settings();
 
   parameter_taker param{ format.parameters,
-    "klfengine::klfimplpkg_engine::impl_produce_data" };
+    "klfengine::engines::klflatexpackage::impl_produce_data" };
 
   // 
   bool latex_raw = param.take("latex_raw", false);
@@ -648,5 +649,6 @@ klfengine::binary_data run_implementation::impl_produce_data(
 
 
 
-} // namespace klfimplpkg_engine
+} // namespace klflatexpackage
+} // namespace engines
 } // namespace klfengine

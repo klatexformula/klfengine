@@ -13,5 +13,5 @@
 #include <klfengine/ghostscript_interface>
 
 // engines
-#include <klfengine/klfimplpkg_engine>
-#include <klfengine/latextoimage_engine>
+#include <klfengine/engines/klflatexpackage>
+#include <klfengine/engines/latextoimage>

@@ -26,13 +26,50 @@
  * SOFTWARE.
  */
 
-// header we are testing gets included first (helps detect missing #include's)
-#include <klfengine/h/klfimplpkg_engine/engine.h>
+#pragma once
 
-#include <catch2/catch.hpp>
+#include <klfengine/basedefs>
 
-TEST_CASE( "something happens when this and that 2uewhifdnfudohas", "[keyword][!mayfail]" )
+#include <klfengine/run>
+#include <klfengine/engine_run_implementation>
+
+namespace klfengine {
+class ghostscript_interface_engine_tool;
+
+namespace engines {
+namespace latextoimage {
+
+struct run_implementation_private;
+
+class run_implementation : public klfengine::engine_run_implementation
 {
-  // write tests here
-  REQUIRE( false ) ;
-}
+public:
+  run_implementation(
+    std::shared_ptr<klfengine::ghostscript_interface_engine_tool> gs_iface_tool_,
+    klfengine::input input_,
+    klfengine::settings settings_
+    );
+  virtual ~run_implementation();
+
+private:
+  run_implementation_private *d;
+
+  virtual void impl_compile();
+  virtual std::vector<klfengine::format_description> impl_available_formats();
+  virtual klfengine::format_spec impl_make_canonical(
+      const klfengine::format_spec & format, bool check_only
+      );
+  virtual klfengine::binary_data impl_produce_data(const klfengine::format_spec & format);
+
+  virtual std::string assemble_latex_template(const klfengine::input & input);
+};
+
+
+} // namespace latextoimage
+} // namespace engines
+} // namespace klfengine
+
+
+#ifndef _KLFENGINE_DONT_INCLUDE_IMPL_HXX
+#include <klfengine/impl/engines/latextoimage/run_implementation.hxx>
+#endif

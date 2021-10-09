@@ -5,7 +5,7 @@
  *
  * The MIT License (MIT)
  *
- * Copyright 2021 Philippe Faist
+ * Copyright 2020 Philippe Faist
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -34,13 +34,14 @@
 #include <klfengine/run>
 #include <klfengine/engine_run_implementation>
 
-#include <klfengine/h/latextoimage_engine/run_implementation.h>
+//#include <klfengine/h/engines/klflatexpackage/run_implementation.h>
 
 namespace klfengine {
 
 class ghostscript_interface_engine_tool;
 
-namespace latextoimage_engine {
+namespace engines {
+namespace klflatexpackage {
 
 class engine : public klfengine::engine {
 public:
@@ -58,11 +59,11 @@ private:
 };
 
 
-
-} // namespace latextoimage_engine
+} // namespace klflatexpackage
+} // namespace engines
 } // namespace klfengine
 
 
 #ifndef _KLFENGINE_DONT_INCLUDE_IMPL_HXX
-#include <klfengine/impl/latextoimage_engine/engine.hxx>
+#include <klfengine/impl/engines/klflatexpackage/engine.hxx>
 #endif

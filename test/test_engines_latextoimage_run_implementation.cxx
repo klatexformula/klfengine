@@ -27,19 +27,20 @@
  */
 
 // header we are testing gets included first (helps detect missing #include's)
-#include <klfengine/h/latextoimage_engine/run_implementation.h>
+#include <klfengine/h/engines/latextoimage/run_implementation.h>
 
-#include <klfengine/h/latextoimage_engine/engine.h>
+#include <klfengine/engines/latextoimage>
+#include <klfengine/h/engines/latextoimage/engine.h>
 
 #include <catch2/catch.hpp>
 
 #include "testutils.hxx"
 
 
-TEST_CASE( "simple compilation with latextoimage_engine produces correct equation image",
-           "[latextoimage_engine-run_implementation]" )
+TEST_CASE( "simple compilation with engines::latextoimage produces correct equation image",
+           "[engines-latextoimage-run_implementation]" )
 {
-  klfengine::latextoimage_engine::engine e;
+  klfengine::engines::latextoimage::engine e;
 
   e.set_settings(klfengine::settings::detect_settings());
 
@@ -78,6 +79,6 @@ TEST_CASE( "simple compilation with latextoimage_engine produces correct equatio
   klfengine::detail::utils::dump_binary_data_to_file("testoutf_931ieowf.png", pngdata);
 
   require_images_similar("testoutf_931ieowf.png",
-                         KLFENGINE_TEST_DATA_DIR "latextoimage_engine_run_implementation_1.png");
+                         KLFENGINE_TEST_DATA_DIR "engines_latextoimage_run_implementation_1.png");
 
 }

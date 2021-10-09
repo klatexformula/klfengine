@@ -26,16 +26,48 @@
  * SOFTWARE.
  */
 
-// header we are testing gets included first (helps detect missing #include's)
-#include <klfengine/h/latextoimage_engine/engine.h>
+#pragma once
+
+#include <klfengine/engines/latextoimage>
+#include <klfengine/ghostscript_interface>
 
 
-#include <catch2/catch.hpp>
+namespace klfengine {
+namespace engines {
+namespace latextoimage {
 
-
-
-TEST_CASE( "something happens when this and that f8yr93guibdsnjk", "[keyword][!mayfail]" )
+_KLFENGINE_INLINE
+engine::engine()
+  : klfengine::engine("latextoimage")
 {
-  // write tests here
-  REQUIRE( false ) ;
+  _gs_iface_tool = std::shared_ptr<klfengine::ghostscript_interface_engine_tool>{
+    new klfengine::ghostscript_interface_engine_tool{}
+  };
 }
+
+_KLFENGINE_INLINE
+engine::~engine()
+{
+}
+
+_KLFENGINE_INLINE
+void engine::adjust_for_new_settings(klfengine::settings & settings_)
+{
+  _gs_iface_tool->set_settings(settings_);
+}
+
+// reimplemented from klfengine::engine
+_KLFENGINE_INLINE
+klfengine::engine_run_implementation *
+engine::impl_create_engine_run_implementation( klfengine::input input_,
+                                               klfengine::settings settings_ )
+{
+  return new run_implementation(_gs_iface_tool, std::move(input_), std::move(settings_));
+}
+
+
+
+
+} // namespace latextoimage
+} // namespace engines
+} // namespace klfengine

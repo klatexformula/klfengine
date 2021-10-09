@@ -1,2 +1,0 @@
-#include <klfengine/h/latextoimage_engine/engine.h>
-#include <klfengine/h/latextoimage_engine/run_implementation.h>

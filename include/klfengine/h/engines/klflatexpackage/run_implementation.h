@@ -30,38 +30,47 @@
 
 #include <klfengine/basedefs>
 
-#include <klfengine/engine>
 #include <klfengine/run>
 #include <klfengine/engine_run_implementation>
-
-#include <klfengine/h/klfimplpkg_engine/run_implementation.h>
 
 namespace klfengine {
 
 class ghostscript_interface_engine_tool;
 
-namespace klfimplpkg_engine {
+namespace engines {
+namespace klflatexpackage {
 
-class engine : public klfengine::engine {
+struct run_implementation_private;
+
+class run_implementation : public klfengine::engine_run_implementation
+{
 public:
-  engine();
-  virtual ~engine();
+  run_implementation(
+      std::shared_ptr<klfengine::ghostscript_interface_engine_tool> gs_iface_tool_,
+      klfengine::input input_,
+      klfengine::settings settings_
+      );
+  virtual ~run_implementation();
 
 private:
-  // reimplemented from klfengine::engine
-  void adjust_for_new_settings(klfengine::settings & settings);
-  klfengine::engine_run_implementation *
-  impl_create_engine_run_implementation( klfengine::input input_,
-                                         klfengine::settings settings_ );
+  run_implementation_private *d;
 
-  std::shared_ptr<klfengine::ghostscript_interface_engine_tool> _gs_iface_tool;
+  virtual void impl_compile();
+  virtual std::vector<klfengine::format_description> impl_available_formats();
+  virtual klfengine::format_spec impl_make_canonical(
+      const klfengine::format_spec & format, bool check_only
+      );
+  virtual klfengine::binary_data impl_produce_data(const klfengine::format_spec & format);
+
+  virtual std::string assemble_latex_template(const klfengine::input & input);
 };
 
 
-} // namespace klfimplpkg_engine
+} // namespace klflatexpackage
+} // namespace engines
 } // namespace klfengine
 
 
 #ifndef _KLFENGINE_DONT_INCLUDE_IMPL_HXX
-#include <klfengine/impl/klfimplpkg_engine/engine.hxx>
+#include <klfengine/impl/engines/klflatexpackage/run_implementation.hxx>
 #endif

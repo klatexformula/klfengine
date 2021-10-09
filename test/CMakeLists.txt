@@ -116,17 +116,17 @@ klfengine_create_test(temporary_directory
 klfengine_create_test(ghostscript_interface
   SOURCES test_ghostscript_interface.cxx)
 
-klfengine_create_test(klfimplpkg_engine_run_implementation
-  SOURCES test_klfimplpkg_engine_run_implementation.cxx)
+klfengine_create_test(engines_klflatexpackage_run_implementation
+  SOURCES test_engines_klflatexpackage_run_implementation.cxx)
 
-klfengine_create_test(klfimplpkg_engine_engine
-  SOURCES test_klfimplpkg_engine_engine.cxx)
+klfengine_create_test(engines_klflatexpackage_engine
+  SOURCES test_engines_klflatexpackage_engine.cxx)
 
-klfengine_create_test(latextoimage_engine_run_implementation
-  SOURCES test_latextoimage_engine_run_implementation.cxx)
+klfengine_create_test(engines_latextoimage_run_implementation
+  SOURCES test_engines_latextoimage_run_implementation.cxx)
 
-klfengine_create_test(latextoimage_engine_engine
-  SOURCES test_latextoimage_engine_engine.cxx)
+klfengine_create_test(engines_latextoimage_engine
+  SOURCES test_engines_latextoimage_engine.cxx)
 
 klfengine_create_test(detail_filesystem
   SOURCES test_detail_filesystem.cxx)
@@ -152,10 +152,10 @@ klfengine_create_test(separate_impl
           test_process.cxx
           test_temporary_directory.cxx
           test_ghostscript_interface.cxx
-          test_klfimplpkg_engine_run_implementation.cxx
-          test_klfimplpkg_engine_engine.cxx
-          test_latextoimage_engine_run_implementation.cxx
-          test_latextoimage_engine_engine.cxx
+          test_engines_klflatexpackage_run_implementation.cxx
+          test_engines_klflatexpackage_engine.cxx
+          test_engines_latextoimage_run_implementation.cxx
+          test_engines_latextoimage_engine.cxx
           #
           test_detail_filesystem.cxx
           test_detail_utils.cxx
