@@ -334,25 +334,48 @@ inline format_spec format_provider::find_format(IteratorInterfaceContainer && fo
   throw no_such_format("<no suitable format found in given list>");
 }
 
+
+
+
+
+namespace detail {
+// specialize std::hash for format_spec, so we can use it as a key for
+// std::unordered_map
+template<>
+struct hash<klfengine::format_spec>
+{
+  std::size_t operator()(klfengine::format_spec const& f) const noexcept
+  {
+    std::size_t seed = 0;
+    hash_combine(seed, hash<std::string>{}(f.format));
+    hash_combine(seed, hash<klfengine::value::dict>{}(f.parameters));
+    return seed;
+  }
+};
+} // namespace detail
+
+
+
 } // namespace klfengine
 
 
+// // specialize std::hash for format_spec, so we can use it as a key for
+// // std::unordered_map
+// namespace std {
+//   template<>
+//   struct hash<klfengine::format_spec>
+//   {
+//     std::size_t operator()(klfengine::format_spec const& f) const noexcept
+//     {
+//       std::size_t seed = 0;
+//       klfengine::detail::hash_combine(seed, std::hash<std::string>{}(f.format));
+//       klfengine::detail::hash_combine(seed, std::hash<klfengine::value::dict>{}(f.parameters));
+//       return seed;
+//     }
+//   };
+// } // namespace std
 
-// specialize std::hash for format_spec, so we can use it as a key for
-// std::unordered_map
-namespace std {
-  template<>
-  struct hash<klfengine::format_spec>
-  {
-    std::size_t operator()(klfengine::format_spec const& f) const noexcept
-    {
-      std::size_t seed = 0;
-      klfengine::detail::hash_combine(seed, std::hash<std::string>{}(f.format));
-      klfengine::detail::hash_combine(seed, std::hash<klfengine::value::dict>{}(f.parameters));
-      return seed;
-    }
-  };
-} // namespace std
+
 
 
 #ifndef _KLFENGINE_DONT_INCLUDE_IMPL_HXX

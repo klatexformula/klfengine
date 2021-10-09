@@ -219,6 +219,33 @@ std::string get_type_name()
 }
 
 
+// Custom hash class to help smooth out some inconsistencies between different
+// C++ std lib's implementations.  E.g. std::hash(nullptr) etc.
+template<typename T>
+struct hash
+{
+  template<
+    typename TT,
+    typename T2 = T,
+    typename std::enable_if<std::is_default_constructible<std::hash<T2>>::value &&
+                            !std::is_same<T2, std::nullptr_t>::value, int>::type = 99
+    >
+  std::size_t operator()(TT && x) const noexcept
+  {
+    return std::hash<T>{}(std::forward<TT>(x));
+  }
+
+  // include hash function for nullptr_t
+  template<
+    typename T2 = T,
+    typename std::enable_if<std::is_same<T2, std::nullptr_t>::value, int>::type = 99
+    >
+  std::size_t operator()(std::nullptr_t ) const noexcept
+  {
+    return 0;
+  }
+};
+
 
 // useful way of combining hashes as in boost: (cf
 // https://stackoverflow.com/a/2595226/1694896)

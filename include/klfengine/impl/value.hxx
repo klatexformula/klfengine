@@ -217,7 +217,7 @@ struct value_hasher_visitor
   void operator()(SimpleType x)
   {
     assert(seed_ptr != nullptr) ;
-    hash_combine(*seed_ptr, std::hash<SimpleType>{}(x));
+    hash_combine(*seed_ptr, hash<SimpleType>{}(x));
   }
 };
 
@@ -234,7 +234,7 @@ void value_hasher_visitor::operator()(const value::dict & d)
 {
   assert(seed_ptr != nullptr) ;
   for (auto const& x : d) {
-    hash_combine(*seed_ptr, std::hash<value::dict::key_type>{}(x.first));
+    hash_combine(*seed_ptr, hash<value::dict::key_type>{}(x.first));
     x.second.visit(value_hasher_visitor{seed_ptr});
   }
 }

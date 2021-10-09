@@ -47,6 +47,11 @@ namespace detail
  * (binary?) string representing the format_spec (e.g. JSON? or BSON?)
  */
 using fmtspec_cache_key_type = format_spec; //std::string;
+
+using run_impl_cache_type =
+  std::unordered_map<fmtspec_cache_key_type,
+                     binary_data,
+                     hash<fmtspec_cache_key_type> >;
 }
 
 
@@ -214,7 +219,7 @@ private:
   const klfengine::input _input;
   const klfengine::settings _settings;
 
-  std::unordered_map<detail::fmtspec_cache_key_type,binary_data> _cache;
+  detail::run_impl_cache_type _cache;
 
 };
 

@@ -575,6 +575,13 @@ void ghostscript_interface_private::impl_run_gs_linkedlibgs(
   throw std::runtime_error("GS method 'LinkedLibgs' is not available because it "
                            "was not enabled during compilation.");
 
+  // unused arguments
+  (void)gs_args;
+  (void)stdin_data;
+  (void)add_standard_batch_flags;
+  (void)capture_stdout;
+  (void)capture_stderr;
+
 #endif
 }
 

@@ -224,7 +224,7 @@ template<typename ToType>
 struct variant_cast_helper_full_visitor
   : public variant_cast_helper<ToType>
 {
-  inline ToType operator()(ToType value) { return std::move(value); }
+  inline ToType operator()(ToType value) { return value; }
 
   using variant_cast_helper<ToType>::operator();
 
@@ -885,30 +885,51 @@ private:
   }
 };
 
-} // namespace klfengine
 
 
-
-// custom specialization of std::hash can be injected in namespace std
-//
-// hash of klfengine::value is used e.g. to allow format_spec to be a valid key
+namespace detail {
+// Support hashing klfengine::value e.g. to allow format_spec to be a valid key
 // type in an std::unordered_map
-namespace std {
 template<> struct hash<klfengine::value>
 {
   std::size_t operator()(klfengine::value const & v) const noexcept
   {
-    return klfengine::detail::hash_value(v);
+    return hash_value(v);
   }
 };
 template<> struct hash<klfengine::value::dict>
 {
   std::size_t operator()(klfengine::value::dict const & v) const noexcept
   {
-    return klfengine::detail::hash_value_dict(v);
+    return hash_value_dict(v);
   }
 };
-} // namespace std
+} // namespace detail
+
+} // namespace klfengine
+
+
+
+// // custom specialization of std::hash can be injected in namespace std
+// //
+// // hash of klfengine::value is used e.g. to allow format_spec to be a valid key
+// // type in an std::unordered_map
+// namespace std {
+// template<> struct hash<klfengine::value>
+// {
+//   std::size_t operator()(klfengine::value const & v) const noexcept
+//   {
+//     return klfengine::detail::hash_value(v);
+//   }
+// };
+// template<> struct hash<klfengine::value::dict>
+// {
+//   std::size_t operator()(klfengine::value::dict const & v) const noexcept
+//   {
+//     return klfengine::detail::hash_value_dict(v);
+//   }
+// };
+// } // namespace std
 
 
 

@@ -153,7 +153,7 @@ TEST_CASE( "value can store different data types recursively", "[value]" )
   }
 
   {
-    using namespace std::literals; // "xxx"s -> std::string  (C++ >= 14)
+    //using namespace std::literals; // "xxx"s -> std::string  (C++ >= 14)
 
     klfengine::value d{
       klfengine::value::array{
