@@ -14,8 +14,8 @@ API Documentation
    api/inputs
    api/format
    api/engine
-   api/latextoimage_engine
-   api/klfimplpkg_engine
+   api/eng_latextoimage
+   api/eng_klflatexpackage
    api/helpers
    api/ghostscript
    apitodo
